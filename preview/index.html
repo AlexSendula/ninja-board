@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ninja Board preview</title>
+<!-- Same cascade as the mockup: scaffold, then the Obsidian shim, then the plugin's styles.css -->
+<style id="mock">
+  html, body { margin: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  body.theme-light { background: #e9e9ec; }
+  body.theme-dark { background: #101010; }
+  [hidden] { display: none !important; }
+  /* Id selectors so the emulated Obsidian button rule does not restyle the scaffold */
+  #mock-bar { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; gap: 8px 20px; align-items: center;
+    padding: 10px 16px; background: #fdfdfd; border-bottom: 1px solid #ccc; font-size: 12px; color: #333; }
+  #mock-bar b { font-weight: 600; margin-right: 4px; }
+  #mock-bar .mock-group { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  #mock-bar button { all: unset; padding: 4px 10px; border: 1px solid #bbb; border-radius: 4px; background: #fff; color: #333; cursor: pointer; }
+  #mock-bar button[aria-pressed="true"] { background: #333; border-color: #333; color: #fff; }
+  #mock-bar button:focus-visible { outline: 2px solid #8a5cf5; outline-offset: 1px; }
+  .mock-stage { padding: 24px 16px 64px; }
+  .mock-frame { width: 1200px; max-width: 100%; margin: 0 auto; border-radius: 10px; overflow: hidden;
+    border: 1px solid var(--background-modifier-border); background: var(--background-primary); transition: width .3s; }
+  .mock-frame.mod-sidedock { background: var(--background-secondary); }
+  #mock-toast { position: fixed; left: 50%; bottom: 24px; z-index: 40; translate: -50% 0; padding: 8px 14px; border-radius: 8px;
+    background: #222; color: #fff; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.2); }
+</style>
+<link rel="stylesheet" href="shim.css">
+<link rel="stylesheet" href="../styles.css">
+</head>
+
+<body class="theme-light">
+
+<nav id="mock-bar" aria-label="Preview controls">
+  <div class="mock-group"><b>View</b>
+    <button data-view="today" aria-pressed="true">Today</button>
+    <button data-view="week" aria-pressed="false">Week</button>
+    <button data-view="projects" aria-pressed="false">Projects</button>
+    <button data-view="backlog" aria-pressed="false">Backlog &amp; Waiting</button>
+    <button data-view="guide" aria-pressed="false">Guide</button>
+  </div>
+  <div class="mock-group"><b>Theme</b>
+    <button data-theme="theme-light" aria-pressed="true">Light</button>
+    <button data-theme="theme-dark" aria-pressed="false">Dark</button>
+  </div>
+  <div class="mock-group"><b>Surface</b>
+    <button data-surface="main" aria-pressed="true">Main</button>
+    <button data-surface="sidebar" aria-pressed="false">Sidebar</button>
+  </div>
+  <div class="mock-group"><b>Width</b>
+    <button data-width="1200" aria-pressed="true">1200</button>
+    <button data-width="760" aria-pressed="false">760</button>
+    <button data-width="560" aria-pressed="false">560</button>
+    <button data-width="360" aria-pressed="false">360</button>
+    <button data-width="320" aria-pressed="false">320</button>
+  </div>
+</nav>
+
+<div class="mock-stage">
+<div class="mock-frame">
+  <div class="bases-toolbar">
+    <span class="bases-view-name">Today</span>
+    <span class="bases-tools"><span>Sort</span><span>Filter</span><span>Properties</span></span>
+  </div>
+  <!-- In Obsidian a base sits inside a note: shim.css gives this wrapper the note's markdown rules -->
+  <div class="markdown-rendered show-indentation-guide"><div class="brain-view"></div></div>
+</div>
+</div>
+
+<div id="mock-toast" role="status" hidden></div>
+
+<script src="dist/preview.js"></script>
+</body>
+</html>

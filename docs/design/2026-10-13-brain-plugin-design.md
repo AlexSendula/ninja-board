@@ -1,0 +1,135 @@
+# Ninja Board: Obsidian plugin design
+
+The human side of the second brain: an Obsidian plugin that shows the vault the way a well-made app would. It is part of the implementation of the second brain ([implementation spec](https://alexsendula.github.io/second-brain/implementation/), "Reader and views") and its own sub-project.
+
+| | |
+|---|---|
+| Status | v0.2.0, built 2026-10-15: round 2 (`2026-10-14-brain-plugin-round-2-design.md`). v0.1.0 built 2026-10-14. |
+| Visual design | [design/mockup.html](../../design/mockup.html) (the mockup; its `#brain-css` block becomes the plugin's styles.css) |
+| Research | [Obsidian plugins](https://alexsendula.github.io/second-brain/research/2026-10-13-obsidian-plugins/) |
+
+## 1. Goal and rules
+- **Goal.** Show your life at a glance and let you move through it: see today and the week, tick tasks, start one, move a story or project, open the note behind anything. It should feel practical, calm, simple and beautiful: blocks with balance, not a document.
+- **What it does.** Ninja Board shows notes and makes simple edits:
+  - tick or untick a task;
+  - set a task's state;
+  - move a card, which changes a note's `status`;
+  - plan a task on a day, which sets its `scheduled` (round 2);
+  - plan a task for a week, any day, which sets its `start` to that week's Monday (round 2);
+  - take a task back to no date yet, which removes its `scheduled` and `start` (round 2);
+  - set a task's deadline, or remove it, which sets or removes its `due` (round 2);
+  - arrange the Week and Projects boards, saved in the dashboard note (round 2);
+  - open a note.
+
+  Creating stays with the agent or with typing in notes, and so does most planning.
+- **It keeps no data of its own.** It reads the notes and writes changes straight back, so a view can never drift from the vault.
+- **The agent can do everything Ninja Board can, with the same result.** Ninja Board is a view for you; the agent does most of the work. Every edit Ninja Board makes is one of the fixed edit rules in the implementation spec (reference format, "Edits"), and the agent makes the same edits with `brain` commands. Both are tested against one shared file of edit examples, `test/edit-cases.json`.
+- **No date math of its own beyond filtering.** Repeats, carry over and lapse, and done dates on ticking belong to the Tasks plugin (task lines) and the `brain` tools (notes). Repeating task notes show "done via the agent" and can't be ticked in Ninja Board.
+- **Builds on Bases.** Bases selects the notes (its filter); Ninja Board draws them in its own order. Everything else stays Obsidian's own.
+
+## 2. How it fits together
+- **Custom Bases views.** Ninja Board registers its view types with `registerBasesView` (Obsidian 1.10 and later):
+
+  | View type | View |
+  |---|---|
+  | `ninja-board-today` | Today |
+  | `ninja-board-week` | Week board |
+  | `ninja-board-projects` | Projects board |
+  | `ninja-board-backlog` | Backlog & Waiting |
+  | `ninja-board-guide` | Guide |
+
+  Each one gets the notes Bases selected, already filtered, and renders them in its own order.
+- **Dashboard files.** `01 Dashboard/` holds one note per view. Each note embeds a ` ```base ` block that uses the matching Ninja Board view type and a sensible filter (for example everything outside `10 Archive`). The Today note is the start page (Obsidian's "Default file to open"). Bases' own toolbar stays above each view: its filter chooses which notes Ninja Board shows; Ninja Board doesn't use its grouping or sorting and keeps its own order. The Week and Projects notes' blocks also hold the boards' arrangement (`arrange:`, round 2), and the Today note's block holds the Schedule's view (`schedule:`, round 2).
+- **Reading:**
+  - notes' frontmatter from `metadataCache`;
+  - task lines from the cache's list items (`task` character and line number), with each line's text from `vault.cachedRead`;
+  - task lines parsed in the Tasks plugin's Dataview format (section 3).
+
+  Views re-render when Bases reports new data and when the metadata cache changes.
+- **Writing:**
+  - **Tick or untick:** the Tasks plugin's own `apiV1.executeToggleTaskDoneCommand(line, path)` produces the new line, or two lines for a recurring task. Ninja Board writes it with `vault.process`, after checking the line is still what it read; if not, it re-reads and does nothing. There is one completion engine, wherever you tick from.
+  - **Set a state:** Ninja Board replaces the checkbox character (`[/]`, `[w]`, `[ ]`, `[-]`). Done goes through Tasks, so the completion date is added; for dropped, Ninja Board writes the cancelled date itself.
+  - **Move a card:** `fileManager.processFrontMatter` sets the note's `status`.
+  - Every write is one small edit to one note.
+- **Interaction:**
+  - **Tick:** click the circle.
+  - **Cards:** right-click, or long-press on touch, opens a card at the row, Ninja Board's own (not Obsidian's `Menu`): the planner card for a task that can be planned, otherwise the states card with To do, Doing, Waiting, Done and Dropped. Story, project and repeat cards cover the other rows (round 2).
+  - **Drag:** pointer-event drag between columns, so it also works on touch.
+  - **Keyboard:** Enter opens the note, Space ticks, and the context-menu key or Shift+F10 opens the card.
+- **Theme.** Only Obsidian's CSS variables, so it fits the user's theme in light and dark. Every class is prefixed `brain-`. The plugin's CSS is the `#brain-css` block of the final mockup.
+- **Phone.** No Node or Electron APIs, so the plugin also runs in Obsidian's phone app (`isDesktopOnly: false`).
+
+## 3. Task lines (Tasks plugin, Dataview format)
+
+| State | Line | Tasks status type |
+|---|---|---|
+| To do | `- [ ] Send Sam the hosting options [due:: 2026-10-17]` | TODO |
+| Doing | `- [/] Build the homepage header [scheduled:: 2026-10-13]` | IN_PROGRESS |
+| Waiting | `- [w] Get photos from [[Sam Rivers]] [scheduled:: 2026-10-20]` (the scheduled date is the chase date) | ON_HOLD (a custom status added in Tasks' settings: symbol `w`, name Waiting, next status `x`) |
+| Done | `- [x] Pick design B with Sam [completion:: 2026-10-12]` | DONE |
+| Dropped | `- [-] Try a page builder [cancelled:: 2026-10-11]` | CANCELLED |
+
+- **Dates:** `due` is the deadline and `scheduled` is the planned day; for waiting, `scheduled` is the chase date.
+- **Repeats** stay on task notes, as the system says.
+- **Someday** stays a state of task notes and projects.
+- **Lines with a link only** (`- [ ] [[Choose hosting for Sam's site]]`) point to a story. Ninja Board shows the story itself and doesn't list such a line as a separate task.
+
+## 4. The views (v1)
+Visual design and exact markup: the final mockup. In short:
+1. **Today:**
+   - header: the date, with a ring and "N left";
+   - Now: tasks in doing;
+   - Today: due today, or planned today or on an earlier day and still open, overdue and chase due;
+   - Schedule: the day's timeline of its events (Large, scrolling, or Compact), or a list when narrow or when an appointment has no start or no end;
+   - Done today: collapsed, and hidden at 0.
+2. **Week:**
+   - header: the week's dates, with a ring and "N left";
+   - a week strip of seven days with appointments and task counts;
+   - a board with To do, Doing and Done. Stories are cards with their task lines tickable on the card. Loose task lines are draggable rows, and so are a task note's own open lines unless it is a story.
+3. **Projects:**
+   - a board by status (Active, Paused, Someday, Done);
+   - cards show the area, due date, a progress ring and the next open task. Dragging a card changes the status.
+4. **Backlog & Waiting:**
+   - Backlog: the inbox with ages, undated tasks and task notes grouped by project or area, and someday projects;
+   - Waiting: one tile per person you're waiting on, with their waiting tasks, the context and the earliest chase date. A passed chase is emphasized.
+5. **Guide** (round 2):
+   - the marks, how to do things by mouse, touch and keyboard, how to plan with the planner card, the views, the time words, and who does what (Ninja Board or the agent);
+   - a check of the Tasks setup, read from Tasks' saved settings each time the Guide is drawn;
+   - reached from its dashboard note, from the view picker, or by the command Ninja Board: Open guide.
+
+**Round 2** (v0.2.0; the design, and the rulings made while building it, are in `2026-10-14-brain-plugin-round-2-design.md`):
+- **Arranging.** Board columns take a drop along their full height. On the Week board's To do and Doing and the Projects board's Active, Paused and Someday, a drop at a place (shown by a landing slot) or Alt+↑ / Alt+↓ arranges the column. The order is saved as `arrange:` lists in the dashboard note's `base` block, through Bases' view config. Done keeps its time order.
+- **Weeks.** ‹ and › page through weeks, This week comes back, and Coming up shows the next three weeks with their counts. An upcoming week is a preview: Planned or due by day, and a To plan list that Plan this week opens. A past week is a read-only board: from its week plan's record (Not done, In progress, Done, and Backlog folded), or, without one, from the notes (Not done, Done).
+- **Planning and deadlines.** A row is planned on a day (`scheduled`) by a drop on a day of the strip or in the planner card; for a week, any day (`start`) by a drop on Planned or due or the card's any-day button; or to no date yet by a drop on To plan or No date yet in the card. Planning writes `scheduled` or `start`, and a new plan replaces the old one. It removes a `due` only when the plan leaves it behind: a day or week in a later ISO week than the deadline's, or no date yet while the deadline is this week or overdue. The planner card also sets and removes a deadline (`due`) with its red day chip.
+- **Cards.** Right-click, long-press or the context-menu key opens a card in place of Obsidian's menu: the planner card (a task), the states card, the story card, the project card, and the repeat card (a repeating row, with no buttons).
+- **Long lists.** Projects' Done shows the 3 most recently finished, and Someday (on Projects and in Backlog) the 5 most recently added, each with Show all. Show all opens the list modal, with a search field, a grid of the same cards, and drag-out onto the board where the column accepts it.
+- **Busy days.** Today's Schedule has a Large view (about 6 hours that scroll, with Whole day and Fit) and a Compact view (the whole day, no scrolling), switched by a button saved as `schedule:` in the dashboard note. The Week strip shows the appointments still to come, at most 3 a day, with **+N more** or **N earlier** opening the day's full view in a modal. See the round 2 design, section 4a.
+
+**Time words** follow the system's definitions (system 3.4): today, overdue, this week (ISO week, Monday to Sunday), chase due. Today also keeps a task planned on an earlier day until it is done, which 3.4 does not say; it was decided on 2026-10-15, and the implementation spec records it as deviation 4. Ninja Board's unit tests check the time words inline (`dates.test.ts`, `src/model/today.test.ts`). A shared set of cases for the `brain` tools is planned, not built.
+
+## 5. Code and build
+- **Where:** the repository root: TypeScript, bundled with esbuild into `main.js`, `manifest.json` and `styles.css`. Node is only needed to build; vaults receive the built files.
+- **Structure:** one module per concern:
+  - parsing task lines;
+  - time words;
+  - reading a note's tasks;
+  - writes;
+  - one renderer per view;
+  - shared components (task row, card, ring, week strip, cards (popover), drag).
+- **Tests:**
+  - unit tests with Node's built-in test runner for parsing, time words and counts;
+  - a preview page that runs the real renderers on the sample data, so the design can be checked in a browser in light and dark at every width;
+  - a final check in the sandbox vault in Obsidian.
+- **Install:**
+  - during development, the built plugin is copied into the sandbox vault's `.obsidian/plugins/ninja-board/`;
+  - later, `install.py` copies it into a new vault when Obsidian is one of the vault's readers.
+
+## 6. Out of scope for v1
+- Creating or editing tasks, dates or notes (for v0.1.0; round 2 added planning and deadlines, see above).
+- Calendar export.
+- Time tracking views (Capacity).
+- Charts.
+- Settings beyond Bases' own view options.
+
+## 7. Open points for the checkpoint
+- Setup, once by hand: the `[w]` waiting status in Tasks' settings. The Guide's Setup tile checks it.

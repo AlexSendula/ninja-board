@@ -1,0 +1,103 @@
+  body {
+    --font-interface: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    --font-text-size: 16px;
+    --font-ui-smaller: 12px; --font-ui-small: 13px; --font-ui-medium: 15px; --font-ui-large: 20px;
+    --radius-s: 4px; --radius-m: 8px; --radius-l: 12px;
+    --size-2-1: 2px; --size-2-2: 4px; --size-2-3: 6px;
+    --size-4-1: 4px; --size-4-2: 8px; --size-4-3: 12px; --size-4-4: 16px; --size-4-5: 20px;
+    --size-4-6: 24px; --size-4-8: 32px; --size-4-9: 36px; --size-4-10: 40px; --size-4-12: 48px;
+    --border-width: 1px; --input-height: 30px; --button-radius: var(--radius-m);
+    color: var(--text-normal);
+  }
+  body.theme-light {
+    --background-primary: #ffffff; --background-primary-alt: #fafafa; --background-secondary: #f6f6f6;
+    --background-modifier-border: #e3e3e3; --background-modifier-border-hover: #d4d4d4; --background-modifier-border-focus: #bdbdbd;
+    --background-modifier-hover: rgba(0,0,0,0.067);
+    --text-normal: #222222; --text-muted: #5c5c5c; --text-faint: #ababab; --text-on-accent: #ffffff;
+    --interactive-normal: #ffffff; --interactive-hover: #fafafa;
+    --interactive-accent: #8a5cf5; --interactive-accent-hover: #7a4ee8; --color-accent: #8a5cf5;
+    --color-red: #e93147; --color-orange: #ec7500; --color-yellow: #e0ac00; --color-green: #08b94e; --color-blue: #086ddd;
+    --shadow-s: 0 1px 2px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+    --input-shadow: inset 0 0 0 1px rgba(0,0,0,0.12), 0 2px 3px 0 rgba(0,0,0,0.05), 0 1px 1.5px 0 rgba(0,0,0,0.03);
+    --input-shadow-hover: inset 0 0 0 1px rgba(0,0,0,0.17), 0 2px 3px 0 rgba(0,0,0,0.1), 0 1px 1.5px 0 rgba(0,0,0,0.03);
+  }
+  body.theme-dark {
+    --background-primary: #1e1e1e; --background-primary-alt: #242424; --background-secondary: #262626;
+    --background-modifier-border: #363636; --background-modifier-border-hover: #474747; --background-modifier-border-focus: #5a5a5a;
+    --background-modifier-hover: rgba(255,255,255,0.075);
+    --text-normal: #dadada; --text-muted: #b3b3b3; --text-faint: #666666; --text-on-accent: #ffffff;
+    --interactive-normal: #363636; --interactive-hover: #3f3f3f;
+    --interactive-accent: #8a5cf5; --interactive-accent-hover: #7a4ee8; --color-accent: #a68af9;
+    --color-red: #fb464c; --color-orange: #e9973f; --color-yellow: #e0de71; --color-green: #44cf6e; --color-blue: #53dfdd;
+    --shadow-s: 0 1px 2px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.2);
+    --input-shadow: inset 0 0.5px 0.5px 0.5px rgba(255,255,255,0.09), 0 2px 4px 0 rgba(0,0,0,0.15), 0 1px 1.5px 0 rgba(0,0,0,0.1);
+    --input-shadow-hover: inset 0 0.5px 1px 0.5px rgba(255,255,255,0.16), 0 2px 3px 0 rgba(0,0,0,0.3), 0 1px 1.5px 0 rgba(0,0,0,0.2);
+  }
+
+  /* Obsidian's real button rules (app.css), so Brain's resets are exercised */
+  button {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: var(--input-height); padding: var(--size-4-1) var(--size-4-3); border: 0; border-radius: var(--button-radius);
+    font-family: inherit; font-size: var(--font-ui-small); font-weight: 400; color: var(--text-normal);
+    white-space: nowrap; user-select: none; outline: none; cursor: default;
+  }
+  button:not(.clickable-icon) {
+    background-color: var(--interactive-normal); box-shadow: var(--input-shadow);
+    white-space: nowrap; display: inline-flex; justify-content: center;
+  }
+  button:not(.clickable-icon):hover { background-color: var(--interactive-hover); box-shadow: var(--input-shadow-hover); }
+  button:focus-visible { box-shadow: 0 0 0 3px var(--background-modifier-border-focus); }
+
+  /* Obsidian's Menu (what Brain's status menu uses: new Menu(), not plugin CSS) */
+  .menu { position: fixed; z-index: 30; min-width: 168px; padding: var(--size-2-3);
+    background-color: var(--background-secondary); border: 1px solid var(--background-modifier-border-hover);
+    border-radius: var(--radius-m); box-shadow: var(--shadow-s);
+    font-family: var(--font-interface); font-size: var(--font-ui-small); color: var(--text-normal); }
+  .menu-item { display: flex; align-items: center; gap: var(--size-4-2); min-height: 28px; padding: var(--size-4-1) var(--size-4-2);
+    border-radius: var(--radius-s); cursor: default; outline: none; }
+  .menu-item:is(:hover, :focus-visible) { background-color: var(--background-modifier-hover); }
+  .menu-item.mod-checked::after { content: ""; width: 4px; height: 8px; margin: -3px 2px 0 auto;
+    border: solid var(--text-muted); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+
+  /* Obsidian's Modal and search field (what the list modal uses: new Modal(), not plugin CSS).
+     The mock sizes the container to the frame, so the frame width stands in for the window; narrow, it is full screen, as on a phone */
+  body.theme-light { --background-modifier-form-field: #ffffff; --modal-dim: rgba(0,0,0,0.4); }
+  body.theme-dark { --background-modifier-form-field: rgba(0,0,0,0.3); --modal-dim: rgba(0,0,0,0.6); }
+  .modal-container { position: fixed; z-index: 15; top: var(--mock-top, 0); bottom: 0; left: var(--mock-left, 0); width: var(--mock-width, 100%);
+    display: flex; align-items: center; justify-content: center; container: win / inline-size; font-family: var(--font-interface); }
+  .modal-bg { position: absolute; inset: 0; background-color: var(--modal-dim); }
+  .modal { box-sizing: border-box; position: relative; display: flex; flex-direction: column; gap: var(--size-4-3); width: var(--dialog-width, 700px); max-width: calc(100% - var(--size-4-8)); max-height: 85%;
+    padding: var(--size-4-4) var(--size-4-6) var(--size-4-6); background-color: var(--background-primary); color: var(--text-normal);
+    border: 1px solid var(--background-modifier-border); border-radius: var(--radius-l); box-shadow: var(--shadow-s), 0 var(--size-4-4) var(--size-4-8) rgba(0,0,0,0.2); }
+  .modal-title { margin: 0; padding-inline-end: var(--size-4-8); font-size: var(--font-ui-large); line-height: 1.3; font-weight: 600; }
+  .is-phone .modal-content { display: flex; flex-direction: column; min-height: 0; }   /* Obsidian's own rule: a block on a desktop */
+  button.modal-close-button { position: absolute; top: var(--size-4-3); right: var(--size-4-3); width: var(--size-4-8); height: var(--size-4-8); padding: 0; color: var(--text-muted); }
+  button.modal-close-button svg { width: var(--size-4-5); height: var(--size-4-5); fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  button.clickable-icon { background: none; box-shadow: none; }
+  button.clickable-icon:hover { background-color: var(--background-modifier-hover); color: var(--text-normal); }
+  @container win (max-width: 559px) { .modal { width: 100%; max-width: none; height: 100%; max-height: none; border: 0; border-radius: 0; padding-inline: var(--size-4-4); } }
+  input[type="search"] { height: var(--input-height); padding: var(--size-4-1) var(--size-4-3); border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m);
+    background-color: var(--background-modifier-form-field); color: var(--text-normal); font: inherit; font-size: var(--font-ui-small); outline: none; }
+  input[type="search"]::placeholder { color: var(--text-faint); }
+  input[type="search"]:focus-visible { border-color: var(--background-modifier-border-focus); box-shadow: 0 0 0 3px var(--background-modifier-border-focus); }
+
+  .bases-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 40px; padding: 0 12px;
+    border-bottom: 1px solid var(--background-modifier-border); background: var(--background-primary);
+    font-family: var(--font-interface); font-size: 13px; color: var(--text-muted); white-space: nowrap; overflow: hidden; }
+  .bases-view-name { display: flex; align-items: center; gap: 8px; color: var(--text-normal); font-weight: 500; }
+  .bases-view-name::after { content: ""; width: 5px; height: 5px; margin-top: -3px; border: solid var(--text-muted); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); }
+  .bases-tools { display: flex; gap: 16px; }
+
+  /* The note around a base. Obsidian's rendered-markdown rules reach into a view: these mirror the ones in its
+     app.css (1.14.4) with the same selectors, so a view that only looks right outside a note shows it here. */
+  .markdown-rendered h2 { font-size: 1.6em; line-height: 1.2; font-weight: 700; letter-spacing: -0.011em; margin-block: 0.75em; }
+  .markdown-rendered h3 { font-size: 1.37em; line-height: 1.3; font-weight: 660; letter-spacing: -0.008em; margin-block: 0.75em; color: var(--text-normal); }
+  .markdown-rendered h4 { font-size: 1.25em; line-height: 1.4; font-weight: 640; letter-spacing: -0.005em; margin-block: 0.75em; }
+  .markdown-rendered p { margin-block: 1em; }
+  .markdown-rendered ul, .markdown-rendered ol { padding-inline-start: 0; margin-block: 1em; }
+  .markdown-rendered ul > li, .markdown-rendered ol > li { margin-inline-start: 3ch; padding-block: 1px; position: relative; }
+  .markdown-rendered ul ul > li, .markdown-rendered ol ol > li { margin-inline-start: 2.25em; }
+  .markdown-rendered.show-indentation-guide li > ul, .markdown-rendered.show-indentation-guide li > ol { position: relative; }
+  .markdown-rendered.show-indentation-guide li > ul::before, .markdown-rendered.show-indentation-guide li > ol::before {
+    content: "\200B"; position: absolute; display: block; inset-inline-start: -15px; top: 0; bottom: 0;
+    border-inline-end: 1px solid var(--background-modifier-border); }

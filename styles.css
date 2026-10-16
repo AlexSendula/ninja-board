@@ -1,0 +1,834 @@
+/* ---------- Root & tokens ---------- */
+.brain-view {
+  container: brain / inline-size;
+  --brain-hit: 28px;                 /* smallest hit target */
+  --brain-mark: 18px;                /* the check circle */
+  --brain-dot: 6px;                  /* inbox, repeating and day dots */
+  --brain-stroke: 1.75px;            /* every ring, circle and tick */
+  --brain-bar: calc(var(--brain-stroke) * 2);   /* appointment accent bar */
+  --brain-focus: 2px solid var(--interactive-accent);
+  --brain-lh: 1.4;
+  --brain-window: calc(var(--size-4-12) * 6);   /* Today's Schedule: a window on the day, 6 hours at 48px an hour */
+  --brain-line: calc(var(--font-ui-smaller) * 1.333);   /* one line of event text */
+  --brain-fs-display: calc(var(--font-ui-large) * 1.6);   /* view titles */
+  --brain-fs-figure: calc(var(--font-ui-large) * 1.2);    /* day and chase-date numbers */
+  --brain-surface: color-mix(in srgb, var(--text-normal) 4%, transparent);              /* tiles, on any background */
+  --brain-base: var(--background-primary);   /* the leaf behind the view; solid fills mix against it */
+  --brain-surface-lifted: color-mix(in srgb, var(--text-normal) 4%, var(--brain-base));
+  --brain-inset: color-mix(in srgb, var(--text-normal) 6%, transparent);
+  --brain-circle: color-mix(in srgb, var(--text-muted) 50%, var(--text-faint));
+  --brain-track: color-mix(in srgb, var(--text-normal) 12%, transparent);
+  --brain-tint: color-mix(in srgb, var(--interactive-accent) 12%, transparent);
+  --brain-danger: color-mix(in srgb, var(--color-red) 75%, var(--text-normal));   /* overdue words, every deadline */
+  --brain-danger-tint: color-mix(in srgb, var(--color-red) 14%, transparent);   /* the planner card's due day */
+  --brain-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --brain-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-medium);
+  line-height: var(--brain-lh);
+  color: var(--text-normal);
+}
+.mod-sidedock .brain-view { --brain-base: var(--background-secondary); }
+.brain-view *, .brain-view *::before, .brain-view *::after { box-sizing: border-box; }
+/* Bases views sit inside a note, where Obsidian styles h3, ul > li and p (up to .markdown-rendered ul ul > li).
+   Every rule here is scoped under .brain-view so it outranks those; this reset doubles the class to outrank
+   them too, and comes first, so the component rules below still win over it. */
+.brain-view.brain-view :where(h2, h3, h4, p, ul, ol, li) { margin: 0; padding: 0; font: inherit; color: inherit; letter-spacing: inherit; list-style: none; position: static; }
+/* A dashboard note, one that shows a Ninja Board view, hides its Properties and its base block's Bases toolbar: Ninja Board's views have
+   their own sorting and grouping. Source mode still shows the block's code to edit. (A note embedding a dashboard hides its own too.) */
+:is(.markdown-source-view, .markdown-preview-view):has(.brain-view) .metadata-container { display: none; }
+:is(.block-language-base, .bases-embed):has(.brain-view) .bases-header { display: none; }
+.brain-view.brain-view li > :is(ul, ol) { position: static; }            /* Obsidian's indentation guide: */
+.brain-view.brain-view li > :is(ul, ol)::before { content: none; }      /* a line beside a list in a list item */
+.brain-view [hidden] { display: none !important; }
+.brain-view [data-state][tabindex] { -webkit-user-select: none; user-select: none; }   /* long-press opens the menu, not a selection */
+.brain-view .brain-sr { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }   /* read, not shown */
+
+/* ---------- Page ---------- */
+.brain-view .brain-page { display: flex; flex-direction: column; gap: var(--size-4-6); padding: var(--size-4-8) var(--size-4-6) var(--size-4-12); }
+.brain-view .brain-part { display: flex; flex-direction: column; gap: var(--size-4-6); }
+.brain-view .brain-part + .brain-part { margin-top: var(--size-4-6); }
+@container brain (max-width: 559px) {
+  .brain-view .brain-page { padding: var(--size-4-6) var(--size-4-4) var(--size-4-8); --brain-fs-display: calc(var(--font-ui-large) * 1.4); }
+  .brain-view .brain-head { column-gap: var(--size-4-4); }
+}
+
+/* ---------- Type ---------- */
+.brain-view .brain-label {
+  font-size: var(--font-ui-smaller); line-height: 1.333; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-muted);
+}
+.brain-view .brain-label-accent { color: color-mix(in srgb, var(--color-accent) 70%, var(--text-normal)); }
+.brain-view .brain-label-row { display: flex; align-items: baseline; gap: var(--size-4-2); }
+.brain-view .brain-count { font-size: var(--font-ui-smaller); line-height: 1.333; font-weight: 500; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.brain-view .brain-empty { font-size: var(--font-ui-small); color: var(--text-muted); }
+.brain-view .brain-strong { font-weight: 600; color: var(--text-normal); }
+.brain-view .brain-overdue { color: var(--brain-danger); }
+.brain-view .brain-late { font-weight: 600; }
+.brain-view .brain-late, .brain-view .brain-cal.brain-is-late > * { color: color-mix(in srgb, var(--color-orange) 55%, var(--text-normal)); }
+
+/* ---------- Links ---------- */
+.brain-view .brain-link { color: inherit; text-decoration: none; border-radius: var(--radius-s); transition: color 0.15s var(--brain-ease); }
+.brain-view .brain-stretch::after { content: ""; position: absolute; inset: 0; }   /* the whole parent becomes the hit target */
+@media (hover: hover) {
+  .brain-view .brain-link:hover { color: var(--color-accent); }
+}
+
+/* ---------- Meta line: items split by a faint dot ----------
+   The clip on the inline start hides a dot that wrapped to the start of a line;
+   the other sides leave room for focus rings and the padded links. */
+.brain-view .brain-meta {
+  display: flex; flex-wrap: wrap; column-gap: var(--size-4-4);
+  font-size: var(--font-ui-smaller); line-height: 1.333; color: var(--text-muted); font-variant-numeric: tabular-nums;
+  clip-path: inset(calc(var(--size-4-3) * -1) calc(var(--size-4-3) * -1) calc(var(--size-4-3) * -1) calc(var(--size-4-1) * -1));
+  pointer-events: none;   /* plain meta text passes clicks to the stretched link beneath */
+}
+.brain-view .brain-meta > * + *::before {
+  content: "·"; display: inline-block; width: var(--size-4-4); margin-inline-start: calc(var(--size-4-4) * -1);
+  text-align: center; color: var(--text-faint);
+}
+.brain-view .brain-meta .brain-link { z-index: 1; padding-block: var(--size-4-2); margin-block: calc(var(--size-4-2) * -1); pointer-events: auto; }
+
+/* ---------- Planned vs due: no icons. A plan (the day you mean to do it) is in the normal colour, a deadline is red, the red of the overdue words.
+   In a row's meta, a Guide aside, the strip's counts and the planner card. ---------- */
+.brain-view [data-when="due"] { color: var(--brain-danger); }
+
+/* ---------- View header: label, title that is the summary, quiet figure ---------- */
+.brain-view .brain-head { display: flex; flex-wrap: wrap; align-items: last baseline; justify-content: space-between; gap: var(--size-4-2) var(--size-4-6); }
+.brain-view .brain-head .brain-label { min-height: calc(var(--font-ui-smaller) * 1.333); margin-bottom: var(--size-4-1); }
+.brain-view .brain-title { font-size: var(--brain-fs-display); line-height: 1.125; font-weight: 700; letter-spacing: -0.02em; }
+.brain-view .brain-figure { display: flex; align-items: baseline; gap: var(--size-4-2); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.brain-view .brain-figure b { font-weight: 600; color: var(--text-normal); }
+.brain-view .brain-figure .brain-ring { align-self: center; width: var(--size-4-6); height: var(--size-4-6); }
+
+/* ---------- Tiles: 1 → 2 → 3 ---------- */
+.brain-view .brain-tile {
+  display: flex; flex-direction: column; gap: var(--size-4-3); min-width: 0;
+  padding: var(--size-4-4); border-radius: var(--radius-l); background-color: var(--brain-surface);
+}
+.brain-view .brain-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--size-4-4); }
+@container brain (min-width: 560px) { .brain-view .brain-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container brain (min-width: 880px) { .brain-view .brain-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* ---------- Progress ring ----------
+   Each ring's viewBox equals its size (16, 18 or 24px), so --brain-p on pathLength 100 is the same
+   percentage in every engine; non-scaling-stroke keeps the stroke at 1.75px. */
+.brain-view .brain-ring { flex: none; width: var(--size-4-4); height: var(--size-4-4); rotate: -90deg; }
+.brain-view .brain-ring circle, .brain-view .brain-mark > * { fill: none; stroke-width: var(--brain-stroke); vector-effect: non-scaling-stroke; }
+.brain-view .brain-ring-track { stroke: var(--brain-track); }
+.brain-view .brain-ring-fill {
+  stroke: var(--interactive-accent); stroke-linecap: round;
+  stroke-dasharray: var(--brain-p) 100; transition: stroke-dasharray 0.6s var(--brain-ease);
+}
+.brain-view .brain-progress {
+  flex: none; display: inline-flex; align-items: center; gap: var(--size-4-1);
+  font-size: var(--font-ui-smaller); color: var(--text-muted); font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Story points: the week's ring sits beside the tasks ring, the same size and stroke. The outer ring is the target: the done arc in the
+   accent, the planned-but-not-done arc in a light accent. Planned past the target, a thin inner circle takes the overflow (half a lap for +4, a full
+   lap for +8, capped), its done part in the accent. The label is planned/target, with a raised +N over the target. A story shows its points under its ring or count. ---------- */
+.brain-view .brain-figures { display: flex; flex-wrap: wrap; align-items: center; gap: var(--size-4-3) var(--size-4-6); }
+@container brain (max-width: 399px) { .brain-view .brain-figures { flex: 1 1 100%; justify-content: space-between; } }   /* 320 and 360px: the tasks figure on the left, the points ring on the right */
+.brain-view .brain-tally-icon { flex: none; align-self: center; width: var(--size-4-4); height: var(--size-4-4); overflow: visible; color: var(--text-muted); }
+.brain-view .brain-count-plan, .brain-view .brain-count-due { display: inline-flex; align-items: center; gap: var(--size-4-2); }   /* the planning header: planned, then due, each a number and its icon */
+.brain-view .brain-flag-icon { flex: none; width: var(--size-4-4); height: var(--size-4-4); overflow: visible; color: var(--brain-danger); }   /* the flag of the due count, in the danger colour */
+.brain-view .brain-ring-plan {
+  stroke: color-mix(in srgb, var(--interactive-accent) 35%, transparent);
+  stroke-dasharray: var(--brain-p) 100; stroke-dashoffset: calc(var(--brain-off) * -1); stroke-linecap: butt;
+  transition: stroke-dasharray 0.6s var(--brain-ease), stroke-dashoffset 0.6s var(--brain-ease);
+}
+.brain-view .brain-points .brain-ring-fill { stroke-linecap: butt; }   /* a zero arc draws nothing, not a dot */
+.brain-view .brain-ring-over, .brain-view .brain-ring-over-done { stroke-dasharray: var(--brain-p) 100; transition: stroke-dasharray 0.6s var(--brain-ease); }
+.brain-view .brain-ring-over { stroke: var(--color-orange); }
+.brain-view .brain-ring-over-done { stroke: var(--interactive-accent); }
+.brain-view .brain-ring .brain-ring-over, .brain-view .brain-ring .brain-ring-over-done { stroke-width: calc(var(--brain-stroke) * 0.75); }   /* thin */
+.brain-view .brain-over {
+  display: inline-block; vertical-align: 0.6em; padding-bottom: 0.15em; font-size: 0.72em; line-height: 1; font-weight: 600;
+  color: color-mix(in srgb, var(--color-orange) 80%, var(--text-normal));   /* raised like an exponent: no pill, no border */
+}
+.brain-view .brain-card-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: var(--size-4-1); min-height: calc(var(--font-ui-medium) * var(--brain-lh)); }
+.brain-view .brain-pts { display: block; font-size: var(--font-ui-smaller); line-height: 1.333; color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; }   /* quiet: under a card's ring, or after a row's count */
+
+/* ---------- Task row ---------- */
+.brain-view .brain-tasks { display: flex; flex-direction: column; }
+.brain-view .brain-task {
+  display: flex; align-items: flex-start; gap: var(--size-4-2); min-width: 0;
+  margin-inline: calc(var(--size-4-2) * -1); padding: var(--size-4-1) var(--size-4-2);
+  border-radius: var(--radius-m); -webkit-touch-callout: none;
+}
+.brain-view .brain-task-body {
+  position: relative; flex: 1; min-width: 0; min-height: var(--brain-hit);
+  padding-block: calc((var(--brain-hit) - 1em * var(--brain-lh)) / 2);
+}
+.brain-view .brain-task-text { overflow-wrap: break-word; transition: color 0.3s var(--brain-ease); }
+.brain-view .brain-task[data-state="done"] .brain-task-text { color: var(--text-faint); }
+.brain-view .brain-task[data-state="dropped"] .brain-task-text { color: var(--text-faint); text-decoration: line-through; }
+.brain-view .brain-aside {
+  flex: none; text-align: end; padding-top: calc((var(--brain-hit) - var(--font-ui-smaller) * 1.333) / 2);
+  font-size: var(--font-ui-smaller); line-height: 1.333; color: var(--text-muted); font-variant-numeric: tabular-nums;
+}
+
+/* Leading slot: 28px target, 18px mark, mark edge on the text edge above */
+.brain-view .brain-lead {
+  flex: none; display: grid; place-items: center; width: var(--brain-hit); height: var(--brain-hit);
+  margin-inline-start: calc((var(--brain-mark) - var(--brain-hit)) / 2);
+}
+.brain-view .brain-dot { width: var(--brain-dot); height: var(--brain-dot); border-radius: 50%; background-color: var(--text-faint); }
+
+/* ---------- Check: a real button. The reset beats Obsidian's button rules on every state ---------- */
+.brain-view button.brain-check,
+.brain-view button.brain-check:is(:hover, :active, :focus, :focus-visible) {
+  appearance: none; display: grid; place-items: center;
+  width: var(--brain-hit); height: var(--brain-hit); padding: 0; border: 0; border-radius: 50%;
+  background: none; box-shadow: none; color: inherit;
+  font-size: inherit; white-space: normal; cursor: pointer;
+}
+.brain-view button.brain-check:focus-visible { outline: var(--brain-focus); outline-offset: calc((var(--brain-mark) - var(--brain-hit)) / 2); }
+
+/* The mark: an inline 18px SVG drawn with the ring stroke.
+   ring = the circle, half = doing, tick = done, dash = dropped, dot = repeating centre.
+   A task row's check draws its state; so does a .brain-state (the planner card's state row) */
+.brain-view .brain-mark { width: var(--brain-mark); height: var(--brain-mark); overflow: visible; transition: scale 0.25s var(--brain-spring); }
+.brain-view .brain-mark-ring { stroke: var(--brain-circle); transition: fill 0.2s var(--brain-ease), stroke 0.2s var(--brain-ease); }
+.brain-view .brain-mark-half { fill: var(--interactive-accent); stroke: none; opacity: 0; }
+.brain-view .brain-mark-tick, .brain-view .brain-mark-dash { stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+.brain-view .brain-mark-tick {
+  stroke: var(--text-on-accent); scale: 0; transform-box: fill-box; transform-origin: center;
+  transition: scale 0.35s var(--brain-spring), opacity 0.15s var(--brain-ease), stroke 0.2s var(--brain-ease);
+}
+.brain-view .brain-mark-dash { stroke: var(--text-faint); }
+.brain-view .brain-state-icon { stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }   /* a project state (play, pause, cloud, circle-check, circle-minus): outline only, in the button's colour */
+.brain-view :is(.brain-task[data-state="doing"] > .brain-check, .brain-state[data-state="doing"]) .brain-mark-ring { stroke: var(--interactive-accent); }
+.brain-view :is(.brain-task[data-state="doing"] > .brain-check, .brain-state[data-state="doing"]) .brain-mark-half { opacity: 1; }
+.brain-view :is(.brain-task[data-state="waiting"] > .brain-check, .brain-state[data-state="waiting"]) .brain-mark-ring { stroke: var(--text-muted); stroke-dasharray: 3 2; }   /* 12 dashes on pathLength 60 */
+.brain-view :is(.brain-task[data-state="done"] > .brain-check, .brain-state[data-state="done"]) .brain-mark-ring { fill: var(--interactive-accent); stroke: var(--interactive-accent); }
+.brain-view :is(.brain-task[data-state="done"] > .brain-check, .brain-state[data-state="done"]) .brain-mark-tick { scale: 1; opacity: 1; }
+.brain-view :is(.brain-task[data-state="dropped"] > .brain-check, .brain-state[data-state="dropped"]) .brain-mark-dash { opacity: 1; }
+.brain-view button.brain-check:active .brain-mark { scale: 0.88; }
+@media (hover: hover) {
+  /* Not done: preview the tick. Done: fade the fill to hint at un-ticking. */
+  .brain-view .brain-task:not([data-state="done"]) > button.brain-check:hover .brain-mark-ring { stroke: var(--interactive-accent); }
+  .brain-view .brain-task:not([data-state="done"]) > button.brain-check:hover :is(.brain-mark-half, .brain-mark-dash) { opacity: 0; }
+  .brain-view .brain-task:not([data-state="done"]) > button.brain-check:hover .brain-mark-tick { stroke: var(--interactive-accent); scale: 1; opacity: 0.5; }
+  .brain-view .brain-task[data-state="done"] > button.brain-check:hover .brain-mark-ring { fill: var(--brain-tint); }
+  .brain-view .brain-task[data-state="done"] > button.brain-check:hover .brain-mark-tick { stroke: var(--interactive-accent); }
+}
+
+/* Repeating note: a dotted mark, as a completed occurrence in Done has. A repeating row ticks like any row. */
+.brain-view .brain-repeat .brain-mark-ring { stroke: var(--text-faint); stroke-linecap: round; stroke-dasharray: 0 4; }   /* 15 dots on pathLength 60 */
+.brain-view .brain-mark-dot { r: calc(var(--brain-dot) / 2); fill: var(--text-faint); stroke: none; }
+
+/* ---------- Focus (the check keeps its own, tighter ring) ---------- */
+.brain-view :where(a, button, [tabindex]):focus-visible { outline: var(--brain-focus); outline-offset: 0; }
+.brain-view .brain-stretch:focus-visible { outline: none; }   /* ring the whole target, not just the text */
+.brain-view .brain-stretch:focus-visible::after { outline: var(--brain-focus); border-radius: var(--radius-s); }
+
+/* ---------- Today: Now and Today beside a tall Schedule ---------- */
+.brain-view .brain-today { grid-template-areas: "now" "today" "sched"; }
+.brain-view .brain-area-now { grid-area: now; }
+.brain-view .brain-area-today { grid-area: today; }
+.brain-view .brain-area-sched { grid-area: sched; }
+@container brain (min-width: 560px) { .brain-view .brain-today { grid-template-areas: "now sched" "today sched"; } }
+@container brain (min-width: 880px) { .brain-view .brain-today { grid-template-areas: "now today sched"; } }
+
+/* ---------- Schedule: Large (a window on the day that scrolls), Compact (the day squeezed into that window), or a plain list ---------- */
+.brain-view .brain-timeline { position: relative; height: calc(var(--brain-hours) * var(--size-4-12)); margin-block: var(--size-4-2); }
+.brain-view .brain-hour {
+  position: absolute; inset-inline: 0; top: calc(var(--brain-at) * 100%); translate: 0 -50%;
+  display: flex; align-items: center; gap: var(--size-4-2);
+  font-size: var(--font-ui-smaller); line-height: 1; color: var(--text-muted); font-variant-numeric: tabular-nums;
+}
+.brain-view .brain-hour > span { width: var(--size-4-5); }
+.brain-view .brain-hour::after { content: ""; flex: 1; border-top: var(--border-width) solid var(--background-modifier-border); }
+/* An event block: line one the title, line two "time · place", each ending in an ellipsis, never cut in half. A block too short for two
+   lines drops the second whole (the 30-minute blocks keep their title), and none is shorter than one line. */
+.brain-view .brain-event {
+  position: absolute; --brain-gutter: calc(var(--size-4-5) + var(--size-4-2));
+  inset-inline-start: calc(var(--brain-gutter) + (100% - var(--brain-gutter)) * var(--brain-lane, 0) / var(--brain-lanes, 1));
+  width: calc((100% - var(--brain-gutter)) / var(--brain-lanes, 1));   /* overlapping appointments share the width, one lane each */
+  top: calc(var(--brain-at) * 100%); height: max(calc(var(--brain-len) * 100%), calc(var(--brain-line) + var(--size-2-1) * 2));
+  container-type: size; display: flex; flex-direction: column; overflow: hidden;
+  padding: var(--size-2-1) var(--size-4-2) var(--size-2-1) var(--size-4-3); border-radius: var(--radius-s);
+  background-color: color-mix(in srgb, var(--interactive-accent) 12%, var(--brain-surface-lifted));   /* opaque: hides the hour lines */
+  box-shadow: inset var(--brain-bar) 0 0 var(--interactive-accent);
+  font-size: var(--font-ui-smaller); line-height: 1.333; color: var(--text-normal); text-decoration: none;
+  transition: background-color 0.2s var(--brain-ease);
+}
+.brain-view .brain-event-title { font-weight: 600; }
+.brain-view .brain-event-meta { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.brain-view .brain-event :is(.brain-event-title, .brain-event-meta) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.brain-view .brain-start { display: none; }   /* Compact shows it in a block too short for two lines */
+@container not (min-height: 31px) {   /* a container query cannot read variables: 31px is just under two lines */
+  .brain-view .brain-event-meta { display: none; }
+}
+@media (hover: hover) {
+  .brain-view .brain-event:hover { background-color: color-mix(in srgb, var(--interactive-accent) 20%, var(--brain-surface-lifted)); }
+}
+
+/* The now-line: a thin accent rule and a dot, over the hour lines */
+.brain-view .brain-now-line {
+  position: absolute; z-index: 1; inset-inline: var(--size-4-5) 0; top: calc(var(--brain-at) * 100%);
+  border-top: var(--brain-stroke) solid var(--interactive-accent); pointer-events: none;
+}
+.brain-view .brain-now-line::before {
+  content: ""; position: absolute; top: calc(var(--brain-stroke) / 2); left: calc(var(--brain-dot) / -2); translate: 0 -50%;
+  width: var(--brain-dot); height: var(--brain-dot); border-radius: 50%; background-color: var(--interactive-accent);
+}
+
+/* Whole day and the Large / Compact switch: quiet buttons at the right of the label row */
+.brain-view .brain-label-row > .brain-tools {
+  display: flex; align-items: center; gap: var(--size-4-1);
+  margin-inline: auto calc(var(--size-4-2) * -1); margin-block: calc((var(--brain-hit) - var(--font-ui-smaller) * 1.333) / -2);
+}
+
+/* Large: a window on the day, about 6 hours (288px at 48px an hour). A shorter day has nothing to scroll, so the window is its height.
+   Whole day grows it in place. The fades are sticky strips at the edges that have more beyond them (not a mask, so a focus ring is not clipped). */
+.brain-view .brain-scroll {
+  position: relative; overflow-y: auto; max-height: calc(var(--brain-window) + var(--size-4-4));
+  margin-inline: calc(var(--size-4-1) * -1); padding: var(--size-4-2) var(--size-4-1);   /* room inside for the focus ring; the fades reach past it to the edge */
+  transition: max-height 0.3s var(--brain-ease);
+}
+.brain-view .brain-scroll.brain-is-whole { max-height: calc(var(--brain-hours) * var(--size-4-12) + var(--size-4-4)); }
+.brain-view .brain-scroll .brain-timeline { margin-block: 0; }
+.brain-view .brain-fade {
+  position: sticky; z-index: 3; display: block; height: var(--size-4-6); opacity: 0; pointer-events: none;
+  transition: opacity 0.2s var(--brain-ease);
+}
+.brain-view .brain-fade-top { top: calc(var(--size-4-2) * -1); margin-bottom: calc(var(--size-4-6) * -1); background: linear-gradient(to bottom, var(--brain-surface-lifted), transparent); }
+.brain-view .brain-fade-bottom { bottom: calc(var(--size-4-2) * -1); margin-top: calc(var(--size-4-6) * -1); background: linear-gradient(to top, var(--brain-surface-lifted), transparent); }
+.brain-view .brain-scroll[data-above] > .brain-fade-top, .brain-view .brain-scroll[data-below] > .brain-fade-bottom { opacity: 1; }
+
+/* Compact: the whole day in the same window, no scrolling. 16 hours in 288px is 18px an hour, so a block is one line tall. A block shorter
+   than its text shows "title · start", and on hover or focus it grows to two lines about its middle and shows its time and place. */
+.brain-view .brain-is-compact .brain-timeline { height: min(var(--brain-window), calc(var(--brain-hours) * var(--size-4-12))); }
+.brain-view .brain-is-compact .brain-event { padding-block: var(--border-width); height: max(calc(var(--brain-len) * 100%), calc(var(--brain-line) + var(--border-width) * 2)); }
+.brain-view .brain-is-compact .brain-event:is(:hover, :focus-visible) {
+  z-index: 2; box-shadow: inset var(--brain-bar) 0 0 var(--interactive-accent), var(--shadow-s);
+  translate: 0 calc(var(--brain-line) / -2);
+  height: max(calc(var(--brain-len) * 100%), calc(var(--brain-line) * 2 + var(--border-width) * 2));
+}
+@container not (min-height: 31px) {
+  .brain-view .brain-is-compact .brain-start { display: inline; }
+}
+
+.brain-view .brain-agenda { display: flex; flex-direction: column; gap: var(--size-4-1); }
+.brain-view .brain-agenda-item {
+  position: relative; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--size-4-2);
+  min-height: var(--brain-hit); padding: var(--size-4-1) var(--size-4-2) var(--size-4-1) var(--size-4-3);
+  border-radius: var(--radius-s); box-shadow: inset var(--brain-bar) 0 0 var(--interactive-accent);
+}
+.brain-view .brain-agenda-time { margin-inline-end: var(--size-4-1); font-size: var(--font-ui-smaller); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.brain-view .brain-agenda-where { font-size: var(--font-ui-smaller); color: var(--text-muted); }
+.brain-view .brain-agenda-where::before { content: "·"; margin-inline-end: var(--size-4-2); color: var(--text-faint); }
+/* The plugin leaves out the timeline when an event has no start or no end. The list shows at every width then */
+@container brain (min-width: 560px) { .brain-view :is(.brain-timeline, .brain-scroll) + .brain-agenda { display: none; } }
+@container brain (max-width: 559px) {
+  .brain-view .brain-timeline, .brain-view .brain-scroll { display: none; }
+  .brain-view .brain-label-row > .brain-tools { display: none; }   /* nothing to scroll or switch: the list shows the day */
+}
+
+/* ---------- Done today: one collapsed row ---------- */
+.brain-view .brain-fold { padding-block: var(--size-4-2); }
+.brain-view .brain-today > .brain-fold { grid-column: 1 / -1; }
+.brain-view button.brain-fold-toggle,
+.brain-view button.brain-fold-toggle:is(:hover, :active, :focus, :focus-visible) {
+  appearance: none; display: flex; align-items: center; justify-content: flex-start; gap: var(--size-4-2);
+  width: 100%; height: auto; min-height: var(--brain-hit); padding: 0; border: 0; border-radius: var(--radius-s);
+  background: none; box-shadow: none; color: inherit;
+  font: inherit; text-align: start; white-space: normal; cursor: pointer;
+}
+.brain-view .brain-fold-hint { margin-inline-start: auto; font-size: var(--font-ui-smaller); color: var(--text-muted); transition: color 0.15s var(--brain-ease); }
+@media (hover: hover) {
+  .brain-view .brain-fold-toggle:hover .brain-fold-hint { color: var(--text-normal); }
+}
+
+/* ---------- Week strip: 7 day columns; below 720, 7 compact day buttons ---------- */
+.brain-view .brain-strip { padding: var(--size-4-2); }
+.brain-view .brain-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--size-4-1); }
+.brain-view .brain-day {
+  display: flex; flex-direction: column; gap: var(--size-4-1); min-width: 0;
+  padding: var(--size-4-2); border-radius: calc(var(--radius-l) - var(--size-4-2));
+}
+.brain-view .brain-day-num { margin-bottom: var(--size-4-1); font-size: var(--brain-fs-figure); line-height: 1.2; font-weight: 600; font-variant-numeric: tabular-nums; }
+.brain-view .brain-day-events { display: flex; flex-direction: column; gap: var(--size-4-1); }
+.brain-view .brain-day-count { margin-top: auto; padding-top: var(--size-4-2); font-size: var(--font-ui-smaller); line-height: 1.333; color: var(--text-muted); }
+@container brain (max-width: 879px) { .brain-view .brain-day { padding-inline: var(--size-4-1); } }   /* a 10-letter word still fits a chip at 720 */
+.brain-view .brain-day.brain-is-today { background-color: color-mix(in srgb, var(--interactive-accent) 8%, transparent); }
+.brain-view .brain-is-today :is(.brain-label, .brain-day-num) { color: color-mix(in srgb, var(--color-accent) 70%, var(--text-normal)); }
+.brain-view .brain-is-past .brain-day-num { color: var(--text-muted); }
+
+/* Appointment chip: accent bar, time, title */
+.brain-view .brain-chip {
+  position: relative; display: flex; flex-direction: column; min-height: var(--brain-hit);
+  padding: var(--size-4-1) var(--size-4-1) var(--size-4-1) var(--size-4-2); border-radius: var(--radius-s);
+  background-color: var(--brain-tint); box-shadow: inset var(--brain-bar) 0 0 var(--interactive-accent);
+  font-size: var(--font-ui-smaller); line-height: 1.333;
+}
+.brain-view .brain-chip-time { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.brain-view .brain-chip-title { font-weight: 600; white-space: normal; overflow-wrap: anywhere; }
+
+/* The strip's extra button: +N more, or N earlier. It opens the day's full view. */
+.brain-view .brain-more-item { display: flex; }
+.brain-view .brain-agenda > .brain-more-item { padding-inline-start: var(--size-4-1); }   /* the button's text on the rows' text edge */
+
+/* Compact: a 40px button per day (weekday initial, date, a dot when anything is on);
+   pressed = the day whose appointments are listed beneath, accent text = today */
+.brain-view .brain-picks { display: grid; grid-template-columns: repeat(7, minmax(0, var(--size-4-10))); justify-content: space-between; }
+.brain-view button.brain-day-pick,
+.brain-view button.brain-day-pick:is(:hover, :active, :focus, :focus-visible) {
+  appearance: none; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: var(--size-4-1);
+  width: 100%; height: auto; min-height: var(--brain-hit); padding: var(--size-4-2) 0; border: 0;
+  border-radius: calc(var(--radius-l) - var(--size-4-2));
+  background: none; box-shadow: none; color: inherit;
+  font: inherit; white-space: normal; cursor: pointer; transition: background-color 0.15s var(--brain-ease);
+}
+@media (hover: hover) {
+  .brain-view button.brain-day-pick:not([aria-pressed="true"]):hover { background-color: var(--background-modifier-hover); }
+}
+.brain-view button.brain-day-pick[aria-pressed="true"] { background-color: color-mix(in srgb, var(--interactive-accent) 8%, transparent); }
+.brain-view .brain-day-pick .brain-day-num { margin: 0; font-size: var(--font-ui-medium); }
+.brain-view .brain-day-dot { width: var(--brain-dot); height: var(--brain-dot); border-radius: 50%; background-color: var(--text-muted); }
+.brain-view .brain-is-today .brain-day-dot { background-color: var(--interactive-accent); }
+.brain-view .brain-strip-agenda { margin: var(--size-4-2) var(--size-4-1) var(--size-4-1); }
+@container brain (min-width: 720px) { .brain-view .brain-picks, .brain-view .brain-strip-agenda { display: none; } }
+@container brain (max-width: 719px) { .brain-view .brain-days { display: none; } }
+
+/* ---------- Boards: Week 3 → 1, Projects 4 → 2 → 1 ----------
+   Columns stretch to the tallest, so each one takes a drop along its full height.
+   The Week board has a column per column present (a week without a record shows two). */
+.brain-view .brain-board { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--size-4-6) var(--size-4-4); }
+@container brain (min-width: 720px) { .brain-view .brain-board-week { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); } }
+@container brain (min-width: 560px) { .brain-view .brain-board-week:has(> .brain-col[data-states~="waiting"]):not([data-waiting="group"]) { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); } }   /* four columns: as Projects */
+@container brain (min-width: 880px) { .brain-view .brain-board-week:has(> .brain-col[data-states~="waiting"]):not([data-waiting="group"]) { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@container brain (min-width: 560px) { .brain-view .brain-board-week[data-waiting="group"] { grid-template-columns: repeat(2, minmax(0, 1fr)); } }   /* Group view below 720px: two columns, as Column view */
+/* Group view, three-up at 720px and up: To do and Done span both rows; Doing is row 1 beside To do, and Waiting is row 2 under Doing, with a hairline
+   and the group's label, taking the rest of the height as its drop area. Below 720px the board is Column view, whatever is saved. */
+@container brain (min-width: 720px) {
+  .brain-view .brain-board-week[data-waiting="group"] { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto 1fr; row-gap: 0; }
+  .brain-view .brain-board-week[data-waiting="group"] > .brain-col[data-states~="todo"] { grid-column: 1; grid-row: 1 / 3; }
+  .brain-view .brain-board-week[data-waiting="group"] > .brain-col[data-states~="doing"] { grid-column: 2; grid-row: 1; }
+  .brain-view .brain-board-week[data-waiting="group"] > .brain-col[data-states~="waiting"] { grid-column: 2; grid-row: 2; padding-top: var(--size-4-3); border-top: var(--border-width) solid var(--background-modifier-border); }
+  .brain-view .brain-board-week[data-waiting="group"] > .brain-col[data-states~="done"] { grid-column: 3; grid-row: 1 / 3; }
+  .brain-view .brain-board-week[data-waiting="group"] > .brain-col[data-states~="waiting"] > .brain-label-row { align-items: center; }
+  .brain-view .brain-board-week[data-waiting="group"] > .brain-col[data-states~="waiting"] > .brain-label-row > :is(.brain-label, .brain-count) { display: none; }   /* the group's label says the count */
+  .brain-view .brain-board-week[data-waiting="group"] > .brain-col[data-states~="waiting"] > .brain-label-row > .brain-group-name { display: block; align-self: center; }
+  .brain-view .brain-board-week[data-waiting="group"] .brain-waiting-words { display: none; }   /* the group's label says "Waiting on" */
+}
+@container brain (min-width: 560px) { .brain-view .brain-board-projects { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container brain (min-width: 880px) { .brain-view .brain-board-projects { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.brain-view .brain-col { display: flex; flex-direction: column; gap: var(--size-4-2); min-width: 0; }
+.brain-view .brain-col-items {
+  flex: 1; display: flex; flex-direction: column; gap: var(--size-4-1); min-height: var(--size-4-12);
+  margin-inline: calc(var(--size-4-2) * -1); padding: var(--size-4-1) var(--size-4-2);
+  border-radius: var(--radius-l); transition: background-color 0.2s var(--brain-ease);
+}
+.brain-view .brain-col-items > .brain-card { margin-block: var(--size-4-1); }
+.brain-view .brain-col-items > .brain-empty { padding: var(--size-4-3) 0; }
+
+/* ---------- Card: a story or project, drawn as a tile ---------- */
+.brain-view .brain-card { position: relative; gap: var(--size-4-2); -webkit-touch-callout: none; }
+.brain-view .brain-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--size-4-3); }
+.brain-view .brain-card-head > div { min-width: 0; }
+.brain-view .brain-card-head > .brain-progress, .brain-view .brain-card-head > .brain-cal { min-height: calc(var(--font-ui-medium) * var(--brain-lh)); }
+.brain-view .brain-card-title { font-size: var(--font-ui-medium); line-height: var(--brain-lh); font-weight: 600; overflow-wrap: break-word; }
+.brain-view .brain-card > .brain-label { margin-top: var(--size-4-1); }
+.brain-view .brain-card .brain-tasks { position: relative; z-index: 1; }   /* lines sit above the card's stretched title link */
+.brain-view .brain-tasks > .brain-card[data-story] { padding: var(--size-4-3); margin-block: var(--size-4-1); }   /* a story in a list, in a group or in To plan's flat list: a small card, its lines folded away while planning; stacked cards keep a gap */
+.brain-view .brain-card-head > .brain-peek + div { flex: 1 1 auto; }   /* the title takes the room after the chevron, so the card side stays at the right */
+.brain-view button.brain-peek, .brain-view button.brain-peek:is(:hover, :active, :focus, :focus-visible) {   /* the chevron at a story card's start: it folds the lines open in place */
+  appearance: none; position: relative; z-index: 1; flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: var(--brain-hit); height: var(--brain-hit); padding: 0; border: 0; border-radius: var(--radius-s);
+  margin: calc((var(--brain-hit) - var(--font-ui-medium) * var(--brain-lh)) / -2) calc(var(--size-4-3) * -1) 0 calc(var(--size-4-2) * -1);
+  background: none; box-shadow: none; color: var(--text-muted); cursor: pointer;
+}
+@media (hover: hover) {
+  .brain-view button.brain-peek:hover { color: var(--text-normal); background-color: var(--background-modifier-hover); }
+}
+.brain-view .brain-peek-icon { width: var(--size-4-4); height: var(--size-4-4); overflow: visible; transition: rotate 0.2s var(--brain-ease); }
+.brain-view .brain-peek[aria-expanded="true"] > .brain-peek-icon { rotate: 90deg; }
+.brain-view .brain-card-head:has(> .brain-peek) { position: relative; }
+.brain-view .brain-card-head > button.brain-peek { position: static; }   /* so its hit area below spans the head, not the chevron */
+.brain-view .brain-peek::after {   /* the left 15% of a story card's head, its padding too, folds it open or shut: not just the chevron */
+  content: ""; position: absolute; z-index: 2; cursor: pointer;
+  inset-block: calc(var(--size-4-3) * -1) 0; inset-inline-start: calc(var(--size-4-3) * -1); width: calc(15% + var(--size-4-3));
+}
+.brain-view .brain-peek[aria-expanded="false"]::after { inset-block-end: calc(var(--size-4-3) * -1); }   /* folded, the whole card's height; open, the head only, so the lines' checks stay free */
+
+/* ---------- Drag: pointer events, lift and drop target ---------- */
+.brain-view .brain-draggable {
+  cursor: grab;
+  transition: background-color 0.15s var(--brain-ease), box-shadow 0.2s var(--brain-ease), rotate 0.2s var(--brain-ease), scale 0.2s var(--brain-ease);
+}
+@media (hover: hover) {
+  .brain-view .brain-task.brain-draggable:hover { background-color: var(--background-modifier-hover); }
+  .brain-view .brain-card.brain-draggable:hover { box-shadow: var(--shadow-s); }
+}
+.brain-view .brain-draggable.brain-is-lifted {
+  position: relative; z-index: 2; cursor: grabbing;
+  background-color: var(--brain-surface-lifted); box-shadow: var(--shadow-s); rotate: -1deg; scale: 1.02;
+}
+.brain-view .brain-col.brain-is-drop > .brain-col-items { background-color: var(--brain-tint); }
+/* The landing slot: where a drop puts the item (above the first, between two, below the last). The room that opens there is
+   a grey outlined box, no fill, the height of the dragged item (--brain-slot, set by the drag); the item's old place closes up.
+   It sits on the column's text edges, inside the tint a drop target gets. Done columns keep time order and only tint, so they show no slot. */
+.brain-view .brain-drop-slot {
+  flex: none; height: var(--brain-slot, calc(var(--size-4-12) + var(--size-4-2)));
+  border: var(--border-width) solid var(--background-modifier-border-focus); border-radius: var(--radius-m);
+  pointer-events: none;
+}
+.brain-view .brain-drop-slot.brain-is-card { margin-block: var(--size-4-1); border-radius: var(--radius-l); }
+/* A slot can say what the drop means: over Planned or due (not over a day of the strip), the Any day group opens one reading "Any day in week 43" */
+.brain-view .brain-drop-slot[data-label] {
+  display: flex; align-items: center; justify-content: center; padding-inline: var(--size-4-3);
+  font-size: var(--font-ui-smaller); line-height: 1.333; color: var(--text-muted); white-space: nowrap;
+}
+.brain-view .brain-drop-slot[data-label]::before { content: attr(data-label); overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Backlog: groups by parent ---------- */
+.brain-view .brain-group { display: flex; flex-direction: column; }
+.brain-view .brain-group + .brain-group { margin-top: var(--size-4-2); }
+.brain-view .brain-group-name {
+  align-self: flex-start; padding-block: var(--size-4-2); margin-block: calc(var(--size-4-2) * -1);
+  font-size: var(--font-ui-smaller); line-height: 1.333; font-weight: 600; color: var(--text-muted);
+}
+
+/* ---------- Waiting on the Week board: a column in both views. Its label row holds the column's label and the group's ("Waiting on · N"): Column view
+   shows the column's, and Group view (720px and up, in the board's layout above) shows the group's under Doing, with a hairline ---------- */
+.brain-view .brain-col[data-states~="waiting"] > .brain-label-row > .brain-group-name { display: none; }
+
+/* ---------- Waiting: chase date as a calendar page ---------- */
+.brain-view .brain-cal {
+  flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: var(--size-4-12); height: var(--size-4-12); border-radius: var(--radius-m);
+  background-color: var(--brain-inset); font-variant-numeric: tabular-nums;
+}
+.brain-view .brain-cal-num { font-size: var(--brain-fs-figure); line-height: 1; font-weight: 600; }
+.brain-view .brain-cal.brain-is-late { background-color: color-mix(in srgb, var(--color-orange) 14%, transparent); }
+
+/* ---------- Quiet buttons: ‹ › (weeks). The reset beats Obsidian's button rules on every state ---------- */
+.brain-view button.brain-step,
+.brain-view button.brain-step:is(:hover, :active, :focus, :focus-visible) {
+  appearance: none; display: grid; place-items: center; flex: none;
+  width: var(--brain-hit); height: var(--brain-hit); padding: 0; border: 0; border-radius: 50%;
+  background: none; box-shadow: none; color: var(--text-muted);
+  font-size: inherit; cursor: pointer; transition: color 0.15s var(--brain-ease), background-color 0.15s var(--brain-ease);
+}
+.brain-view .brain-step-icon { width: var(--size-4-4); height: var(--size-4-4); overflow: visible; }
+.brain-view :is(.brain-step-icon, .brain-plan-icon, .brain-switch-icon, .brain-tally-icon, .brain-peek-icon, .brain-flag-icon, .brain-undo-icon) > * {
+  fill: none; stroke: currentColor; stroke-width: var(--brain-stroke); stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke;
+}
+@media (hover: hover) {
+  .brain-view button.brain-step:hover { color: var(--text-normal); background-color: var(--background-modifier-hover); }
+}
+
+/* Undo: one quiet round button at the top right of a page's head, above its figures. It shows only with something to undo */
+.brain-view .brain-head-end { display: flex; flex-direction: column; align-items: flex-end; gap: var(--size-4-1); }
+.brain-view button.brain-undo,
+.brain-view button.brain-undo:is(:hover, :active, :focus, :focus-visible) {
+  appearance: none; display: grid; place-items: center; flex: none;
+  width: var(--brain-hit); height: var(--brain-hit); padding: 0; border: 0; border-radius: 50%;
+  background: none; box-shadow: none; color: var(--text-muted); cursor: pointer;
+  transition: color 0.15s var(--brain-ease), background-color 0.15s var(--brain-ease);
+}
+.brain-view button.brain-undo { animation: brain-undo-in 0.2s var(--brain-ease); }   /* fades in when it first shows */
+.brain-view .brain-undo-icon { width: var(--size-4-4); height: var(--size-4-4); overflow: visible; }
+@keyframes brain-undo-in { from { opacity: 0; } }
+.brain-view button.brain-undo[data-steady] { animation: none; }   /* a redraw that keeps it shown does not replay the fade */
+@media (hover: hover) {
+  .brain-view button.brain-undo:hover { color: var(--text-normal); background-color: var(--background-modifier-hover); }
+}
+@container brain (max-width: 399px) {   /* 320 and 360px: the button stays on the title's row, at its right; the figures take the row beneath */
+  .brain-view .brain-head-end { display: contents; }
+  .brain-view .brain-head-end > button.brain-undo { margin-inline-start: auto; }
+  .brain-view .brain-head-end > .brain-figure { flex: 1 1 100%; justify-content: flex-end; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brain-view button.brain-undo { animation: none; }
+}
+
+/* Text buttons: This week, Show all N (in a header row, at the right: the row stays a label's height, the text on the column's edge) */
+.brain-view button.brain-quiet,
+.brain-view button.brain-quiet:is(:hover, :active, :focus, :focus-visible) {
+  appearance: none; display: inline-flex; align-items: center;
+  height: var(--brain-hit); padding: 0 var(--size-4-2); border: 0; border-radius: var(--radius-s);
+  background: none; box-shadow: none; color: var(--text-muted);
+  font: inherit; font-size: var(--font-ui-smaller); line-height: 1.333; font-weight: 500;
+  white-space: nowrap; cursor: pointer; transition: color 0.15s var(--brain-ease);
+}
+.brain-view .brain-label-row > .brain-more { margin-inline: auto calc(var(--size-4-2) * -1); margin-block: calc((var(--brain-hit) - var(--font-ui-smaller) * 1.333) / -2); }
+@media (hover: hover) {
+  .brain-view button.brain-quiet:hover { color: var(--text-normal); }
+}
+
+/* Waiting's switch: a quiet icon at the end of its label row, in both views. It fades in once the pointer has rested anywhere in its section for 1.5s,
+   and out 0.8s after it leaves; keyboard focus shows it at once, and it always shows without a hover. Hidden, it stays focusable; below 720px it is not drawn */
+.brain-view button.brain-switch,
+.brain-view button.brain-switch:is(:hover, :active, :focus, :focus-visible) {
+  appearance: none; display: grid; place-items: center; flex: none; align-self: center;
+  width: var(--brain-hit); height: var(--brain-hit); padding: 0; border: 0; border-radius: var(--radius-s);
+  margin-inline: auto calc(var(--size-4-2) * -1); margin-block: calc((var(--brain-hit) - var(--font-ui-smaller) * 1.333) / -2);
+  background: none; box-shadow: none; color: var(--text-muted); cursor: pointer;
+  transition: opacity 0.4s var(--brain-ease) 0.8s, color 0.15s var(--brain-ease), background-color 0.15s var(--brain-ease);   /* fades out 0.8s after the pointer leaves */
+}
+@media (hover: hover) {
+  .brain-view button.brain-switch { opacity: 0; }
+  .brain-view button.brain-switch:hover { color: var(--text-normal); background-color: var(--background-modifier-hover); }
+}
+@media (hover: none) {
+  .brain-view button.brain-switch { opacity: 1; }
+}
+.brain-view [data-states~="waiting"]:hover .brain-switch { opacity: 1; transition-delay: 1.5s, 0s, 0s; }   /* after a 1.5s rest over the section: passing over it shows nothing */
+.brain-view [data-states~="waiting"]:has(:focus-visible) .brain-switch { opacity: 1; transition-delay: 0s; }   /* keyboard focus shows it at once */
+@container brain (max-width: 719px) { .brain-view button.brain-switch, .brain-view button.brain-switch:is(:hover, :active, :focus, :focus-visible) { display: none; } }   /* below 720px the board has one view: no switch, out of the tab order */
+
+/* ---------- Week: paging in the head, Coming up and the record line under the strip ---------- */
+.brain-view .brain-pager {
+  display: flex; align-items: center; margin-bottom: var(--size-4-1);
+  margin-inline-start: calc((var(--size-4-4) - var(--brain-hit)) / 2 - var(--size-4-1));   /* the ‹ on the title's edge */
+}
+.brain-view .brain-head .brain-pager > .brain-label { margin: 0; }
+.brain-view .brain-pager > button { margin-block: calc((var(--brain-hit) - var(--font-ui-smaller) * 1.333) / -2); }   /* the row stays a label's height */
+.brain-view .brain-pager > .brain-quiet { margin-inline-start: var(--size-4-2); }
+.brain-view .brain-pager > button.brain-quiet { color: color-mix(in srgb, var(--color-accent) 70%, var(--text-normal)); }   /* back to now */
+@media (hover: hover) {
+  .brain-view .brain-pager > button.brain-quiet:hover { color: var(--color-accent); }
+}
+
+/* Plan this week: the way into planning an upcoming week. An accent-filled pill with a calendar, right beside the title.
+   While To plan is open it turns quiet (the surface chip) and reads "Done planning". */
+.brain-view .brain-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--size-4-2) var(--size-4-4); }
+.brain-view button.brain-plan-toggle,
+.brain-view button.brain-plan-toggle:is(:hover, :active, :focus, :focus-visible) {
+  appearance: none; display: inline-flex; align-items: center; gap: var(--size-4-2);
+  height: var(--size-4-8); padding: 0 var(--size-4-4) 0 var(--size-4-3); border: 0; border-radius: var(--size-4-8);
+  background-color: var(--interactive-accent); box-shadow: none; color: var(--text-on-accent);
+  font: inherit; font-size: var(--font-ui-small); line-height: 1.333; font-weight: 600;
+  white-space: nowrap; cursor: pointer; transition: background-color 0.15s var(--brain-ease), color 0.15s var(--brain-ease);
+}
+.brain-view .brain-plan-icon, .brain-view .brain-switch-icon { flex: none; width: var(--size-4-4); height: var(--size-4-4); overflow: visible; }
+.brain-view button.brain-plan-toggle[aria-expanded="true"],
+.brain-view button.brain-plan-toggle[aria-expanded="true"]:is(:hover, :active, :focus, :focus-visible) { background-color: var(--brain-surface); color: var(--text-normal); }
+@media (hover: hover) {
+  .brain-view button.brain-plan-toggle:hover { background-color: var(--interactive-accent-hover); }
+  .brain-view button.brain-plan-toggle[aria-expanded="true"]:hover { background-color: var(--background-modifier-hover); }
+}
+
+/* Coming up (this week): always the next 3 weeks, each with its count; a week with nothing shows its 0, muted. The chips wrap when they do not fit. */
+.brain-view .brain-week-line {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--size-4-2);
+  min-height: var(--brain-hit); margin-top: calc(var(--size-4-3) * -1);   /* tucked under the strip */
+}
+.brain-view .brain-week-line > .brain-label { margin-inline-end: var(--size-4-2); }
+.brain-view .brain-week-chips { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--size-4-2); min-width: 0; }
+.brain-view button.brain-week-chip,
+.brain-view button.brain-week-chip:is(:hover, :active, :focus, :focus-visible) {
+  appearance: none; flex: none; display: inline-flex; align-items: center; gap: var(--size-4-2);
+  height: var(--brain-hit); padding: 0 var(--size-4-3); border: 0; border-radius: var(--radius-m);
+  background-color: var(--brain-surface); box-shadow: none; color: var(--text-normal);
+  font: inherit; font-size: var(--font-ui-smaller); line-height: 1.333; font-variant-numeric: tabular-nums;
+  white-space: nowrap; cursor: pointer; transition: background-color 0.15s var(--brain-ease);
+}
+.brain-view button.brain-week-chip.brain-is-empty { color: var(--text-muted); }
+.brain-view .brain-week-chip > span { color: var(--text-muted); }
+.brain-view .brain-week-chip > span::before { content: "·"; margin-inline-end: var(--size-4-2); color: var(--text-faint); }
+@media (hover: hover) {
+  .brain-view button.brain-week-chip:hover { background-color: var(--background-modifier-hover); }
+}
+@container brain (max-width: 559px) {   /* the label takes its own line; the chips share the next */
+  .brain-view .brain-week-line > .brain-label { flex-basis: 100%; }
+}
+@container brain (max-width: 359px) {   /* 320px: the chips give up a little padding and gap, so Coming up stays on one line */
+  .brain-view .brain-week-chips { gap: var(--size-4-1); }
+  .brain-view button.brain-week-chip, .brain-view button.brain-week-chip:is(:hover, :active, :focus, :focus-visible) { padding: 0 var(--size-4-2); }
+}
+
+/* An upcoming week: planned or due, by day (Any day first) */
+.brain-view .brain-by-day { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(var(--size-4-12) * 5)), 1fr)); gap: var(--size-4-4) var(--size-4-6); }
+.brain-view :is(.brain-by-day, .brain-pair) > .brain-group + .brain-group { margin-top: 0; }   /* side by side, not stacked */
+
+/* Planning an upcoming week: Planned or due, and beside it To plan once the Plan button opens it (stacked below 720).
+   The strip's days take a row to plan it on that day; the Planned or due tile takes one for the week, any day;
+   To plan takes one back to unplan it. All three tint as drop targets. */
+.brain-view .brain-plan { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--size-4-4); }
+@container brain (min-width: 720px) { .brain-view .brain-plan:has(> .brain-to-plan:not([hidden])) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.brain-view .brain-to-plan > .brain-label-row ~ .brain-label-row { margin-top: var(--size-4-2); }   /* the sections breathe */
+.brain-view .brain-day.brain-is-drop,
+.brain-view button.brain-day-pick.brain-is-drop,
+.brain-view .brain-planned.brain-is-drop,
+.brain-view .brain-to-plan.brain-is-drop { background-color: var(--brain-tint); }
+.brain-view :is(.brain-planned, .brain-to-plan) { transition: background-color 0.2s var(--brain-ease); }
+.brain-view .brain-picks:has(.brain-is-drop) .brain-day-pick[aria-pressed="true"]:not(.brain-is-drop) { background: none; }   /* mid-drag, only the day beneath shows */
+
+/* ---------- Guide: Marks beside Doing things and Planning, then the views, time words, who does what and setup ---------- */
+.brain-view .brain-guide { grid-template-areas: "marks" "ways" "plan" "views" "words" "who" "setup"; }
+.brain-view .brain-area-marks { grid-area: marks; }
+.brain-view .brain-area-ways { grid-area: ways; }
+.brain-view .brain-area-plan { grid-area: plan; }
+.brain-view .brain-area-views { grid-area: views; }
+.brain-view .brain-area-words { grid-area: words; }
+.brain-view .brain-area-who { grid-area: who; }
+.brain-view .brain-area-setup { grid-area: setup; }
+@container brain (min-width: 560px) {
+  .brain-view .brain-guide { grid-template-areas: "marks views" "marks words" "ways ways" "plan plan" "who setup"; }
+  .brain-view .brain-area-plan .brain-tasks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--size-4-6); }   /* Planning runs across: two steps a row, then three */
+}
+@container brain (min-width: 880px) {
+  .brain-view .brain-guide { grid-template-areas: "marks ways ways" "marks views words" "plan plan plan" "who who setup"; }
+  .brain-view .brain-area-plan .brain-tasks { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Doing things: actions × mouse, touch, keyboard. Narrow: each action above its three ways */
+.brain-view .brain-ways { width: 100%; border-collapse: collapse; font-size: var(--font-ui-small); line-height: var(--brain-lh); }
+.brain-view .brain-ways :is(th, td) { padding: var(--size-4-1) var(--size-4-3) var(--size-4-1) 0; text-align: start; vertical-align: baseline; }
+.brain-view .brain-ways :is(th, td):last-child { padding-inline-end: 0; }
+.brain-view .brain-ways thead th { padding-bottom: var(--size-4-2); }
+.brain-view .brain-ways tbody th { font-weight: 600; white-space: nowrap; }
+@container brain (max-width: 559px) {
+  .brain-view .brain-ways, .brain-view .brain-ways :is(thead, tbody) { display: block; }
+  .brain-view .brain-ways tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--size-4-3); }
+  .brain-view .brain-ways :is(th, td) { padding-inline-end: 0; }
+  .brain-view .brain-ways tbody th { grid-column: 1 / -1; padding-top: var(--size-4-3); }
+  .brain-view .brain-ways thead td { display: none; }
+}
+.brain-view .brain-key {
+  display: inline-block; min-width: calc(var(--font-ui-smaller) * 1.75); padding: 0 var(--size-4-1);
+  border-radius: var(--radius-s); background-color: var(--brain-base);
+  box-shadow: inset 0 0 0 var(--border-width) var(--background-modifier-border), 0 var(--border-width) 0 var(--background-modifier-border);
+  font: inherit; font-size: var(--font-ui-smaller); line-height: 1.5; font-weight: 500; text-align: center; color: var(--text-normal); white-space: nowrap;
+}
+
+/* Who does what: two lists side by side */
+.brain-view .brain-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--size-4-4); }
+
+/* ---------- List modal: Show all opens Obsidian's Modal (full screen on a phone). Its content is a brain view:
+   a search field, then the same cards as the board in a grid of 1 → 2 → 3 → 4, scrolling beneath the search ---------- */
+.brain-modal:has(> .brain-view) { --dialog-width: calc(var(--size-4-12) * 21); }
+.brain-view.brain-modal-body { display: flex; flex-direction: column; min-height: 0; gap: var(--size-4-4); }   /* Obsidian makes .modal-content a block on a desktop: only in a flex column does the grid scroll beneath the search */
+.brain-view .brain-search { width: 100%; flex: none; }
+.brain-view .brain-modal-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(var(--size-4-12) * 4.5)), 1fr)); gap: var(--size-4-4); align-items: start;
+  flex: 1; min-height: 0; overflow-y: auto;
+  margin: calc(var(--size-4-2) * -1); padding: var(--size-4-2);   /* room inside the scroller for focus rings and the hover shadow */
+}
+.brain-view .brain-modal-grid > .brain-empty { grid-column: 1 / -1; }
+
+/* ---------- Day view: a day's whole timeline, finished appointments included, in Obsidian's Modal (full screen on a phone).
+   Its content is a brain view: a content width of 400px or more has room for the timeline, less shows the agenda list ---------- */
+.brain-day-modal:has(> .brain-view) { --dialog-width: calc(var(--size-4-12) * 10); }
+.brain-day-modal:has(> .brain-view) > .brain-view { display: flex; flex-direction: column; min-height: 0; }   /* and the day's scroller shrinks in its modal */
+.brain-view .brain-day-scroll {
+  flex: 1; min-height: 0; overflow-y: auto;
+  margin: calc(var(--size-4-1) * -1); padding: var(--size-4-1);   /* room inside the scroller for focus rings */
+}
+@container brain (min-width: 400px) {
+  .brain-view .brain-day-scroll .brain-timeline { display: block; }
+  .brain-view .brain-day-scroll .brain-timeline + .brain-agenda { display: none; }
+}
+
+/* ---------- Planner card: right-click, long-press or the menu key on a row or card opens it at the row. Ninja Board's own (Obsidian's Menu holds
+   plain items only), in the Menu's look: the same surface, border, radius and shadow, about 350px wide. One card, updated in place, and it
+   stays open after a pick (Escape or a click outside closes it): the task, the any-day button with its seven days, the
+   other week and Later, a hairline, then the five states as Ninja Board's own marks in one row. A day alternates on repeated clicks: the first makes it
+   the do day (the selected accent), the next the due day (red), the next the do day again. The other week switches the any-day button and the
+   days to that week (and then names the week you came from); Later swaps only the day row for a week scroller and No date yet. The card never
+   changes size between these: the week row and the Later row take the same height.
+   A project or story card is the same card cut down to the title, the hairline and the states; a repeating row's is the title and the states, as a task's is. ---------- */
+.brain-view.brain-popover {
+  --brain-base: var(--background-secondary);
+  box-sizing: border-box; position: fixed; z-index: 30;
+  width: calc(var(--size-4-12) * 7.25); max-width: calc(100vw - var(--size-4-4));   /* wide enough for five labelled states: "Someday" and "Dropped" sit well inside their cells */ max-height: calc(100vh - var(--size-4-4)); overflow-y: auto;
+  --brain-plan-row: calc(var(--size-4-12) + var(--size-4-1));   /* a row of day chips, or of week chips with their steps */
+  padding: var(--size-2-3);
+  background-color: var(--background-secondary); border: var(--border-width) solid var(--background-modifier-border-hover);
+  border-radius: var(--radius-m); box-shadow: var(--shadow-s);
+  font-size: var(--font-ui-small);
+}
+.brain-view.brain-popover:focus { outline: none; }
+.brain-view .brain-plan-screen { display: flex; flex-direction: column; gap: var(--size-4-2); }
+.brain-view .brain-plan-title {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere;
+  padding: var(--size-4-1) var(--size-4-2) 0; font-weight: 500; line-height: var(--brain-lh);
+}
+.brain-view .brain-plan-note { padding: 0 var(--size-4-2) var(--size-4-1); font-size: var(--font-ui-smaller); line-height: 1.333; color: var(--text-muted); text-wrap: balance; }
+.brain-view .brain-plan-days, .brain-view .brain-plan-states { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--size-2-1); }
+.brain-view .brain-plan-days { height: var(--brain-plan-row); }
+.brain-view .brain-plan-states { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; container: states / inline-size; }   /* five equal cells */
+.brain-view .brain-plan-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--size-2-1); }
+.brain-view .brain-plan-scroll { display: grid; grid-template-columns: var(--brain-hit) repeat(3, minmax(0, 1fr)) var(--brain-hit); height: var(--brain-plan-row); gap: var(--size-2-1); }
+.brain-view .brain-plan-scroll > .brain-step { align-self: center; }
+.brain-view .brain-plan-sep { height: var(--border-width); margin-inline: calc(var(--size-2-3) * -1); background-color: var(--background-modifier-border); }
+
+/* The card's buttons. The reset beats Obsidian's button rules on every state. */
+.brain-view button:is(.brain-plan-main, .brain-plan-chip, .brain-plan-go, .brain-state, .brain-plan-pick),
+.brain-view button:is(.brain-plan-main, .brain-plan-chip, .brain-plan-go, .brain-state, .brain-plan-pick):is(:hover, :active, :focus, :focus-visible) {
+  appearance: none; display: flex; align-items: center; justify-content: center; gap: var(--size-4-2);
+  min-width: 0; height: auto; padding: 0 var(--size-4-2); border: 0; border-radius: var(--radius-s);
+  background-color: var(--brain-surface); box-shadow: none; color: var(--text-normal);
+  font: inherit; font-size: var(--font-ui-small); line-height: 1.2; font-weight: 500; white-space: nowrap; cursor: pointer;
+  transition: background-color 0.15s var(--brain-ease), color 0.15s var(--brain-ease);
+}
+.brain-view button.brain-plan-main,
+.brain-view button.brain-plan-main:is(:hover, :active, :focus, :focus-visible) {   /* this week, any day: the way in, an accent tint */
+  width: 100%; height: var(--size-4-9); background-color: var(--brain-tint); font-weight: 600;
+  color: color-mix(in srgb, var(--color-accent) 70%, var(--text-normal));
+}
+.brain-view button.brain-plan-chip,
+.brain-view button.brain-plan-chip:is(:hover, :active, :focus, :focus-visible) {   /* a day: letter over date. A week: Wk over date */
+  position: relative; flex-direction: column; gap: var(--size-2-1); padding: var(--size-4-2) var(--size-2-1);
+}
+.brain-view .brain-plan-chip .brain-day-num { margin: 0; font-size: var(--font-ui-medium); }
+.brain-view button.brain-plan-go,
+.brain-view button.brain-plan-go:is(:hover, :active, :focus, :focus-visible) { min-height: var(--size-4-8); }
+.brain-view .brain-plan-screen > button.brain-plan-go,
+.brain-view .brain-plan-screen > button.brain-plan-go:is(:hover, :active, :focus, :focus-visible) { height: var(--size-4-9); }   /* No date yet: as tall as the any-day button it stands in for */
+.brain-view button.brain-state,
+.brain-view button.brain-state:is(:hover, :active, :focus, :focus-visible) {   /* one of the five states: its mark over its name */
+  flex-direction: column; gap: var(--size-4-1); min-height: var(--size-4-12); padding: var(--size-4-2) 0 var(--size-4-1);
+  background-color: transparent; color: var(--text-muted); font-size: var(--font-ui-smaller);
+}
+@container states (max-width: 309px) {   /* a narrow card: the labels shrink a little instead of crowding their cell */
+  .brain-view button.brain-state { font-size: calc(var(--font-ui-smaller) * 0.9); }
+}
+.brain-view button.brain-plan-chip.brain-is-today,
+.brain-view button.brain-plan-chip.brain-is-today:is(:hover, :active, :focus, :focus-visible) { box-shadow: inset 0 0 0 var(--border-width) color-mix(in srgb, var(--interactive-accent) 45%, transparent); }
+.brain-view button:is(.brain-plan-main, .brain-plan-chip, .brain-plan-go)[aria-pressed="true"],
+.brain-view button:is(.brain-plan-main, .brain-plan-chip, .brain-plan-go)[aria-pressed="true"]:is(:hover, :active, :focus, :focus-visible) { background-color: var(--interactive-accent); box-shadow: none; color: var(--text-on-accent); }
+.brain-view button.brain-plan-chip[aria-pressed="true"] :is(.brain-label, .brain-day-num) { color: inherit; }
+.brain-view button.brain-state[aria-checked="true"],
+.brain-view button.brain-state[aria-checked="true"]:is(:hover, :active, :focus, :focus-visible) { background-color: var(--brain-tint); color: color-mix(in srgb, var(--color-accent) 70%, var(--text-normal)); }
+.brain-view button.brain-plan-chip:disabled,
+.brain-view button.brain-plan-chip:disabled:is(:hover, :active, :focus, :focus-visible) { background-color: transparent; color: var(--text-faint); cursor: default; }
+.brain-view button.brain-plan-chip:disabled :is(.brain-label, .brain-day-num) { color: inherit; }
+.brain-view button.brain-plan-chip.brain-is-due,
+.brain-view button.brain-plan-chip.brain-is-due:is(:hover, :active, :focus, :focus-visible),
+.brain-view button.brain-plan-chip.brain-is-due:disabled { background-color: var(--brain-danger-tint); color: var(--brain-danger); }   /* the due day: a red tint and red text, like the overdue words */
+.brain-view button.brain-plan-chip.brain-is-due :is(.brain-label, .brain-day-num) { color: inherit; }
+.brain-view button.brain-step:disabled,
+.brain-view button.brain-step:disabled:is(:hover, :active, :focus, :focus-visible) { color: var(--text-faint); background-color: transparent; cursor: default; }
+.brain-view button.brain-state:active .brain-mark { scale: 0.88; }
+
+.brain-view .brain-plan-points { display: grid; grid-template-columns: auto repeat(5, minmax(0, 1fr)); gap: var(--size-2-1); align-items: center; }   /* the Points row: a label, then five equal picks */
+.brain-view .brain-plan-points-label { padding-inline: var(--size-4-2); font-size: var(--font-ui-smaller); line-height: 1.333; color: var(--text-muted); }
+.brain-view button.brain-plan-pick,
+.brain-view button.brain-plan-pick:is(:hover, :active, :focus, :focus-visible) {   /* 1, 2, 3, 5, 8: the pressed one is the story's points */
+  height: var(--size-4-8); padding: 0; background-color: var(--brain-surface); color: var(--text-normal); font-weight: 500;
+}
+.brain-view button.brain-plan-pick[aria-checked="true"],
+.brain-view button.brain-plan-pick[aria-checked="true"]:is(:hover, :active, :focus, :focus-visible) {
+  background-color: var(--brain-tint); color: color-mix(in srgb, var(--color-accent) 70%, var(--text-normal)); font-weight: 600;
+}
+@media (hover: hover) {
+  .brain-view button.brain-plan-pick:not([aria-checked="true"]):hover { background-color: var(--background-modifier-hover); }
+}
+@media (hover: hover) {
+  .brain-view button:is(.brain-plan-chip, .brain-plan-go):not(:disabled, [aria-pressed="true"]):hover { background-color: var(--background-modifier-hover); }
+  .brain-view button.brain-plan-chip.brain-is-due:not(:disabled):hover { background-color: color-mix(in srgb, var(--color-red) 22%, transparent); }
+  .brain-view button.brain-plan-main:not([aria-pressed="true"]):hover { background-color: color-mix(in srgb, var(--interactive-accent) 20%, transparent); }
+  .brain-view button.brain-plan-main[aria-pressed="true"]:hover { background-color: var(--interactive-accent-hover); }
+  .brain-view button.brain-state:not([aria-checked="true"]):hover { background-color: var(--background-modifier-hover); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brain-view *, .brain-view *::before, .brain-view *::after { transition: none !important; }
+}

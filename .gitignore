@@ -1,0 +1,5 @@
+node_modules/
+main.js
+preview/dist/
+preview/sample.json
+.DS_Store

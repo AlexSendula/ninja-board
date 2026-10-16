@@ -1,0 +1,10 @@
+{
+  "id": "ninja-board",
+  "name": "Ninja Board",
+  "version": "1.0.0",
+  "minAppVersion": "1.10.2",
+  "description": "Today, Week, Projects, Backlog and Guide views for your second brain, drawn from your notes and their task lines.",
+  "author": "AlexSendula",
+  "authorUrl": "https://github.com/AlexSendula",
+  "isDesktopOnly": false
+}

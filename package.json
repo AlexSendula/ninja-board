@@ -1,0 +1,27 @@
+{
+  "name": "ninja-board",
+  "version": "1.0.0",
+  "author": "AlexSendula",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "node esbuild.config.mjs production",
+    "dev": "node esbuild.config.mjs",
+    "test": "node --import ./test/obsidian-hook.mjs --test \"src/**/*.test.ts\" \"test/**/*.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "preview": "node scripts/sample-json.mjs && node esbuild.config.mjs preview && node scripts/serve.mjs",
+    "sandbox": "node scripts/sandbox.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "esbuild": "0.28.2",
+    "linkedom": "0.18.13",
+    "obsidian": "1.14.4",
+    "typescript": "5.9.3",
+    "yaml": "2.9.1"
+  }
+}
