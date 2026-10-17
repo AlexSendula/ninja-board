@@ -21,7 +21,7 @@ export function toPlanId(start: string): string {
  * week pill opens it. The planned rows drag only while it is open.
  */
 export function planParts(vm: UpcomingWeekVM, root: HTMLElement, actions: Actions, open: boolean): HTMLElement {
-  return h('div', 'brain-plan', {}, [plannedTile(vm, actions, open), toPlanTile(vm, root, actions, open)]);
+  return h('div', 'brain-plan', open ? { 'data-to-plan': '' } : {}, [plannedTile(vm, actions, open), toPlanTile(vm, root, actions, open)]);
 }
 
 /** Planned or due: Any day first (the week plan), then each day. The tile is a drop zone for the whole week. */
@@ -167,6 +167,9 @@ function setPlanning(button: HTMLButtonElement, open: boolean): void {
   if (toPlan) {
     if (open) toPlan.removeAttribute('hidden');
     else toPlan.setAttribute('hidden', '');
+    const planner = toPlan.parentElement;   // two columns while To plan is open, at 720px and up
+    if (open) planner?.setAttribute('data-to-plan', '');
+    else planner?.removeAttribute('data-to-plan');
   }
   for (const row of page?.querySelectorAll('.brain-planned .brain-group > .brain-tasks > li[data-plannable]') ?? []) {
     if (open) row.classList.add('brain-draggable');

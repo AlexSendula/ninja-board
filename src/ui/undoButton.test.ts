@@ -5,16 +5,17 @@ import { absent } from '../../test/ui.ts';
 import type { Actions } from './actions.ts';
 import { viewHead } from './header.ts';
 
-/** An Undo pair for the head: the label it shows, and a count of the presses. */
-function undo(label: string | undefined) {
+/** An Undo pair for the head: the label it shows, whether the app runs on a Mac, and a count of the presses. */
+function undo(label: string | undefined, mac = false) {
   let presses = 0;
   return {
+    mac,
     presses: () => presses,
     undoLabel: (): string | undefined => label,
     undo: (): void => {
       presses++;
     },
-  } satisfies Pick<Actions, 'undo' | 'undoLabel'> & { presses: () => number };
+  } satisfies Pick<Actions, 'undo' | 'undoLabel' | 'mac'> & { presses: () => number };
 }
 
 test('with a step to undo, the button names it and presses undo it', () => {
@@ -29,12 +30,29 @@ test('with a step to undo, the button names it and presses undo it', () => {
   assert.equal(u.presses(), 1);
 });
 
-test('with nothing to undo, the button is there but hidden, and keeps its place', () => {
+test('the shortcut in the tooltip is ⌘Z on a Mac and Ctrl+Z elsewhere, whatever the browser says', () => {
+  const title = (mac: boolean) => viewHead({ label: 'Today', title: 'Tuesday', undo: undo('tick “A”', mac) })
+    .querySelector('.brain-head-end > button.brain-undo')?.getAttribute('title');
+  assert.equal(title(true), 'Undo: tick “A” (⌘Z)');
+  assert.equal(title(false), 'Undo: tick “A” (Ctrl+Z)');
+});
+
+test('with nothing to undo, the button is still drawn, disabled and aria-hidden, so the head keeps its height', () => {
+  // Taken out of the layout (hidden), the first step would move the figures and the page below them.
   const head = viewHead({ label: 'Week', title: '5–11 October', undo: undo(undefined) });
   const button = head.querySelector<HTMLButtonElement>('.brain-head-end > button.brain-undo');
-  assert.ok(button);
-  assert.equal(button.hasAttribute('hidden'), true);
+  assert.ok(button, 'the button is in the head');
+  assert.equal(button.hasAttribute('hidden'), false);
+  assert.equal(button.hasAttribute('disabled'), true, 'so it takes no tab stop');
+  assert.equal(button.getAttribute('aria-hidden'), 'true', 'and no reader');
   assert.equal(button.getAttribute('aria-label'), 'Undo');
+});
+
+test('with a step to undo, the button is enabled and read out', () => {
+  const button = viewHead({ label: 'Today', title: 'Tuesday', undo: undo('tick “A”') })
+    .querySelector<HTMLButtonElement>('.brain-head-end > button.brain-undo');
+  assert.equal(button?.hasAttribute('disabled'), false);
+  assert.equal(button?.hasAttribute('aria-hidden'), false);
 });
 
 test('a page without figures keeps the button at the top right, and a page without undo (the Guide) has no head end', () => {

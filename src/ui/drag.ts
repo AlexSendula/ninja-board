@@ -10,8 +10,8 @@ const LONG_PRESS_MS = 500;
 // A board's drop zones, and the ones that take the landing slot: an arrangeable column (Waiting is one, in both views).
 const ZONE = '.brain-col';
 const ARRANGEABLE = '.brain-col[data-arrange]';
-// The inline styles a lift sets; the end takes them all away again.
-const LIFT_STYLES = ['position', 'left', 'top', 'width', 'margin', 'translate', 'pointer-events'];
+// The inline styles a lift sets (its fixed place is the .brain-is-floating class); the end takes them all away again.
+const LIFT_STYLES = ['left', 'top', 'width', 'translate'];
 
 /**
  * Where a drag ended:
@@ -32,6 +32,10 @@ export interface DragOpts {
   onLift?(cancel: () => void): void;  // the drag lifted; cancel() ends it with no drop
   onEnd?(dropped: boolean): void;     // after a lifted drag, always, and before onDrop: true when onDrop is about to be called
 }
+
+// The stop of every press in progress, lifted or still waiting out a touch's long-press, with the element its drop lands in
+// (its scope). cancelDrags stops the ones that land in a view, so one view's unload leaves another view's drag alone.
+const live = new Map<() => void, Element>();
 
 interface Press {
   id: number;
@@ -54,11 +58,21 @@ interface Press {
   ty: number;
   scroller: Element | null;                               // the view a lifted drag scrolls near its edges, found at lift
   frame?: number;                                         // the scroll step queued for the next frame, if any
-  timer?: ReturnType<typeof setTimeout>;
+  timer?: number;
+  stop: () => void;                                       // ends this press (a cancelled drag): what cancelDrags calls
 }
 
 /** The Any day group a week zone without one gets while the slot is over it. */
 interface Temp { zone: HTMLElement; group: HTMLElement; list: HTMLElement }
+
+/**
+ * Tints a drop zone, or clears its tint. A day pick also marks its strip, so styles.css can show only the day beneath as picked
+ * while a drop is on it.
+ */
+function tintZone(zone: HTMLElement | null, on: boolean): void {
+  zone?.classList.toggle('brain-is-drop', on);
+  zone?.closest('.brain-picks')?.classList.toggle('brain-picks-drop', on);
+}
 
 /**
  * Dragging .brain-draggable items onto the drop zones inside `opts.zones` (the root by default), and Alt+↑/↓
@@ -123,16 +137,17 @@ export function enableDrag(
     const p = press;
     if (!p) return;
     press = null;
-    clearTimeout(p.timer);
+    live.delete(p.stop);
+    window.clearTimeout(p.timer);
     if (!p.lifted) return;
     try {
       if (p.frame !== undefined) root.ownerDocument.defaultView?.cancelAnimationFrame(p.frame);
-      p.drag.classList.remove('brain-is-lifted');
+      p.drag.classList.remove('brain-is-lifted', 'brain-is-floating');
       for (const prop of LIFT_STYLES) p.drag.style.removeProperty(prop);
       p.drag.removeEventListener('touchmove', holdScroll);
       root.ownerDocument.removeEventListener('keydown', cancelOnEscape);
       root.ownerDocument.removeEventListener('scroll', followScroll, { capture: true });
-      p.zone?.classList.remove('brain-is-drop');
+      tintZone(p.zone, false);
       dropTemp();
       slot.remove();
       slot.removeAttribute('data-label');
@@ -155,21 +170,16 @@ export function enableDrag(
       p.home = { parent: drag.parentElement, next: drag.nextElementSibling };
       opts.carryTo.append(drag);
     }
-    // Fixed where it was: a fixed box at left and top 0 lands at the origin, so the old place is the difference.
-    drag.style.setProperty('position', 'fixed');
-    drag.style.setProperty('left', '0px');
-    drag.style.setProperty('top', '0px');
-    drag.style.setProperty('margin', '0');   // before the origin is read: a card's margin would put it off the finger
+    // Fixed where it was: a fixed box at left and top 0 lands at the origin, so the old place is the difference. The class
+    // fixes it, with no margin, before the origin is read.
+    drag.classList.add('brain-is-floating');
     const origin = drag.getBoundingClientRect();
-    drag.style.setProperty('left', `${at.left - origin.left}px`);
-    drag.style.setProperty('top', `${at.top - origin.top}px`);
-    drag.style.setProperty('width', `${at.width}px`);
-    drag.style.setProperty('pointer-events', 'none');   // so elementFromPoint finds the zone beneath
+    drag.setCssStyles({ left: `${at.left - origin.left}px`, top: `${at.top - origin.top}px`, width: `${at.width}px` });
     drag.classList.add('brain-is-lifted');
     drag.addEventListener('touchmove', holdScroll, { passive: false });
     root.ownerDocument.addEventListener('keydown', cancelOnEscape);
     root.ownerDocument.addEventListener('scroll', followScroll, { capture: true, passive: true });   // a scroll doesn't bubble
-    slot.style.setProperty('--brain-slot', `${p.height}px`);
+    slot.setCssProps({ '--brain-slot': `${p.height}px` });
     slot.classList.toggle('brain-is-card', drag.classList.contains('brain-card'));
     root.setPointerCapture(p.id);
     p.scroller = scrollerOf(scope);
@@ -228,11 +238,11 @@ export function enableDrag(
     const r = p.drag.getBoundingClientRect();
     p.tx += p.cx + (x - p.x) - (r.left + r.width / 2);
     p.ty += p.cy + (y - p.y) - (r.top + r.height / 2);
-    p.drag.style.setProperty('translate', `${p.tx}px ${p.ty}px`);
+    p.drag.setCssStyles({ translate: `${p.tx}px ${p.ty}px` });
     const zone = zoneAt(scope, p.drag, x, y, opts.carryTo !== undefined);
     if (zone !== p.zone) {
-      p.zone?.classList.remove('brain-is-drop');
-      zone?.classList.add('brain-is-drop');
+      tintZone(p.zone, false);
+      tintZone(zone, true);
       p.zone = zone;
       dropTemp();
     }
@@ -274,9 +284,12 @@ export function enableDrag(
       touch: e.pointerType === 'touch', lifted: false, moved: false, height: 0, zone: null, index: null,
       lastX: e.clientX, lastY: e.clientY, scroller: null,
       cx: 0, cy: 0, tx: 0, ty: 0,
+      stop: () => { if (press === p) finish(false); },
     };
-    if (p.touch) p.timer = setTimeout(() => lift(p), LONG_PRESS_MS);
+    if (p.touch) p.timer = window.setTimeout(() => lift(p), LONG_PRESS_MS);
     press = p;
+    // The scope, not the root: a drag carried out of a modal has its root in the modal, and its drop zones in the view.
+    live.set(p.stop, scope);
   });
 
   root.addEventListener('pointermove', (e) => {
@@ -305,7 +318,7 @@ export function enableDrag(
     }
     // The click that follows a lift must not open the note.
     swallowClick = true;
-    setTimeout(() => { swallowClick = false; });
+    window.setTimeout(() => { swallowClick = false; });
     const target = p.moved ? dropTarget(p.zone, p.index) : undefined;
     finish(target !== undefined);
     if (target) onDrop(p.drag, target);
@@ -337,6 +350,15 @@ export function enableDrag(
   });
 
   return { cancel: () => { if (press?.lifted) finish(false); } };
+}
+
+/**
+ * Ends the drags in progress that land in `view` (every drag on the page, when no view is named), lifted or still waiting out
+ * a touch's long-press: the document's listeners and the timer go, and a carried item goes back where it came from, as for a
+ * cancel. A view calls it with its own element when it unloads, so no drag outlives the view it started in.
+ */
+export function cancelDrags(view?: Element): void {
+  for (const [stop, scope] of [...live]) if (!view || view.contains(scope)) stop();
 }
 
 /** The element under the pointer, past the dragged item: a link in its meta keeps pointer events (styles.css), so it can be the topmost. */

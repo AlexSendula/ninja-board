@@ -1,10 +1,10 @@
 # Style guide
 
-> Last updated: 16 October 2026 (Ninja Board 1.0.0)
+> Last updated: 17 October 2026 (Ninja Board v1.0.1)
 
 These are the conventions the Ninja Board code already follows. Match them when you add code.
 
-**There is no linter or formatter.** The repository has no ESLint, Prettier, Biome or `.editorconfig` config, and `package.json` has no lint script. Consistency comes from three things: the strict TypeScript compiler (`npm run typecheck`), the tests (`npm test`), and review against this guide.
+**There is no formatter.** The repository has no Prettier, Biome or `.editorconfig` config. Consistency comes from four things: the strict TypeScript compiler (`npm run typecheck`), ESLint with Obsidian's review rules (`npm run lint`), the tests (`npm test`), and review against this guide.
 
 ## General principles
 
@@ -15,7 +15,7 @@ These are the conventions the Ninja Board code already follows. Match them when 
 ## Formatting
 
 - **Indent with two spaces.** There are no tabs in `src`, `test` or `preview`.
-- **Quotes.** Single quotes for strings. A string that contains an apostrophe uses double quotes, as in `"Tasks gave an answer Ninja Board can't use"` in [`writes.ts`](../src/obsidian/writes.ts). Most do; two lines escape the apostrophe with `\'` instead.
+- **Quotes.** Single quotes for strings. A string that contains an apostrophe uses double quotes, as in `"Tasks gave an answer this plugin can't use"` in [`writes.ts`](../src/obsidian/writes.ts). Most do; two lines escape the apostrophe with `\'` instead.
 - **Semicolons** end every statement.
 - **Trailing commas** in multi-line lists and parameter lists. See `h()` in [`src/ui/dom.ts`](../src/ui/dom.ts).
 - **Spaces inside object braces**: `{ kind: 'line', path, line }`.
@@ -79,7 +79,7 @@ These are the conventions the Ninja Board code already follows. Match them when 
 
 - **Every rule is under `.brain-view`.** [`test/styles.test.ts`](../test/styles.test.ts) checks this. Three forms are allowed for elements that carry the class themselves or sit outside it:
   - `.brain-view.brain-popover` and `.brain-view.brain-modal-body`, for the planner card and the list modal's content;
-  - `.brain-modal:has(> .brain-view)`, for the list modal's frame;
+  - `.brain-modal` and `.brain-day-modal`, for the modal frames, which carry their own classes (no `:has`, which Obsidian's review flags);
   - the note-context reset at the top of the file, `.brain-view.brain-view :where(…)`, which doubles the class so it beats Obsidian's note styles.
 - **Colours come from Obsidian's variables only.** Use `var(--text-normal)`, `var(--text-muted)`, `var(--interactive-accent)`, `var(--background-primary)`, `var(--color-red)` and the like. No `#hex`, no `rgb()`, `hsl()` or other literal (tested).
 - **New colours are `--brain-*` tokens on `.brain-view`.** The file declares its own tokens there, as mixes of Obsidian's variables, for example `--brain-danger: color-mix(in srgb, var(--color-red) 75%, var(--text-normal));`. There are no `:root` tokens. Add a colour as a token, and use the token in the rule.

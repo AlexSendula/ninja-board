@@ -36,10 +36,10 @@ test('the preview modal: a re-render during a carry, then Escape, ends the carry
 
   fire(card, 'pointerdown', mouse(10, 10));
   fire(grid, 'pointermove', mouse(10, 40));
-  assert.equal(container.style.visibility, 'hidden');
+  assert.ok(container.classList.contains('brain-carrying'));   // the carry hides the modal by its class
   handle.update(spec);   // the view re-rendered while the card is out
   fire(document.body, 'keydown', { key: 'Escape' });
-  assert.equal(container.style.visibility, '');   // the carry ended: the modal is back
+  assert.ok(!container.classList.contains('brain-carrying'));   // the carry ended: the modal is back
   assert.equal(handle.isOpen(), true);
   assert.equal(grid.querySelectorAll(':scope > li.brain-card').length, someday.length);
   fire(document.body, 'keydown', { key: 'Escape' });

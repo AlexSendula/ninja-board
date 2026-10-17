@@ -2,6 +2,24 @@
 
 All notable changes to Ninja Board are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and the project uses Semantic Versioning. Versions are not tagged in git yet.
 
+## [1.0.1] - 2026-10-17
+
+Ninja Board 1.0.1 fixes the findings of Obsidian's community-plugin review and of our own pre-check. `manifest.json`, `versions.json` and `package.json` say 1.0.1.
+
+### Fixed
+- **Passes Obsidian's community review.** Styles go through classes and Obsidian's element helpers, the code uses the platform API and the path helper, and timers, element creation and sentence case follow the review's rules.
+- **Cmd/Ctrl+Z works after ticking.** Focus stays in the view when the view redraws, so the undo key still reaches it.
+- **The view no longer jumps on the first change.** The Undo button keeps its space from the start.
+- **Works on older iPhones.** No code uses a lookbehind, which iOS before 16.4 does not have.
+- **Views clean up when they unload.** A drag still in progress ends with its view.
+
+### Changed
+- **The undo command is named "Undo the last change".** Its id is unchanged.
+
+### Added
+- **A lint script.** `npm run lint` runs ESLint with Obsidian's review rules.
+- **Releases built and attested by GitHub Actions.** Pushing a tag equal to the manifest's version runs the release workflow, which lints, tests and builds, and attests the three files Obsidian installs.
+
 ## [1.0.0] - 2026-10-16
 
 Ninja Board 1.0.0, released on 16 October 2026, is the first release under the name Ninja Board. It holds the changes made after a check by hand of v0.2.0, the fixes from the whole-plugin review after it, and the repeating-note planning of 16 October 2026. `manifest.json`, `versions.json` and `package.json` say 1.0.0.
@@ -21,7 +39,7 @@ Ninja Board 1.0.0, released on 16 October 2026, is the first release under the n
 - **Repeating task notes plan like task notes.** A repeating note takes the planner card. A plan decides its week, and its deadline counts only when it has no plan. A left click sets or clears its do day and keeps the deadline; a right-click on another day moves the deadline; the red chip can't be cleared. Done on the card completes the occurrence and closes the card.
 - **The plugin is named Ninja Board** (named 2026-10-16; its working name was Brain). Its id is `ninja-board`, its five views are `ninja-board-today`, `ninja-board-week`, `ninja-board-projects`, `ninja-board-backlog` and `ninja-board-guide`, and its commands, Notices and Guide say Ninja Board. The internal names (`BRAIN_VAULT`, `BrainView`, the `.brain-view` styles) and the `brain` tools keep their spelling.
 - **The Week header's tasks figure reads done out of all**, "2/16", with a checklist icon, in place of "N left". Today keeps "N left".
-- **The planning header shows two counts,** planned (checklist icon: everything in Planned or due) and due (red flag: how many of those have their own deadline in the week), in place of "N planned or due". A deadline on a line inside a story does not count. Its tooltip and label read "N in the week, M due", as corrected on 2026-10-16.
+- **The planning header shows two counts,** planned (checklist icon: everything in Planned or due) and due (red flag: how many of those have their own deadline in the week), in place of "N planned or due". A deadline on a line inside a story does not count. Its tooltip and label read "N in the week, M due", as the author corrected them on 2026-10-16.
 - **Ticking a repeating note is Ninja Board's.** The row no longer reads "done via the agent", and the repeat card is gone: a repeating row opens its planner card while it is open or doing, else its states card, and Space ticks it.
 - **Stories in lists are cards.** In To plan's groups and the list modal a story is a card with its progress ring and count; in Backlog's No date it is a folded card with its peek.
 - **The sample vault** gives its stories points, and week 41's record holds 7 planned and 6 done.
@@ -34,12 +52,13 @@ Ninja Board 1.0.0, released on 16 October 2026, is the first release under the n
 - **Undated task notes are planned and listed.** An open task note in an area is listed under its area in No date (Backlog and To plan). Its open lines show as loose rows on the Week board, in its counts and in upcoming weeks. A task note inside a project is still a story.
 - **Inbox notes dropped in by hand count.** A note in `02 Inbox` is an inbox item whatever its type, aged by its `received` time, else the date and time in its name, else `created`.
 - **Wikilinks in task lines are read in linear time.** `[[A [[B]]` now reads `B`.
-- **Today keeps a missed plan.** A task planned on an earlier day and still open stays on Today, and counts in "N left", until it is done or replanned. Its meta names the day: "Planned yesterday", then the date ("Planned 9 Oct"). This was decided on 2026-10-15 (implementation spec, deviation 4); system 3.4 is unchanged. The rule was already in the code, and a new test pins the day label.
+- **Today keeps a missed plan.** A task planned on an earlier day and still open stays on Today, and counts in "N left", until it is done or replanned. Its meta names the day: "Planned yesterday", then the date ("Planned 9 Oct"). This was decided on 2026-10-15. The rule was already in the code, and a new test pins the day label.
 - **The `brain` tools' line numbers and state words (decided 2026-10-15).** In `state`, `plan` and `due`, `<line>` is 1-based, as editors show it, and the tools convert it for Ninja Board's 0-based index. `state` takes Ninja Board's words for a task line: `todo`, `doing`, `waiting`, `done` or `dropped`. A task note keeps its status values. The `brain` tools live in each vault and are not in this repository yet; the implementation spec is what they follow.
 - **Dragging scrolls the view.** A lifted card or row near the top or bottom of its view scrolls the view, a frame at a time, and the drag follows the content. A lifted item also stays under the pointer when the view scrolls by a wheel or trackpad.
 - **Right-click a day to set the deadline.** In the planner card, a right-click on a day sets the deadline there and keeps the do day. On the red day it removes the deadline, and on the do day it makes the plan the deadline, as a second click does. Left clicks keep their do, due, do cycle, and the Guide's Planning tile lists the step.
 - **Waiting is one column in both views, and Group view is its layout.** From 720px Group view puts Waiting under Doing in three columns; below 720px the board is Column view and the switch is hidden. The nested group is gone from the markup and the plugin, and `npm test` runs 849 tests.
-- **Tests.** `npm test` runs 1114 tests, all passing. An Obsidian stub lets the write path and the view run under Node, and a guard fails any assertion that compares a DOM node.
+- **Tests.** The suite has 849 tests. An Obsidian stub lets the write path and the view run under Node, and a guard fails any assertion that compares a DOM node.
+- **Tests.** `npm test` runs 1074 tests, all passing, up from 1005.
 - **The manifest names the author.** `manifest.json` names AlexSendula as its author, with an `authorUrl`.
 
 ### Fixed
@@ -90,7 +109,7 @@ Round 2 of the plugin, built after the first look at v0.1.0. Design: [round 2 sp
 - **Done and Someday list the newest first.**
 
 ### Fixed
-- Found during the build, before the check by hand:
+- Found during the build, before the hand check:
   - a re-render during a carry no longer strands the list modal;
   - a move between columns no longer freezes the column it left;
   - a waiting line is not plannable;

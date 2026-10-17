@@ -25,12 +25,11 @@ export interface HeadOpts {
   tasks?: { done: number; total: number };    // Week: done out of all its tasks, "2/16", with the checklist icon
   points?: PointsVM;                         // Week: the story points ring and its label, when the week has points
   record?: boolean;                          // Week: a past week's record: its tasks ring says "that week", its points are marked
-  undo?: Pick<Actions, 'undo' | 'undoLabel'>;   // the page's Undo button, top right above the figures; the Guide has none
+  undo?: Pick<Actions, 'undo' | 'undoLabel' | 'mac'>;   // the page's Undo button, top right above the figures; the Guide has none
 }
 
 /** A view's head: label, the title that is the summary, and a quiet figure. */
 export function viewHead(opts: HeadOpts): HTMLElement {
-  const { figure } = opts;
   const label = h('p', opts.accent ? 'brain-label brain-label-accent' : 'brain-label', {}, [opts.label]);
   return h(opts.header ? 'header' : 'div', 'brain-head', {}, [
     h('div', undefined, {}, [
@@ -64,13 +63,15 @@ function figures(opts: HeadOpts): HTMLElement | null {
 let undoShown = false;
 
 /**
- * The Undo button: hidden when there is nothing to undo, and otherwise named for the step on top, with the shortcut in its
- * tooltip (⌘Z on a Mac, Ctrl+Z elsewhere). The accessible label is the same without the shortcut. It is keyed, as a row is,
- * so a redraw (every step redraws the page) gives the focus back to it, and Cmd/Ctrl+Z goes on from there.
+ * The Undo button, named for the step on top, with the shortcut in its tooltip (⌘Z on a Mac, Ctrl+Z elsewhere). The accessible
+ * label is the same without the shortcut. It is always drawn, so the head keeps its height when the first step shows (a button
+ * taken out of the layout would move the figures and the page under them). With nothing to undo it is disabled and aria-hidden,
+ * and styles.css makes it invisible, so it takes no tab stop and no reader. It is keyed, as a row is, so a redraw (every step
+ * redraws the page) gives the focus back to it, and Cmd/Ctrl+Z goes on from there.
  */
-function undoButton(undo: Pick<Actions, 'undo' | 'undoLabel'>): HTMLButtonElement {
+function undoButton(undo: Pick<Actions, 'undo' | 'undoLabel' | 'mac'>): HTMLButtonElement {
   const label = undo.undoLabel();
-  const shortcut = /Mac|iPhone|iPad/.test(typeof navigator === 'undefined' ? '' : navigator.platform) ? '⌘Z' : 'Ctrl+Z';
+  const shortcut = undo.mac ? '⌘Z' : 'Ctrl+Z';
   const shown = !!label;
   const steady = undoShown && shown;   // shown on the last draw too: no fade
   undoShown = shown;
@@ -80,7 +81,7 @@ function undoButton(undo: Pick<Actions, 'undo' | 'undoLabel'>): HTMLButtonElemen
     ...(steady ? { 'data-steady': '' } : {}),
     'aria-label': label ? `Undo: ${label}` : 'Undo',
     title: label ? `Undo: ${label} (${shortcut})` : 'Undo',
-    ...(label ? {} : { hidden: '' }),
+    ...(label ? {} : { disabled: '', 'aria-hidden': 'true' }),
   }, [undoIcon()]);
   button.addEventListener('click', () => undo.undo());
   return button;
@@ -140,10 +141,10 @@ function tallyFigure({ inWeek, due }: { inWeek: number; due: number }): HTMLElem
 /** The label between ‹ and ›, then This week when there is a way back. */
 function pager(label: HTMLElement, on: NonNullable<HeadOpts['pager']>): HTMLElement {
   return h('div', 'brain-pager', {}, [
-    button('brain-step', [stepIcon('prev')], on.onPrev, 'Previous week'),
+    button('brain-step', [stepIcon('prev')], () => on.onPrev(), 'Previous week'),
     label,
-    button('brain-step', [stepIcon('next')], on.onNext, 'Next week'),
-    on.onThisWeek ? button('brain-quiet', ['This week'], on.onThisWeek) : null,
+    button('brain-step', [stepIcon('next')], () => on.onNext(), 'Next week'),
+    on.onThisWeek ? button('brain-quiet', ['This week'], () => on.onThisWeek?.()) : null,
   ]);
 }
 

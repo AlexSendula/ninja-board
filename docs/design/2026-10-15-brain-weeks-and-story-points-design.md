@@ -5,7 +5,7 @@ This design sets two changes to the Ninja Board plugin, built in this order: **P
 | | |
 |---|---|
 | Status | 2026-10-16. Decided with the author. Built on 2026-10-16, plugin side: story points (Part 2), the repeating-item states (section 8) and the planning of repeating notes. |
-| Builds on | `2026-10-14-brain-plugin-round-2-design.md` (the Week board, planning, To plan), `2026-10-13-brain-plugin-design.md`, and `2026-10-13-second-brain-implementation.md` (deviation 5, and its data, Edits and subcommand tables) |
+| Builds on | `2026-10-14-brain-plugin-round-2-design.md` (the Week board, planning, To plan), `2026-10-13-brain-plugin-design.md`, and the [implementation spec](https://alexsendula.github.io/second-brain/implementation/) (deviation 5, and its data, Edits and subcommand tables) |
 | Visual design | The mockup ([design/mockup.html](../../design/mockup.html)): the Week 42 header and board, story cards, the planner card on a story, the planning page, and Backlog's No date. |
 
 ## 1. What was asked for, and what was decided

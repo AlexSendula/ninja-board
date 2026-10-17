@@ -2,6 +2,14 @@
 
 Ninja Board is an Obsidian plugin that shows your notes as five boards: Today, Week, Projects, Backlog & Waiting, and a Guide. It is for people who keep tasks, projects and appointments as plain notes and want to see and plan them the way a good app would.
 
+![Dragging a task card to another column](docs/images/drag-card.gif)
+
+*Drag a card to another column, and the note changes with it.*
+
+![Planning a task onto a day in the Week strip](docs/images/plan-day.gif)
+
+*Drop a task on a day in the Week strip to plan it.*
+
 ## What it does
 
 - Adds five views to Bases, Obsidian's core plugin for views over notes. Bases picks the notes, and Ninja Board draws them.
@@ -42,7 +50,7 @@ Do this once, in Obsidian's settings:
 2. Under Tasks → Task Statuses, add a custom status: symbol `w`, name `Waiting`, next status symbol `x`, status type `ON_HOLD`.
 3. Leave **Set done date on every completed task** on. It is on by default.
 
-The Guide's **Setup** tile checks this for you. The [user guide](docs/USER_GUIDE.md#the-tasks-setup-check) says what it checks.
+The Guide's **Setup** tile checks this for you. The [user guide](docs/USER_GUIDE.md#the-tasks-setup-check) says what it checks. The Guide reads whether Tasks is on, and Tasks' saved settings, to check the setup, and nothing else.
 
 ## Add the dashboards
 
@@ -71,9 +79,27 @@ The others use `ninja-board-week`, `ninja-board-projects`, `ninja-board-backlog`
 - **Move** a task or project: drag it to another column, or onto a day of the Week strip to plan it.
 - **Arrange** a board: drag a card within its column, or press Alt+↑ and Alt+↓.
 - **Open** the note: click the title, or press Enter.
-- **Undo:** Cmd/Ctrl+Z in a view, or the command **Undo the last Ninja Board change**.
+- **Undo:** Cmd/Ctrl+Z in a view, or the command **Undo the last change**.
 
 The [user guide](docs/USER_GUIDE.md) covers each view, planning a week, the cards, repeats and the exact edits Ninja Board makes. If something doesn't show, see [Troubleshooting](docs/TROUBLESHOOTING.md).
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/images/week.png" alt="The Week view in light mode, with its strip and the board" width="720"><br>
+  <sub>Week</sub>
+</p>
+
+<table>
+  <tr>
+    <td align="center" width="50%"><img src="docs/images/today.png" alt="The Today view" width="360"><br><sub>Today</sub></td>
+    <td align="center" width="50%"><img src="docs/images/projects.png" alt="The Projects view" width="360"><br><sub>Projects</sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%"><img src="docs/images/plan.png" alt="The Week view with the Plan strip open" width="360"><br><sub>Planning a task</sub></td>
+    <td align="center" width="50%"><img src="docs/images/guide.png" alt="The Guide view" width="360"><br><sub>Guide</sub></td>
+  </tr>
+</table>
 
 ## Update
 
@@ -91,10 +117,13 @@ npm run build
 `npm run build` writes `main.js`. With `manifest.json` and `styles.css`, that is the whole plugin. Reload Obsidian after each new build.
 
 - `npm test` runs the tests.
+- `npm run lint` checks the code with ESLint and Obsidian's review rules. It must report nothing.
 - `npm run typecheck` checks the types.
 - `npm run dev` rebuilds `main.js` on every change.
 - `npm run preview` shows the real views on the sample vault, at http://localhost:8766/preview/.
 - `npm run sandbox` (macOS only) builds and copies the plugin into the vault named by `BRAIN_VAULT` (by default `~/Documents/Obsidian Vault`). The vault must already have a `.obsidian` folder, or the script stops. `npm run sandbox -- --yes` also moves that vault's notes to the Trash and copies in the sample vault.
+
+Releases are built by pushing a tag equal to the manifest's version, for example `1.0.1`. The [release workflow](.github/workflows/release.yml) then lints, tests, builds and attests the three files.
 
 More in the [developer guide](docs/DEVELOPER.md).
 

@@ -158,6 +158,7 @@ async function putBack(app: App, path: string, note: NoteWrites): Promise<boolea
   return applied;
 }
 
+// Read from the text, not the metadata cache: the cache can lag a write made a moment ago, and undo checks the note as it is now.
 /** A note's frontmatter as its text reads it, through Obsidian's YAML: {} when there is none. */
 function frontmatterOf(text: string): Record<string, unknown> {
   const yaml = /^---\r?\n(?:([\s\S]*?)\r?\n)?---(?:\r?\n|$)/.exec(text)?.[1];

@@ -1,6 +1,6 @@
 # Plugin API reference
 
-> Last updated: 16 October 2026 (Ninja Board 1.0.0)
+> Last updated: 17 October 2026 (Ninja Board v1.0.1)
 
 Ninja Board has no network API. Its public surface is:
 
@@ -13,7 +13,7 @@ Architecture: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Registered views
 
-Registered in [`src/main.ts`](../src/main.ts) (`VIEWS`, line 7). If the Bases core plugin is off, Ninja Board shows the Notice "Ninja Board needs the Bases core plugin. Turn on Bases, then reload Ninja Board."
+Registered in [`src/main.ts`](../src/main.ts) (`VIEWS`, line 7). If the Bases core plugin is off, Ninja Board shows the Notice "Bases is off. Turn it on, then reload this plugin."
 
 | View type | Name in the Bases view picker | Icon | Dashboard note (sample) | Shows |
 |---|---|---|---|---|
@@ -23,7 +23,7 @@ Registered in [`src/main.ts`](../src/main.ts) (`VIEWS`, line 7). If the Bases co
 | `ninja-board-backlog` | Ninja Board · Backlog & Waiting | `inbox` | `01 Dashboard/04 Backlog.md` | The inbox, undated tasks, someday projects, and waiting tasks by person. |
 | `ninja-board-guide` | Ninja Board · Guide | `book-open` | `01 Dashboard/05 Guide.md` | The marks, how to work in Ninja Board, and a live check of the Tasks setup. |
 
-The user-facing description of each view is in the [user guide](USER_GUIDE.md#the-views).
+The user-facing description of each view is in the [plugin README](../README.md#the-views).
 
 ## Commands
 
@@ -31,9 +31,9 @@ Registered in [`src/main.ts`](../src/main.ts).
 
 | Command id | Name in code | Shown in the palette | Does | If the note is missing |
 |---|---|---|---|---|
-| `open-today` | Open Today | Ninja Board: Open Today | Opens `01 Dashboard/01 Today.md` in the current tab. | Notice: "Ninja Board can't find 01 Dashboard/01 Today.md" |
+| `open-today` | Open today | Ninja Board: Open today | Opens `01 Dashboard/01 Today.md` in the current tab. | Notice: "Ninja Board can't find 01 Dashboard/01 Today.md" |
 | `open-guide` | Open guide | Ninja Board: Open guide | Opens `01 Dashboard/05 Guide.md` in the current tab ([`src/obsidian/guide.ts`](../src/obsidian/guide.ts)). | Notice: "Ninja Board can't find 01 Dashboard/05 Guide.md" |
-| `undo` | Undo the last Ninja Board change | Ninja Board: Undo the last Ninja Board change | Undoes the newest Ninja Board step, as the Undo button does. No default hotkey; Cmd/Ctrl+Z in a Ninja Board view does the same ([`src/obsidian/undo.ts`](../src/obsidian/undo.ts)). | Nothing to undo: nothing happens. |
+| `undo` | Undo the last change | Ninja Board: Undo the last change | Undoes the newest Ninja Board step, as the Undo button does. No default hotkey; Cmd/Ctrl+Z in a Ninja Board view does the same ([`src/obsidian/undo.ts`](../src/obsidian/undo.ts)). | Nothing to undo: nothing happens. |
 
 ## Dashboard note format
 
@@ -121,7 +121,7 @@ A task note with a `repeat` key is a repeating note. Its states are written as f
 
 - **Complete** (`setState` to `done`, or a tick on a note that is not done). Ninja Board takes one next-date step from the `due` being completed, or from the day it is done when `repeat_from` is `done`. The note is written open with that `due`, and `scheduled`, `start`, `waiting_on`, `chase` and `done` are removed. The occurrence goes to the top of the note's `## Log` section as `- <day done> Done: the occurrence due <due>. Next due <next>.`; a note with no `## Log` section gets one at its end. The whole completion is one undo step. Undo takes the Log line out again, but only while the note is as Ninja Board left it ([`applyNoteComplete`](../src/model/repeat.ts), [`setNoteState`](../src/obsidian/writes.ts)).
 - **Drop** (`setState` to `dropped`). The note is `dropped`, and `done` is set to today, kept if already set. Its `repeat` and `due` stay, and no Log line is written.
-- **Refused.** A `repeat` that does not parse, or a note with no `due` that is a date, is refused. The Notice "Ninja Board can't complete this repeating note: its repeat or its due date isn't one Ninja Board knows" shows, nothing is written, and `setState` resolves to `null`.
+- **Refused.** A `repeat` that does not parse, or a note with no `due` that is a date, is refused. The Notice "Can't complete this repeating note: its repeat or its due date isn't one this plugin knows" shows, nothing is written, and `setState` resolves to `null`.
 - **Other states** (to do, doing, waiting) are a plain `status` write. No occurrence is recorded.
 
 The repeats Ninja Board reads are `every <n> day`, `week`, `month` or `year` (with an optional `s`), and `every <weekdays>`, such as `every tue` or `every mon, wed, fri` or `every mon-fri`. `repeat_from` is `due` (the default) or `done`. `if_missed` is `carry` (the default, the missed date stays due) or `lapse` (the missed date is skipped).
@@ -145,18 +145,18 @@ A failed write never rejects. Each async action catches its own error, shows a N
 |---|---|
 | The write threw | "Ninja Board couldn't save that change" |
 | The line changed since it was drawn | "That task changed — refreshed". The write is refused, and the view redraws from the vault. |
-| Tasks is missing, so a tick cannot go through it | "Ninja Board needs the Tasks plugin to tick tasks" |
-| Tasks returned something Ninja Board can't use, or an answer that does not do what the tick was for | "Tasks gave an answer Ninja Board can't use". Nothing is written. |
+| Tasks is missing, so a tick cannot go through it | "Tasks must be on to tick a task" |
+| Tasks returned something Ninja Board can't use, or an answer that does not do what the tick was for | "Tasks gave an answer this plugin can't use". Nothing is written. |
 | The note is gone, for a write | No write, and `null` is returned. No Notice. |
 | The note is gone, for opening | Nothing happens. No Notice. |
-| A repeating note's completion is refused | "Ninja Board can't complete this repeating note: its repeat or its due date isn't one Ninja Board knows". Nothing is written, and `setState` resolves to `null`. |
+| A repeating note's completion is refused | "Can't complete this repeating note: its repeat or its due date isn't one this plugin knows". Nothing is written, and `setState` resolves to `null`. |
 | An arrangement, in an embed, a hover or a canvas | "Open the dashboard note itself to arrange this board". Nothing is saved. |
 | The Schedule's form, in an embed, a hover or a canvas | "Open the dashboard note itself to keep the Schedule view". The choice lasts for the session. |
 | Opening a note throws | "Ninja Board couldn't open that note" |
 
 ## Edit contract shared with the agent
 
-Ninja Board and the agent are meant to make the same edits, so the same action gives the same result on either side. Only Ninja Board's side is tested in this repository so far. The rules are in the [Edits table of the implementation spec](https://alexsendula.github.io/second-brain/implementation/#2-reference-format). The planning rules are also in [round 2, section 4](design/2026-10-14-brain-plugin-round-2-design.md). The summary below is what the code does now.
+Ninja Board and the agent are meant to make the same edits, so the same action gives the same result on either side. Only Ninja Board's side is tested in this repository so far. The rules are in the [Edits table of the implementation spec](https://alexsendula.github.io/second-brain/implementation/). The planning rules are also in [round 2, section 4](design/2026-10-14-brain-plugin-round-2-design.md). The summary below is what the code does now.
 
 ### Planning and deadlines
 
@@ -202,7 +202,7 @@ The points cases stand for `brain points`, the planning cases for `brain plan` a
 
 ### The agent's commands
 
-As the [implementation spec defines them](https://alexsendula.github.io/second-brain/implementation/#1-setup) (section 1, "Agent tools"):
+As the [implementation spec defines them](https://alexsendula.github.io/second-brain/implementation/) (section 1, "Agent tools"):
 
 | Command | Does | Same as in Ninja Board |
 |---|---|---|
@@ -223,6 +223,6 @@ Settled on 2026-10-15, and written into the implementation spec's Subcommands li
 ## Related documentation
 
 - [Architecture](ARCHITECTURE.md): the layers, the data flow, and the decisions behind them.
-- [User guide](USER_GUIDE.md): the views, and the dashboard notes.
+- [Plugin README](../README.md): the user's guide, and the dashboard notes.
 - [Implementation spec](https://alexsendula.github.io/second-brain/implementation/): the agent side and the Edits table.
 - [Plugin design](design/2026-10-13-brain-plugin-design.md) and [round 2 design](design/2026-10-14-brain-plugin-round-2-design.md).

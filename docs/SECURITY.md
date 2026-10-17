@@ -4,7 +4,7 @@
 
 ## Overview
 
-Ninja Board is a local Obsidian plugin. It has no server, no account and no network code. It runs with Obsidian's access, and the implementation spec keeps third-party plugins to a minimum because a plugin can do anything on the computer ([implementation spec, section 1](https://alexsendula.github.io/second-brain/implementation/#1-setup)). So the protection for the vault is in the code: what Ninja Board reads, the small set of writes it makes, and how it builds the screen.
+Ninja Board is a local Obsidian plugin. It has no server, no account and no network code. It runs with Obsidian's access, and the implementation spec keeps third-party plugins to a minimum because a plugin can do anything on the computer ([implementation spec, section 1](https://alexsendula.github.io/second-brain/implementation/)). So the protection for the vault is in the code: what Ninja Board reads, the small set of writes it makes, and how it builds the screen.
 
 The rest of this page is what the code does, checked against the source and against a fresh build of it (15 October 2026).
 
@@ -63,7 +63,7 @@ The plugin never deletes, trashes, renames or creates a file. A build of the cur
 - **No HTML from strings.** There is no `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`, `eval` or `new Function` in any production file, and none in a fresh build. The `innerHTML` and `outerHTML` in `src/` are in test files, which read the output.
 - **No Markdown rendering.** Ninja Board doesn't use Obsidian's `MarkdownRenderer` or `setHTML`. A note's text, which can contain markup, never becomes HTML.
 - **Note text in attributes.** An appointment's `title` and `aria-label` hold its name and time, set with `setAttribute`, so markup in them is never parsed ([schedule.ts](../src/ui/schedule.ts), lines 146 and 147). Ninja Board sets no `on…` attribute and no `href` from note text.
-- **Numbers only in styles.** Inline styles take positions and sizes computed from times and counts ([schedule.ts](../src/ui/schedule.ts), lines 83 to 95; [popover.ts](../src/ui/popover.ts), lines 123 to 132).
+- **Numbers only in styles.** Run-time styles take positions and sizes computed from times and counts, set through `setCssProps` or `setCssStyles` ([schedule.ts](../src/ui/schedule.ts), lines 83 to 95; [popover.ts](../src/ui/popover.ts), lines 123 to 132).
 
 ## The sandbox script
 
@@ -80,7 +80,7 @@ The plugin never deletes, trashes, renames or creates a file. A build of the cur
 
 - Ninja Board keeps no data of its own. It writes no file outside the vault, and it saves no settings file (no `data.json`).
 - The only state it saves is the layout in the dashboard note's `base` block.
-- Ninja Board's own Undo keeps its history in memory, for the Obsidian session only. For older edits, Obsidian's File recovery core plugin and the vault's git history are the undo, as the implementation spec sets up ([section 1](https://alexsendula.github.io/second-brain/implementation/#1-setup)).
+- Ninja Board's own Undo keeps its history in memory, for the Obsidian session only. For older edits, Obsidian's File recovery core plugin and the vault's git history are the undo, as the implementation spec sets up ([section 1](https://alexsendula.github.io/second-brain/implementation/)).
 
 ## Tasks
 
@@ -90,13 +90,13 @@ The plugin never deletes, trashes, renames or creates a file. A build of the cur
 ## Privacy
 
 - The plugin sends nothing anywhere. It has no telemetry and no remote calls.
-- Vault content goes to a model provider only when an agent tool reads it. The implementation spec's Privacy paragraph names the providers for each tool ([section 1](https://alexsendula.github.io/second-brain/implementation/#1-setup)). Ninja Board is not an agent tool.
+- Vault content goes to a model provider only when an agent tool reads it. The implementation spec's Privacy paragraph names the providers for each tool ([section 1](https://alexsendula.github.io/second-brain/implementation/)). Ninja Board is not an agent tool.
 
 ## Dependencies
 
 - **Runtime:** none. The plugin's only import from outside its own code is `obsidian`. A fresh build contains no `linkedom`, `yaml` or Node module.
 - **Development:** esbuild, typescript, the obsidian type declarations, linkedom, yaml and @types/node, pinned in [package-lock.json](../package-lock.json). They run on the developer's machine only.
-- The repository runs no automated dependency audit. There is no CI.
+- The repository runs no automated dependency audit. Its only workflow is the release workflow, which runs when a tag is pushed.
 
 ## Related Documentation
 

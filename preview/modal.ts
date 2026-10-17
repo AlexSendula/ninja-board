@@ -44,7 +44,7 @@ export function openListModal(stage: HTMLElement, spec: ListSpec, actions: Actio
   const host: ListHost = {
     close: () => finish(),
     carry: (on, cancel) => {
-      container.style.visibility = on ? 'hidden' : '';   // the board beneath takes the pointer while an item is carried
+      container.classList.toggle('brain-carrying', on);   // the board beneath takes the pointer while an item is carried
       cancelCarry = on ? cancel : undefined;
       frame.inert = !on;
     },
@@ -117,9 +117,11 @@ function shell(stage: HTMLElement, title: string, modalClass: string) {
   const container = h('div', 'modal-container mod-dim', {}, [backdrop, modalEl]);
   const place = (): void => {
     const r = frame.getBoundingClientRect();
-    container.style.setProperty('--mock-left', `${r.left}px`);
-    container.style.setProperty('--mock-width', `${r.width}px`);
-    container.style.setProperty('--mock-top', `${document.querySelector<HTMLElement>('#mock-bar')?.offsetHeight ?? 0}px`);
+    container.setCssProps({
+      '--mock-left': `${r.left}px`,
+      '--mock-width': `${r.width}px`,
+      '--mock-top': `${document.querySelector<HTMLElement>('#mock-bar')?.offsetHeight ?? 0}px`,
+    });
   };
   return { frame, opener, titleEl, contentEl, closeButton, backdrop, modalEl, container, place };
 }

@@ -29,7 +29,7 @@ export function now(): string {
 export async function toggleViaTasks(app: App, target: LineTarget, from: string = target.raw, journal: Write[] = []): Promise<LineTarget | null> {
   const api = tasksApi(app);
   if (!api) {
-    new Notice('Ninja Board needs the Tasks plugin to tick tasks');
+    new Notice('Tasks must be on to tick a task');
     return null;
   }
   const read = parseTaskLine(from, target.path, target.line);
@@ -39,7 +39,7 @@ export async function toggleViaTasks(app: App, target: LineTarget, from: string 
   // Tasks' answer replaces the user's line, so it is checked first: a wrong one would erase the task.
   const result: unknown = api.executeToggleTaskDoneCommand(input, target.path);
   if (!isUsableToggle(result, target.path, target.line) || !doesTick(result, target.path, target.line, completes)) {
-    new Notice("Tasks gave an answer Ninja Board can't use");
+    new Notice("Tasks gave an answer this plugin can't use");
     return null;
   }
   if (!(await writeLine(app, target, result, journal))) return null;
@@ -95,7 +95,7 @@ export async function setNoteState(app: App, path: string, status: string, journ
     if (!refused) journal.push(...fieldWrites(path, before, fm));
   });
   if (refused) {
-    new Notice("Ninja Board can't complete this repeating note: its repeat or its due date isn't one Ninja Board knows");
+    new Notice("Can't complete this repeating note: its repeat or its due date isn't one this plugin knows");
     return false;
   }
   if (occurred.entry !== undefined) await logOccurrence(app, path, occurred.entry, journal);

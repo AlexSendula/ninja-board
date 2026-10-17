@@ -1,8 +1,8 @@
-import { Notice } from 'obsidian';
+import { Notice, normalizePath } from 'obsidian';
 import type { App } from 'obsidian';
 
 /** The Guide's dashboard note: its base block draws the Guide view. */
-export const GUIDE_NOTE = '01 Dashboard/05 Guide.md';
+export const GUIDE_NOTE = normalizePath('01 Dashboard/05 Guide.md');
 
 /** Opens the Guide note in this tab, or says that it is missing. */
 export async function openGuide(app: App): Promise<void> {

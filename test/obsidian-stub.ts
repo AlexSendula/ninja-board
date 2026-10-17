@@ -38,7 +38,12 @@ export class Plugin {
 }
 
 /** Obsidian's platform flags: the tests run as a desktop app. */
-export const Platform = { isMobile: false, isDesktop: true, isPhone: false, isTablet: false };
+/** Obsidian's normalizePath, by its documented rules: forward slashes, no duplicate, leading or trailing slash, and no non-breaking space. */
+export function normalizePath(path: string): string {
+  return path.normalize('NFC').replace(/[\\/]+/g, '/').replace(/^\/|\/$/g, '').replace(/\u00A0|\u202F/g, ' ');
+}
+
+export const Platform = { isMobile: false, isDesktop: true, isPhone: false, isTablet: false, isMacOS: false };
 
 /** Obsidian's base class for a Bases view. Tests set `data`; `config` holds nothing. */
 export class BasesView {

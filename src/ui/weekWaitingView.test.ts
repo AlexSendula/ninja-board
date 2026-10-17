@@ -58,7 +58,7 @@ test('Waiting, column view: four columns, To do, Doing, Waiting and Done, with t
   assert.deepEqual(cols.map((c) => c.querySelector('.brain-label-row > .brain-label')?.textContent), ['To do', 'Doing', 'Waiting', 'Done']);
   assert.deepEqual(cols.map((c) => c.querySelector('.brain-label-row > .brain-count')?.textContent), ['7', '2', '1', '2']);
   assert.deepEqual(cols.map((c) => c.querySelectorAll(':scope > .brain-col-items > [data-key]').length), [7, 2, 1, 2]);
-  assert.equal(board(root).hasAttribute('data-waiting'), false);
+  assert.equal(board(root).getAttribute('data-waiting'), 'column');   // the board says its view; the CSS lays Waiting out by it
 });
 
 test('Waiting, column view: its column carries data-states and data-arrange, and its label row holds both labels, then its switch', () => {
@@ -186,4 +186,16 @@ test('Waiting: the switch is keyed, so a redraw in either view gives it back its
     refocus(root, 'waiting-switch');
     assert.deepEqual(focused, [{ preventScroll: true }], view);
   }
+});
+
+test('the board says which Waiting view it draws, and Waiting marks keyboard focus inside it', () => {
+  assert.equal(board(render(vm)).getAttribute('data-waiting'), 'column');
+  assert.equal(board(render(vm, 'group')).getAttribute('data-waiting'), 'group');
+  const waiting = columns(render(vm)).find((c) => c.dataset.column === 'waiting')!;
+  const switchButton = waiting.querySelector<HTMLElement>('.brain-switch')!;
+  switchButton.matches = (selector: string) => selector === ':focus-visible';   // linkedom has no :focus-visible: a Tab's focus
+  fire(switchButton, 'focusin');
+  assert.equal(waiting.classList.contains('brain-keyboard-focus'), true);
+  fire(switchButton, 'focusout');
+  assert.equal(waiting.classList.contains('brain-keyboard-focus'), false);
 });

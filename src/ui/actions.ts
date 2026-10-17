@@ -3,6 +3,8 @@ import type { Points } from '../model/points.ts';
 import type { DropTarget } from './drag.ts';
 
 export interface Actions {
+  /** The app runs on macOS: the Undo shortcut is named ⌘Z there, and Ctrl+Z elsewhere. Obsidian's Platform.isMacOS, in the app. */
+  readonly mac: boolean;
   toggle(target: RowTarget): Promise<void>;                     // click on the circle; Space
   /**
    * The state of a row. Resolves to the target as it now stands (a line: its new raw; a note: its new state), or

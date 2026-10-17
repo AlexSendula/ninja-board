@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { recorder } from '../../test/ui.ts';   // first: it installs the DOM
+import { fire, recorder } from '../../test/ui.ts';   // first: it installs the DOM
 import { h, link } from './dom.ts';
-import { focusedKey, pagerFocus, refocus, refocusPager, returnFocus } from './focus.ts';
+import { focusedKey, markKeyboardFocus, pagerFocus, refocus, refocusPager, returnFocus } from './focus.ts';
 import { renderWeek } from './week.ts';
 import { buildWeek } from '../model/week.ts';
 import { loadSample } from '../../test/sample.ts';
@@ -152,4 +152,50 @@ test('pager focus: a Coming up chip counts as This week, and focus elsewhere rem
   const calls = spy({ prev: pagerSteps(root)[0] });
   refocusPager(root, undefined);
   assert.deepEqual(calls, []);
+});
+
+test('keyboard focus inside a section marks it; a click\'s focus, which is not focus-visible, does not', () => {
+  const section = h('section', 'brain-col', {}, [h('button', 'brain-switch', {}, [])]);
+  const control = section.querySelector<HTMLElement>('button')!;
+  markKeyboardFocus(section, 'brain-keyboard-focus');
+  // linkedom has no :focus-visible: the test says what the browser says for each kind of focus.
+  control.matches = (selector: string) => selector === ':focus-visible';
+  fire(control, 'focusin');
+  assert.equal(section.classList.contains('brain-keyboard-focus'), true);
+  fire(control, 'focusout');
+  assert.equal(section.classList.contains('brain-keyboard-focus'), false);
+  control.matches = () => false;
+  fire(control, 'focusin');
+  assert.equal(section.classList.contains('brain-keyboard-focus'), false);
+});
+
+test('a focus the browser cannot tell apart (no :focus-visible support) is not keyboard focus', () => {
+  const section = h('section', 'brain-col', {}, [h('button', 'brain-switch', {}, [])]);
+  markKeyboardFocus(section, 'brain-keyboard-focus');
+  fire(section.querySelector('button')!, 'focusin');   // linkedom throws on :focus-visible
+  assert.equal(section.classList.contains('brain-keyboard-focus'), false);
+});
+
+test('refocus: a row folded away in a shut group takes the focus to the toggle that opens the group, and with no such toggle, to the view', () => {
+  const row = h('li', 'brain-task', { tabindex: '0', 'data-key': 'Home/Hallway.md#6' }, [link('Fix the hallway light switch', 'brain-task-text', () => {})]);
+  const group = h('ul', 'brain-tasks', { id: 'brain-fold-7', hidden: '' }, [row]);
+  const toggle = h('button', 'brain-fold-toggle', { 'aria-controls': 'brain-fold-7', 'data-key': 'fold:done' }, ['Done today']);
+  const view = h('div', 'brain-view', { tabindex: '-1' }, [toggle, group]);
+  const calls = spy({ view, toggle, row });
+  refocus(view, 'Home/Hallway.md#6');
+  assert.deepEqual(calls, [['toggle', { preventScroll: true }]]);
+  // A shut group that nothing in the view opens: the view takes the focus, so Cmd/Ctrl+Z still reaches it.
+  const loose = h('ul', 'brain-tasks', { id: 'brain-fold-8', hidden: '' }, [h('li', 'brain-task', { tabindex: '0', 'data-key': 'Home/Loose.md#2' })]);
+  const outer = h('div', 'brain-view', { tabindex: '-1' }, [loose]);
+  const looseCalls = spy({ outer });
+  refocus(outer, 'Home/Loose.md#2');
+  assert.deepEqual(looseCalls, [['outer', { preventScroll: true }]]);
+});
+
+test('refocus: a disabled button takes no focus, so the focus goes to the view', () => {
+  const undoButton = h('button', 'brain-undo', { 'data-key': 'undo', disabled: '' });
+  const view = h('div', 'brain-view', { tabindex: '-1' }, [undoButton]);
+  const calls = spy({ view, undoButton });
+  refocus(view, 'undo');
+  assert.deepEqual(calls, [['view', { preventScroll: true }]]);
 });

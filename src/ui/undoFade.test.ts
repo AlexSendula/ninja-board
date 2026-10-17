@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { recorder } from '../../test/ui.ts';   // first: it installs the DOM
 import { viewHead } from './header.ts';
 
-const undo = (label: string) => ({ undo: (): void => {}, undoLabel: (): string | undefined => label });
+const undo = (label: string) => ({ mac: false, undo: (): void => {}, undoLabel: (): string | undefined => label });
 
 function button(label: string): HTMLButtonElement {
   const head = viewHead({ label: 'Today', title: 'Tuesday', undo: undo(label) });

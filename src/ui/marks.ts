@@ -31,7 +31,7 @@ export function ring(done: number, total: number, size: 16 | 18 | 24, label: str
   const circles = [svg('circle', { class: 'brain-ring-track', cx: c, cy: c, r })];
   if (pct > 0) {
     const fill = svg('circle', { class: 'brain-ring-fill', cx: c, cy: c, r, pathLength: '100' });
-    fill.style.setProperty('--brain-p', String(pct));
+    fill.setCssProps({ '--brain-p': String(pct) });
     circles.push(fill);
   }
   return svg('svg', { class: 'brain-ring', viewBox: `0 0 ${size} ${size}`, role: 'img', 'aria-label': label }, circles);
@@ -46,8 +46,7 @@ export function pointsRing(planned: number, done: number, target: number, label:
   const pct = (n: number): number => Math.min(n, target) / target * 100;
   const arc = (name: string, r: string, p: number, off = 0): SVGCircleElement => {
     const el = svg('circle', { class: name, cx: '12', cy: '12', r, pathLength: '100' });
-    el.style.setProperty('--brain-p', String(p));
-    el.style.setProperty('--brain-off', String(off));
+    el.setCssProps({ '--brain-p': String(p), '--brain-off': String(off) });
     return el;
   };
   return svg('svg', { class: 'brain-ring', viewBox: '0 0 24 24', role: 'img', 'aria-label': label }, [

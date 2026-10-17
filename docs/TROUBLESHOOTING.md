@@ -12,10 +12,10 @@
 
 | Notice (exact text) | When it shows | What to do |
 |---|---|---|
-| Ninja Board needs the Bases core plugin. Turn on Bases, then reload Ninja Board. | At startup, when Ninja Board can't register its views. The code reads any failed registration as Bases being off ([main.ts](../src/main.ts), line 30) | Settings → Core plugins → turn on Bases, then reload Obsidian |
-| Ninja Board can't find 01 Dashboard/01 Today.md | The **Open Today** command, when that note is missing ([main.ts](../src/main.ts), line 40) | Put the note back at that path. The path is fixed in the code |
+| Bases is off. Turn it on, then reload this plugin. | At startup, when Ninja Board can't register its views. The code reads any failed registration as Bases being off ([main.ts](../src/main.ts), line 30) | Settings → Core plugins → turn on Bases, then reload Obsidian |
+| Ninja Board can't find 01 Dashboard/01 Today.md | The **Open today** command, when that note is missing ([main.ts](../src/main.ts), line 40) | Put the note back at that path. The path is fixed in the code |
 | Ninja Board can't find 01 Dashboard/05 Guide.md | The **Open guide** command, when that note is missing ([src/obsidian/guide.ts](../src/obsidian/guide.ts), line 11) | Put the note back at that path |
-| Ninja Board needs the Tasks plugin to tick tasks | Ticking a line, or setting a line to done from a card, when Tasks has no toggle API: Tasks is off, missing or too old ([writes.ts](../src/obsidian/writes.ts), line 29) | Turn on Tasks, and update it |
+| Tasks must be on to tick a task | Ticking a line, or setting a line to done from a card, when Tasks has no toggle API: Tasks is off, missing or too old ([writes.ts](../src/obsidian/writes.ts), line 29) | Turn on Tasks, and update it |
 | Tasks gave an answer Ninja Board can't use | Tasks returned an empty answer, one that isn't a task line, or one that doesn't do what the tick was for: a completing tick with no done line, or a reopening tick that still has one. Nothing is written ([writes.ts](../src/obsidian/writes.ts), line 39) | Try again. Check that Tasks is up to date and its Task Format is Dataview |
 | That task changed — refreshed | The line in the note is no longer the one Ninja Board drew. Nothing is written ([writes.ts](../src/obsidian/writes.ts), line 96) | See [That task changed](#that-task-changed) |
 | Ninja Board couldn't save that change | A state, plan, deadline or status write failed or threw ([src/obsidian/actions.ts](../src/obsidian/actions.ts), line 71) | Nothing changed. Read the error in the console |
@@ -24,7 +24,7 @@
 | Couldn't save the arrangement | Bases refused to save the layout ([view.ts](../src/obsidian/view.ts), line 115) | Read the console. The board is drawn again from what was saved before |
 | Open the dashboard note itself to keep the Schedule view | The Schedule's view is switched in an embed, a hover preview or a canvas ([view.ts](../src/obsidian/view.ts), line 136) | Open the dashboard note itself. Until then the choice lasts for this session |
 | Couldn't save the Schedule view | Bases refused to save `schedule:` ([view.ts](../src/obsidian/view.ts), line 132) | Read the console. The choice lasts for this session |
-| Ninja Board can't complete this repeating note: its repeat or its due date isn't one Ninja Board knows | A tick on a repeating note, or a drop on Done, when its `repeat` is not one of the forms Ninja Board reads, or its `due` is missing or not a date ([writes.ts](../src/obsidian/writes.ts), line 98) | Fix the `repeat` (for example `every 6 months`) or the `due` (`YYYY-MM-DD`) in the note's frontmatter. Nothing was changed |
+| Can't complete this repeating note: its repeat or its due date isn't one this plugin knows | A tick on a repeating note, or a drop on Done, when its `repeat` is not one of the forms Ninja Board reads, or its `due` is missing or not a date ([writes.ts](../src/obsidian/writes.ts), line 98) | Fix the `repeat` (for example `every 6 months`) or the `due` (`YYYY-MM-DD`) in the note's frontmatter. Nothing was changed |
 | Changed since: not undone | Undo found that the note, or the saved layout, changed since Ninja Board's step. The step is dropped and nothing is written for it ([undo.ts](../src/obsidian/undo.ts), line 31) | Look at the row again: it is drawn from the note as it now is. A tick that Tasks answered with a recurrence can't be undone, and shows this Notice too. Press Undo again for the step before |
 
 ## The views
@@ -55,7 +55,7 @@
 
 A board's order and the Schedule's view are saved only in the dashboard note. In an embed (`![[Week]]`), a hover preview or a canvas, Ninja Board can't save them. The state change still happens: a row still moves to the other column and its task changes state, but the new order isn't kept.
 
-To arrange or change the Schedule view, open the dashboard note itself (`01 Dashboard/02 Week.md`, `01 Dashboard/03 Projects.md` or `01 Dashboard/01 Today.md`), in Reading view or Live Preview. Bases can write the block back only there, or in a `.base` file ([user guide](USER_GUIDE.md#arranging)).
+To arrange or change the Schedule view, open the dashboard note itself (`01 Dashboard/02 Week.md`, `01 Dashboard/03 Projects.md` or `01 Dashboard/01 Today.md`), in Reading view or Live Preview. Bases can write the block back only there, or in a `.base` file ([plugin README](../README.md), "Arranging").
 
 ## Ticking and editing
 
@@ -78,7 +78,7 @@ Undo restores a step only where the note or the saved layout still holds what Ni
 
 ### A deadline or a day disappeared after a plan
 
-This is the planning rule, not a fault. A plan to a day or week later than the deadline's week removes the deadline. A plan to no date removes a deadline that is this week or overdue. A plan in the same week as the deadline, or earlier, keeps it. A repeating task note keeps its deadline whatever the plan. The rule is in the spec's **Edits** table ([implementation spec, section 2](https://alexsendula.github.io/second-brain/implementation/#2-reference-format)). Set the deadline again if you want it back.
+This is the planning rule, not a fault. A plan to a day or week later than the deadline's week removes the deadline. A plan to no date removes a deadline that is this week or overdue. A plan in the same week as the deadline, or earlier, keeps it. A repeating task note keeps its deadline whatever the plan. The rule is in the spec's **Edits** table ([implementation spec, section 2](https://alexsendula.github.io/second-brain/implementation/)). Set the deadline again if you want it back.
 
 ### Waiting
 
@@ -95,8 +95,8 @@ The Setup tile checks four things in the Tasks plugin. Each line shows one of th
 | Done date | Tasks sets the done date | Turn on Set done date on every completed task | Tasks settings |
 | Waiting | Waiting status: symbol w, type ON_HOLD | Add a Waiting status: symbol w, type ON_HOLD | Tasks settings, Task Statuses |
 
-- **The Waiting line checks two things only:** a custom status with symbol `w` and type `ON_HOLD`. It doesn't read the status's name or its next status symbol. Ticking a waiting line goes through Tasks, which moves it to that next symbol. With any other symbol the tick is refused with the Notice "Tasks gave an answer Ninja Board can't use", and nothing is written. Set the next symbol to `x` yourself.
-- **Can't check** appears on the Format, Done date and Waiting lines when Tasks is off, when it's on but not loaded yet, or when its saved settings can't be read. Ninja Board can't tell, so it doesn't say the setting is wrong. The Tasks line is ticked when Tasks is on, even if its settings are unknown.
+- **The Waiting line checks two things only:** a custom status with symbol `w` and type `ON_HOLD`. It doesn't read the status's name or its next status symbol. Ticking a waiting line goes through Tasks, which moves it to that next symbol. With any other symbol the tick is refused with the Notice "Tasks gave an answer this plugin can't use", and nothing is written. Set the next symbol to `x` yourself.
+- **Can't check** appears on the Format, Done date and Waiting lines when Tasks is off, when it's on but not loaded yet, or when its saved settings can't be read. Ninja Board can't tell, so it doesn't say the setting is wrong. The Tasks line is ticked when Tasks is on, even if its settings are unknown. When nothing can be read of Tasks at all, the Tasks line says **Can't check** too.
 - **Tasks never saved its settings.** A Tasks install whose settings were never changed has nothing saved. Tasks then runs on its own defaults: the Format and the Waiting lines show **To fix**, and the Done date line shows OK, since Tasks sets the done date by default.
 - **The Guide at launch.** A Guide that opens as Obsidian starts can show **Can't check** until Tasks has loaded.
 - **Changes don't show at once.** The Guide reads Tasks' settings each time it draws, and doesn't watch for changes. After you change Tasks, close and reopen `05 Guide.md`.

@@ -13,15 +13,20 @@ export interface TasksApi {
   executeToggleTaskDoneCommand(line: string, path: string): string;
 }
 
-// app.plugins.plugins: the loaded plugins by id; enabledPlugins: the ones turned on, loaded or not (at launch,
-// plugins load one after another). Brain reads the Tasks plugin's API and its saved settings.
+const TASKS_ID = 'obsidian-tasks-plugin';
+
+/** The parts of a loaded plugin that Brain reads: Tasks' API, and its saved settings through Plugin.loadData. */
+interface LoadedPlugin { apiV1?: TasksApi; loadData?: () => Promise<unknown> }
+
+// app.plugins: the loaded plugins by id, and enabledPlugins: the ones turned on, loaded or not (at launch, plugins load one
+// after another).
 interface WithPlugins {
-  plugins?: { enabledPlugins?: Set<string>; plugins?: Record<string, { apiV1?: TasksApi; loadData?: () => Promise<unknown> } | undefined> };
+  plugins?: { enabledPlugins?: Set<string>; plugins?: Record<string, LoadedPlugin | undefined> };
 }
 
 /** The Tasks API, or undefined when Tasks is missing, disabled, or too old to have the toggle command. */
 export function tasksApi(app: object): TasksApi | undefined {
-  const api = (app as WithPlugins).plugins?.plugins?.['obsidian-tasks-plugin']?.apiV1;
+  const api = (app as WithPlugins).plugins?.plugins?.[TASKS_ID]?.apiV1;
   return typeof api?.executeToggleTaskDoneCommand === 'function' ? api : undefined;
 }
 
@@ -51,16 +56,32 @@ export function replaceLineIfUnchanged(content: string, line: number, expected: 
   return lines.join('\n');
 }
 
-// A completion or cancelled field, in [ ] or ( ), with the whitespace before it. The lookbehind starts a run of
-// spaces only at its first space, so the run is read once, not again from every space in it.
-const DONE_DATES_RE = new RegExp(`(?<!\\s)\\s*(?:\\[(?:completion|cancelled)::${BRACKET_VALUE}\\]|\\((?:completion|cancelled)::[^)(]*\\))`, 'g');
+// A completion or cancelled field, in [ ] or ( ). removeFields takes the whitespace before it.
+const DONE_FIELD_RE = new RegExp(`\\[(?:completion|cancelled)::${BRACKET_VALUE}\\]|\\((?:completion|cancelled)::[^)(]*\\)`, 'g');
+
+/**
+ * `text` with each match of `field` removed when `drop` says so, and the whitespace right before a removed match with it.
+ * `field` is global and starts with no whitespace. Not a regex with the whitespace in it: without a lookbehind (iOS before
+ * 16.4 has none) that tries a match at each space of a run, a quadratic time over a long run. Here each gap is trimmed once.
+ */
+function removeFields(text: string, field: RegExp, drop: (m: RegExpMatchArray) => boolean): string {
+  let out = '';
+  let from = 0;
+  for (const m of text.matchAll(field)) {
+    const at = m.index;
+    const gap = text.slice(from, at);
+    out += drop(m) ? gap.trimEnd() : gap + m[0];
+    from = at + m[0].length;
+  }
+  return out + text.slice(from);
+}
 
 /**
  * The line set by hand to any state but done (done goes through Tasks). Reopening a line
  * clears its completion and cancelled dates; dropping it stamps a cancelled date.
  */
 export function lineWithState(raw: string, state: Exclude<TaskState, 'done'>, today: string): string {
-  const line = withSymbol(raw, symbolOf(state)).replace(DONE_DATES_RE, '');
+  const line = removeFields(withSymbol(raw, symbolOf(state)), DONE_FIELD_RE, always);
   return state === 'dropped' ? withField(line, 'cancelled', today) : line;
 }
 
@@ -74,17 +95,16 @@ export function applyNoteStatus(fm: Record<string, unknown>, status: string, tod
   else delete fm.done;
 }
 
-/** A date field, in [ ] or ( ), with the whitespace before it (read once, as DONE_DATES_RE does). Its value is in group 1 or 2. */
+/** A date field, in [ ] or ( ). Its value is in group 1 or 2. */
 function dateFieldRe(key: string): RegExp {
-  return new RegExp(`(?<!\\s)\\s*(?:\\[${key}::(${BRACKET_VALUE})\\]|\\(${key}::([^)(]*)\\))`, 'g');
+  return new RegExp(`\\[${key}::(${BRACKET_VALUE})\\]|\\(${key}::([^)(]*)\\)`, 'g');
 }
 
 const always = (): boolean => true;
 
 /** `raw` without the `key` fields whose date `drop` accepts. `drop` gets the date as ISO, or undefined when the value is not one. */
 function withoutField(raw: string, key: 'due' | 'scheduled' | 'start', drop: (iso: string | undefined) => boolean): string {
-  return raw.replace(dateFieldRe(key), (whole: string, v1?: string, v2?: string) =>
-    drop(toISO((v1 ?? v2 ?? '').trim())) ? '' : whole);
+  return removeFields(raw, dateFieldRe(key), (m) => drop(toISO((m[1] ?? m[2] ?? '').trim())));
 }
 
 /**
@@ -122,15 +142,24 @@ export function arrangementPersists(container: Element): boolean {
 }
 
 /**
- * What the Guide's setup check can know of the Tasks plugin. Obsidian keeps only loaded plugins in
- * app.plugins.plugins, so no entry means Tasks is off, unless it is enabled and just not loaded yet (a
- * Guide open at launch): then Brain can't check. Tasks keeps its live settings to itself; the
- * public way in is its saved data.json, through Plugin.loadData: null when never saved (its defaults
- * apply). When that can't be read, `settings` is left out and the Guide says "Can't check".
+ * What the Guide's setup check can know of the Tasks plugin. Obsidian keeps only loaded plugins in app.plugins.plugins, so no
+ * entry means Tasks is off, unless it is enabled and just not loaded yet (a Guide open at launch): then it is on, and its
+ * settings are not read yet. Tasks keeps its live settings to itself; the public way in is its saved data.json, through
+ * Plugin.loadData: null when never saved (its defaults apply). Every failure ends in "Can't check": a plugin list that can't be
+ * read gives no `on`, and saved settings that can't be read give no `settings`.
  */
 export async function readTasksSetup(app: object): Promise<TasksSetup> {
-  const tasks = (app as WithPlugins).plugins?.plugins?.['obsidian-tasks-plugin'];
-  if (!tasks) return (app as WithPlugins).plugins?.enabledPlugins?.has('obsidian-tasks-plugin') ? { on: true } : { on: false };
+  let tasks: LoadedPlugin | undefined;
+  try {
+    const plugins = (app as WithPlugins).plugins;
+    tasks = plugins?.plugins?.[TASKS_ID];
+    if (!tasks) {
+      const enabled = plugins?.enabledPlugins;
+      return typeof enabled?.has === 'function' ? { on: enabled.has(TASKS_ID) } : {};
+    }
+  } catch {
+    return {};
+  }
   if (typeof tasks.loadData !== 'function') return { on: true };
   try {
     return { on: true, settings: await tasks.loadData() };

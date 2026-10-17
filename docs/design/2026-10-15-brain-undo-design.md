@@ -5,7 +5,7 @@ Ninja Board gets one undo button and one history for every Ninja Board page. Eac
 | | |
 |---|---|
 | Status | 2026-10-15. Decided with the author. Built on 2026-10-16. |
-| Builds on | `2026-10-14-brain-plugin-round-2-design.md` (the Week board, planning, To plan), `2026-10-13-brain-plugin-design.md`, and `2026-10-13-second-brain-implementation.md` (its Edits table: every write that undo reverses) |
+| Builds on | `2026-10-14-brain-plugin-round-2-design.md` (the Week board, planning, To plan), `2026-10-13-brain-plugin-design.md`, and the [implementation spec](https://alexsendula.github.io/second-brain/implementation/) (its Edits table: every write that undo reverses) |
 | Visual design | The working demo in [design/mockup.html](../../design/mockup.html), which has the button and the history. |
 
 ## 1. What was asked for

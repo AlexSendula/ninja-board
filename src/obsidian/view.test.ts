@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import type { Plugin, QueryController } from 'obsidian';
 import '../../test/ui.ts';   // installs linkedom's document, for the view's container
 import { BrainView } from './view.ts';
@@ -40,4 +41,10 @@ test('waitingView draws at once, as scheduleView does', () => {
   assert.equal(draws(), 1);
   view.waitingView('column');
   assert.equal(draws(), 2);
+});
+
+test('a view ends its drags when it unloads, its own only', () => {
+  // No test calls onunload (it needs Obsidian's view lifecycle), so the call is read from the source.
+  const src = readFileSync(new URL('./view.ts', import.meta.url), 'utf8');
+  assert.match(src, /onunload\(\): void \{[^}]*cancelDrags\(this\.root\);/);
 });

@@ -8,7 +8,7 @@ import type { Write } from './undo.ts';
 import { nextDue } from '../model/repeat.ts';
 
 const PATH = 'n.md';
-const DENIED = "Tasks gave an answer Ninja Board can't use";
+const DENIED = "Tasks gave an answer this plugin can't use";
 const target = (raw: string, line = 0): LineTarget => ({ kind: 'line', path: PATH, line, raw });
 
 /**
@@ -141,7 +141,7 @@ test('without the Tasks plugin a tick tells the user and writes nothing', async 
   const v = vault({ [PATH]: '- [ ] Renew passport\n' });
   notices.length = 0;
   assert.equal(await toggleViaTasks(v.app, target('- [ ] Renew passport')), null);
-  assert.deepEqual(notices, ['Ninja Board needs the Tasks plugin to tick tasks']);
+  assert.deepEqual(notices, ['Tasks must be on to tick a task']);
   assert.equal(v.notes[PATH], '- [ ] Renew passport\n');
 });
 
@@ -205,7 +205,7 @@ test('a repeat Brain does not know is refused: nothing is written', async () => 
   assert.deepEqual(fm['Odd.md'], { status: 'open', repeat: 'fortnightly', due: '2026-10-16' });
   assert.equal(notes['Odd.md'], '## Tasks\n');
   assert.deepEqual(writes, []);
-  assert.equal(notices.at(-1), "Ninja Board can't complete this repeating note: its repeat or its due date isn't one Ninja Board knows");
+  assert.equal(notices.at(-1), "Can't complete this repeating note: its repeat or its due date isn't one this plugin knows");
 });
 
 test('a repeating note due on 9999-12-31 is refused, and the walk does not hang: nothing is written', async () => {
@@ -215,7 +215,7 @@ test('a repeating note due on 9999-12-31 is refused, and the walk does not hang:
   assert.equal(await setNoteState(withFrontmatter(notes, fm).app, 'Far.md', 'done', writes), false);
   assert.equal(notes['Far.md'], '## Tasks\n');
   assert.deepEqual(writes, []);
-  assert.equal(notices.at(-1), "Ninja Board can't complete this repeating note: its repeat or its due date isn't one Ninja Board knows");
+  assert.equal(notices.at(-1), "Can't complete this repeating note: its repeat or its due date isn't one this plugin knows");
 });
 
 test('a repeating note with no due date is refused too: nothing is written', async () => {
@@ -226,5 +226,5 @@ test('a repeating note with no due date is refused too: nothing is written', asy
   assert.deepEqual(fm['Stretch.md'], { status: 'open', repeat: 'every day' });
   assert.equal(notes['Stretch.md'], '## Tasks\n');
   assert.deepEqual(writes, []);
-  assert.equal(notices.at(-1), "Ninja Board can't complete this repeating note: its repeat or its due date isn't one Ninja Board knows");
+  assert.equal(notices.at(-1), "Can't complete this repeating note: its repeat or its due date isn't one this plugin knows");
 });

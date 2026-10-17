@@ -237,8 +237,8 @@ export type WaitingView = 'column' | 'group';
 export type PlanTo = { day: string } | { week: string } | null;
 
 // ---------- the Guide's setup check ----------
-/** What Brain could read of the Tasks plugin. settings: Tasks' saved data; undefined = couldn't read; null = never saved. */
-export interface TasksSetup { on: boolean; settings?: unknown }
+/** What Brain could read of the Tasks plugin: `on` is undefined when it can't tell, `settings` is undefined when they can't be read (null: never saved). */
+export interface TasksSetup { on?: boolean; settings?: unknown }
 export type SetupState = 'ok' | 'fix' | 'unknown';   // fix: something to change; unknown: Brain can't tell
 export interface SetupLineVM {
   key: 'tasks' | 'format' | 'doneDate' | 'waiting';

@@ -87,7 +87,7 @@ export function withField(raw: string, field: 'cancelled' | 'completion' | 'sche
 }
 
 // Obsidian tags: letters, digits, _ and -, plus / for nested tags. All digits (#4821) is not a tag.
-const TAG_RE = /(^|\s)#([\p{L}\p{N}_\/-]+)/gu;
+const TAG_RE = /(^|\s)#([\p{L}\p{N}_/-]+)/gu;
 
 export function displayText(text: string): string {
   return text

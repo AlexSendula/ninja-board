@@ -6,10 +6,12 @@ import type { Actions } from '../src/ui/actions.ts';
 import { loadSample } from './sample.ts';
 import { displayText, symbolOf, withField, withSymbol } from '../src/model/taskLine.ts';
 import { lineWithDue, lineWithPlan, lineWithState } from '../src/obsidian/edits.ts';
+import { installObsidianDom } from '../preview/obsidian-dom.ts';
 
 const win = parseHTML('<!doctype html><html><body></body></html>');
-// The components use the global document, as they do in Obsidian and in the preview.
-Object.assign(globalThis, { document: win.document });
+// The components use the global document, as they do in Obsidian and in the preview; and Obsidian's createEl, setCssProps and setCssStyles.
+Object.assign(globalThis, { document: win.document, activeDocument: win.document });   // activeDocument: Obsidian's global, as main.ts reads it
+installObsidianDom(win.document, win.HTMLElement as unknown as typeof HTMLElement, win.SVGElement as unknown as typeof SVGElement);
 
 /** A bubbling, cancelable event with extra fields (key, clientX, pointerType…). linkedom has no KeyboardEvent or PointerEvent. */
 export function fire(el: Element, type: string, fields: Record<string, unknown> = {}): Event {
@@ -50,6 +52,7 @@ const RECORDED_DAY = '2026-10-13';
 export function recorder() {
   const calls: unknown[][] = [];
   const actions: Actions = {
+    mac: false,
     async toggle(target) { calls.push(['toggle', target]); },
     async setState(target, state) {
       calls.push(['setState', target, state]);

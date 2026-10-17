@@ -58,7 +58,7 @@ export class ListModal extends Modal {
 
   /** Holds the modal back while an item is carried out of it, and shows it again after. */
   private carry(on: boolean, cancel: () => void): void {
-    this.containerEl.style.visibility = on ? 'hidden' : '';
+    this.containerEl.toggleClass('brain-carrying', on);
     this.cancelCarry = on ? cancel : undefined;
   }
 

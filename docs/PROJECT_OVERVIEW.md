@@ -6,7 +6,7 @@
 
 Ninja Board is an Obsidian plugin that shows a second-brain vault as five views: Today, Week, Projects, Backlog & Waiting and Guide. Bases chooses which notes a view covers, and Ninja Board draws them. In a view you can tick a task, set its state, move a card, plan a task, set a deadline, arrange a board and open the note behind anything. Each of these is one small edit to one note, written straight back. Ninja Board keeps no data of its own.
 
-Ninja Board is the human side of a personal second brain. The AI agent does the rest: creating, most planning, repeats, archiving and week records. The code is in this repository, and the user guide is [`USER_GUIDE.md`](USER_GUIDE.md).
+Ninja Board is the human side of a personal second brain. The AI agent does the rest: creating, most planning, repeats, archiving and week records. The code is in this repository, and the user guide is [`README.md`](../README.md).
 
 ## Who it is for
 
@@ -33,7 +33,7 @@ Each dashboard note holds one `base` block. Bases' toolbar filters the notes, an
 - **Busy days.** Large, the default, shows about six hours of the day and scrolls. Compact fits the whole day into the same height. The Week strip shows only the appointments still to come, with "+N more" for the rest.
 - **Long lists.** Projects' Done shows the three most recent projects and Someday the five most recent. Show all opens a searchable list, and an item can be dragged out of it onto the board.
 
-The full rules, and the planner card's steps, are in the [user guide](USER_GUIDE.md).
+The full rules, and the planner card's steps, are in the [plugin README](../README.md).
 
 ## How the human and the agent split the work
 
@@ -69,34 +69,33 @@ Anything you can do in Ninja Board, the agent can do with the same result. Every
 | Rule | What it means | Where it lives |
 |---|---|---|
 | Ninja Board keeps no data of its own | Each view is drawn from the notes, and every change is one small edit to one note | [Plugin README](../README.md) |
-| Almost no date math | Ninja Board puts dates into words such as "Due Thu" and "3 days overdue". Its one step of its own is a repeating note's next due date, when an occurrence completes. Carry-over and other repeats belong to the agent. | [User guide, "Dates Ninja Board writes"](USER_GUIDE.md#dates-ninja-board-writes) |
+| Almost no date math | Ninja Board puts dates into words such as "Due Thu" and "3 days overdue". Its one step of its own is a repeating note's next due date, when an occurrence completes. Carry-over and other repeats belong to the agent. | [Plugin README, "Ninja Board does little date math"](../README.md#ninja-board-does-little-date-math) |
 | Tasks completes task lines | A tick calls Tasks' own toggle command, so there is one completion engine | [`writes.ts`](../src/obsidian/writes.ts) |
 | The archive is skipped | Notes under `10 Archive/` are left out of the snapshot | [`src/model/snapshot.ts`](../src/model/snapshot.ts) |
 | A new plan replaces the old one | A day plan clears `start`, a week plan clears `scheduled`, and no date yet clears both | [`applyNotePlan`](../src/model/plan.ts) |
 | A deadline the plan leaves behind goes | A day or week in a later ISO week than the `due` removes it. No date yet removes a `due` on or before this week's Sunday. | [`planDropsDue`](../src/model/plan.ts) |
-| Repeating task notes complete in Ninja Board | A tick, or a drop on Done, completes one occurrence: Ninja Board writes the next due date and a line in the note's Log. They plan like task notes: their plan decides their week, and their deadline counts only without a plan. | [User guide, Repeats](USER_GUIDE.md#repeats) |
+| Repeating task notes complete in Ninja Board | A tick, or a drop on Done, completes one occurrence: Ninja Board writes the next due date and a line in the note's Log. They plan like task notes: their plan decides their week, and their deadline counts only without a plan. | [Plugin README](../README.md) |
 
 ## Integrations and requirements
 
 | Service | Purpose | Documentation |
 |---|---|---|
-| Obsidian 1.10.2 or newer | The host app. Ninja Board uses the Bases view API (`registerBasesView`). It is tested on desktop; the phone app has not been tried. | [Plugin README, Requirements](../README.md#requirements) |
+| Obsidian 1.10.2 or newer | The host app. Ninja Board uses the Bases view API (`registerBasesView`). It runs on desktop and in the phone app. | [Plugin README, Requirements](../README.md#requirements) |
 | Bases core plugin | Selects the notes that each view draws | [Plugin README, Requirements](../README.md#requirements) |
-| Tasks community plugin | Task line format (Dataview), the completion engine, and a custom `w` status for Waiting (ON_HOLD). The Guide's Setup check reads its saved settings. | [Plugin README, Set up Tasks](../README.md#set-up-tasks) |
-| Node.js 24 or newer | Development only: the tests, the typecheck and the esbuild build | [Plugin README, Install for development](../README.md#developing) |
+| Tasks community plugin | Task line format (Dataview), the completion engine, and a custom `w` status for Waiting (ON_HOLD). The Guide's Setup check reads its saved settings. | [Plugin README, Requirements](../README.md#requirements) |
+| Node.js 24 or newer | Development only: the tests, the typecheck and the esbuild build | [Plugin README, Install for development](../README.md#install-for-development) |
 
 ## Status
 
 - **Started:** 13 October 2026, when the design was written. The first code was committed on 14 October 2026.
-- **Version:** 1.0.0 in `manifest.json`, `package.json` and `versions.json`. v0.1.0 was built on 14 October 2026, and v0.2.0 on 15 October 2026.
-- **Stage:** Ninja Board 1.0.0 is the first release. Its changes are listed under 1.0.0 in the [changelog](CHANGELOG.md), dated 16 October 2026.
+- **Version:** 1.0.1 in `manifest.json`, `package.json` and `versions.json`. v0.1.0 was built on 14 October 2026, v0.2.0 on 15 October 2026, v1.0.0 on 16 October 2026, and v1.0.1 on 17 October 2026.
+- **Stage:** Ninja Board 1.0.1 is the current release. Its changes are listed under 1.0.1 in the [changelog](CHANGELOG.md), dated 17 October 2026.
 - **Not built yet:** the agent's `brain` commands. The implementation spec defines them, and the shared edit examples pin the edits they must make, but this repository holds no `brain` code.
 - **Release:** the first public release is still to be made.
 
 ## Related documentation
 
-- [Plugin README](../README.md): install and setup.
-- [User guide](USER_GUIDE.md): use and the rules.
+- [Plugin README](../README.md): install, use and the rules.
 - [Plugin design spec](design/2026-10-13-brain-plugin-design.md): the goals, the views and the first design.
 - [Round 2 design](design/2026-10-14-brain-plugin-round-2-design.md): what v0.2.0 added, and the rulings made while building it (section 10).
 - [Implementation spec](https://alexsendula.github.io/second-brain/implementation/): the file format and the Edits table.

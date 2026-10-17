@@ -16,6 +16,8 @@ import { renderBacklog } from '../ui/backlog.ts';
 import { renderGuide } from '../ui/guide.ts';
 import { wakeAt } from '../ui/clock.ts';
 import { focusedKey, pagerFocus, refocus, refocusPager } from '../ui/focus.ts';
+import { markHosts } from '../ui/host.ts';
+import { cancelDrags } from '../ui/drag.ts';
 import { closeCard } from '../ui/popover.ts';
 import { tickNow } from '../ui/schedule.ts';
 import { CONFIG_PATH, readPointsTarget, readWeekPlan, snapshotFromFiles } from './snapshot.ts';
@@ -88,12 +90,14 @@ export class BrainView extends BasesView {
   // Task line edits change the note body, which Bases doesn't always report.
   private readonly rerender = debounce(() => void this.render(), 150, true);
   private stopHistory: (() => void) | undefined;   // the undo history's listener: this page redraws when a step is made or undone
+  private unmarkHosts: (() => void) | undefined;   // the marks on the notes and embeds this view is in (ui/host.ts)
 
   constructor(controller: QueryController, containerEl: HTMLElement, kind: BrainViewType, plugin: Plugin) {
     super(controller);
     this.type = kind;
     this.plugin = plugin;
-    this.root = containerEl.createDiv({ cls: 'brain-view' });
+    // Focusable without a tab stop: a redraw that leaves no item to focus gives the focus to the view, so Cmd/Ctrl+Z still reaches it.
+    this.root = containerEl.createDiv({ cls: 'brain-view', attr: { tabindex: '-1' } });
     this.actions = obsidianActions(plugin.app, this);
   }
 
@@ -145,11 +149,11 @@ export class BrainView extends BasesView {
         this.scheduleChoice = undefined;   // the config holds it now
       } catch (error) {
         console.error(error);
-        new Notice("Couldn't save the Schedule view");
+        new Notice("Couldn't save the schedule view");
         this.scheduleChoice = view;
       }
     } else {
-      new Notice('Open the dashboard note itself to keep the Schedule view');
+      new Notice('Open the dashboard note itself to keep the schedule view');
       this.scheduleChoice = view;
     }
     this.redraw();
@@ -166,11 +170,11 @@ export class BrainView extends BasesView {
         this.waitingChoice = undefined;   // the config holds it now
       } catch (error) {
         console.error(error);
-        new Notice("Couldn't save the Waiting view");
+        new Notice("Couldn't save the waiting view");
         this.waitingChoice = view;
       }
     } else {
-      new Notice('Open the dashboard note itself to keep the Waiting view');
+      new Notice('Open the dashboard note itself to keep the waiting view');
       this.waitingChoice = view;
     }
     this.redraw();
@@ -192,6 +196,7 @@ export class BrainView extends BasesView {
   }
 
   onload(): void {
+    this.unmarkHosts = markHosts(this.root);
     const cache = this.plugin.app.metadataCache;
     // Task lines come only from cache-confirmed list items, so a note the cache hasn't indexed yet
     // shows no tasks. Re-render when the cache catches up ('changed'), when a shown note goes
@@ -226,9 +231,11 @@ export class BrainView extends BasesView {
   }
 
   onunload(): void {
+    this.unmarkHosts?.();
     this.stopHistory?.();
     this.stopChange?.();
     closeCard();
+    cancelDrags(this.root);   // a drag still in progress in this view (a carry out of a modal included) ends with it, with its listeners
     this.rerender.cancel();
     this.renders++;   // an unfinished render must not draw into a removed view
   }

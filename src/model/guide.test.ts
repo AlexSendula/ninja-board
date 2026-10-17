@@ -93,3 +93,8 @@ test('buildGuide: Tasks off is a fix, and nothing else can be checked', () => {
   assert.deepEqual(lines.slice(1).map((l) => l.state), ['unknown', 'unknown', 'unknown']);
   assert.deepEqual(states({ on: false }), ['tasks fix', 'format unknown', 'doneDate unknown', 'waiting unknown']);
 });
+
+test("the Guide's setup check with nothing read of Tasks: every line is Can't check, and none is a fix", () => {
+  assert.deepEqual(states({}), ['tasks unknown', 'format unknown', 'doneDate unknown', 'waiting unknown']);
+  assert.deepEqual(states({ on: true }), ['tasks ok', 'format unknown', 'doneDate unknown', 'waiting unknown']);
+});

@@ -1,4 +1,4 @@
-import { MarkdownView, Notice } from 'obsidian';
+import { MarkdownView, Notice, Platform, normalizePath } from 'obsidian';
 import type { App } from 'obsidian';
 import type { TaskState } from '../model/types.ts';
 import type { Actions, ListHandle, ListSpec } from '../ui/actions.ts';
@@ -22,6 +22,7 @@ import { dueLine, dueNote, planLine, planNote, pointsNote, setLineState, setNote
  */
 export function obsidianActions(app: App, view: Pick<Actions, 'showWeek' | 'arrange' | 'scheduleView' | 'waitingView' | 'showDay'>): Actions {
   const actions: Actions = {
+    mac: Platform.isMacOS,
     toggle: async (target) => {
       // The branches are awaited inside the callback: a conditional between a Promise<LineTarget | null> and a Promise<void> is not one argument saved<T> can take.
       const from = stateOf(target);
@@ -91,7 +92,7 @@ async function saved<T>(action: () => Promise<T>): Promise<T | null> {
     return await action();
   } catch (error) {
     console.error(error);
-    new Notice('Ninja Board couldn\'t save that change');
+    new Notice('Couldn\'t save that change');
     return null;
   }
 }
@@ -121,11 +122,11 @@ function titleOf(target: { kind: 'line'; path: string; line: number; raw: string
 function statusLabel(path: string, writes: readonly Write[]): string {
   const status = writes.find((w): w is Extract<Write, { kind: 'field' }> => w.kind === 'field' && w.key === 'status');
   const title = noteTitle(path);
-  return status ? stateUndoLabel(title, String(status.before ?? 'open')) : `restore “${title}”`;
+  return status ? stateUndoLabel(title, typeof status.before === 'string' ? status.before : 'open') : `restore “${title}”`;
 }
 
 async function openNote(app: App, path: string, line?: number): Promise<void> {
-  const file = app.vault.getFileByPath(path);
+  const file = app.vault.getFileByPath(normalizePath(path));   // a path the views build, as the Guide's links do
   if (!file) return;
   const leaf = app.workspace.getLeaf(false);
   await leaf.openFile(file, { active: true });

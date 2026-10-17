@@ -1,5 +1,5 @@
 import type {
-  Arrangement, BoardItem, ComingUpVM, DayVM, MetaPart, NoteInfo, PointsVM, RowVM, StoryCardVM, TaskLine, TaskState, ThisWeekVM,
+  Arrangement, BoardItem, ComingUpVM, DayVM, MetaPart, NoteInfo, PointsVM, StoryCardVM, TaskLine, TaskState, ThisWeekVM,
   PastWeekVM, RawNote, VaultSnapshot, WeekHeadVM, WeekVM,
 } from './types.ts';
 import { addDays, dayMonth, dueText, isoWeek, leadDays, longDate, weekdayLong } from './dates.ts';

@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 16 October 2026 (Ninja Board 1.0.0)
+> Last updated: 17 October 2026 (Ninja Board v1.0.1)
 
 ## Overview
 
@@ -8,9 +8,9 @@ Ninja Board is an Obsidian plugin in this repository. It draws five views over t
 
 Ninja Board keeps no data of its own. Each change is one small edit to one note, written straight back to the vault, so a view cannot drift from the vault. The agent makes the same edits through `brain` commands. Both sides are meant to pass one set of examples. Only Ninja Board's side is tested in this repository so far (see [API.md](API.md#edit-contract-shared-with-the-agent)).
 
-Versions: v0.1.0 was built on 14 October 2026 (round 1), and v0.2.0 on 15 October 2026 (round 2, with busy days added the same day). Obsidian 1.10.2 or newer is required; the Bases view API arrived in 1.10.0 ([`manifest.json`](../manifest.json), [`versions.json`](../versions.json)).
+Versions: v0.1.0 was built on 14 October 2026 (round 1), and v0.2.0 on 15 October 2026 (round 2, with busy days added the same day), v1.0.0 on 16 October 2026, and v1.0.1 on 17 October 2026 (the Obsidian review fixes). Obsidian 1.10.2 or newer is required, because that release added the Bases view API ([`manifest.json`](../manifest.json), [`versions.json`](../versions.json)).
 
-Specs and design: [plugin design](design/2026-10-13-brain-plugin-design.md), [round 2](design/2026-10-14-brain-plugin-round-2-design.md), and the [user guide](USER_GUIDE.md).
+Specs and design: [plugin design](design/2026-10-13-brain-plugin-design.md), [round 2](design/2026-10-14-brain-plugin-round-2-design.md), and the user's guide in [`README.md`](../README.md).
 
 ## Diagrams
 
@@ -131,17 +131,17 @@ Plain DOM, built with `h()` ([`dom.ts`](../src/ui/dom.ts)). Renderers take a vie
 
 Everything that touches Obsidian or the Tasks plugin: the Bases view, reading the selected notes, the `Actions` implementation, the writes, and the two modals. The exception is [`edits.ts`](../src/obsidian/edits.ts). It holds the pure edit rules and does not import `obsidian` at all, so Node's tests and the preview can load it.
 
-The entry point [`main.ts`](../src/main.ts) also imports `obsidian`. It registers the five view types (`VIEWS`, line 7) and the two commands.
+The entry point [`main.ts`](../src/main.ts) also imports `obsidian`. It registers the five view types (`VIEWS`, line 10), the three commands (Open today, Open guide and Undo the last change), and the undo key on each window's document.
 
 ### Preview: `preview`
 
-A browser page that runs the same model and UI on `preview/sample.json`, generated from `sample-vault/` by [`scripts/sample-json.mjs`](../scripts/sample-json.mjs). Writes change the notes in memory only ([`memoryWrites.ts`](../preview/memoryWrites.ts)), and they use the same pure edit rules as the plugin. The clock is fixed at 13 October 2026, 11:10 ([`preview.ts`](../preview/preview.ts)), so the screen reads the same on every visit. It is for checking the design in light and dark at each width, and runs at `npm run preview`.
+A browser page that runs the same model and UI on `preview/sample.json`, generated from `sample-vault/` by [`scripts/sample-json.mjs`](../scripts/sample-json.mjs). Writes change the notes in memory only ([`memoryWrites.ts`](../preview/memoryWrites.ts)), and they use the same pure edit rules as the plugin. The clock is fixed at 13 October 2026, 11:10 ([`preview.ts`](../preview/preview.ts)), so the screen reads the same on every visit. It is for checking the design in light and dark at each width, and runs at `npm run preview`. [`preview/obsidian-dom.ts`](../preview/obsidian-dom.ts) installs the Obsidian helpers the views call on every element (`createEl`, `setCssProps`, `setCssStyles`), for the preview and the tests.
 
 ## Data flow
 
 ### Reading
 
-1. **Bases selects the notes.** The dashboard note's `base` block sets the filter, for example "not in `10 Archive`". Bases hands the view the selected files. Ninja Board ignores Bases' grouping and sorting and keeps its own order ([user guide](USER_GUIDE.md#dashboard-notes)).
+1. **Bases selects the notes.** The dashboard note's `base` block sets the filter, for example "not in `10 Archive`". Bases hands the view the selected files. Ninja Board ignores Bases' grouping and sorting and keeps its own order ([`README.md`](../README.md), Dashboard notes).
 2. **The snapshot is built.** [`snapshotFromFiles`](../src/obsidian/snapshot.ts) drops anything under `10 Archive/`, sorts by path, takes frontmatter from the metadata cache, and reads the file only when the cache lists a task in it. [`buildSnapshot`](../src/model/snapshot.ts) (line 11) parses the lines into `TaskLine`s, using Tasks' Dataview format ([`taskLine.ts`](../src/model/taskLine.ts)).
 3. **Extra reads, only where needed.** A past week reads its plan note, `08 Weeks/<year>/<YYYY-Www>.md`, for its record ([`readWeekPlan`](../src/obsidian/snapshot.ts)). The Guide reads no notes. It reads the Tasks plugin's saved settings for its setup check ([`readTasksSetup`](../src/obsidian/edits.ts), line 129).
 4. **The model builds a view model.** `DRAW` ([`view.ts`](../src/obsidian/view.ts), line 42) calls the builder for the view's type. It passes the snapshot, `today` and `now` (both from [`writes.ts`](../src/obsidian/writes.ts)), the `arrange:` lists, and the Schedule's form. The model never reads the clock.
@@ -190,7 +190,8 @@ Session state lives in memory and ends when the view closes: the week shown, the
 | `popover.ts` | The cards: planner, states, story and project (`openCard`, `closeCard`). |
 | `src/ui/plan.ts` | The To plan and Planned or due lists on an upcoming week, and their drops. |
 | `src/ui/past.ts` | The read-only board of a past week. |
-| `drag.ts` | Press, drag, edge auto-scroll and long-press between columns, days, weeks and To plan. Slots and `DropTarget`. |
+| `drag.ts` | Press, drag, edge auto-scroll and long-press between columns, days, weeks and To plan. Slots and `DropTarget`. `cancelDrags` ends the drags in progress when a view unloads. |
+| `host.ts` | Marks the notes and embeds a view sits in (`brain-note-host` and `brain-embed-host`), at any depth, so the CSS can hide a dashboard note's Properties and Bases toolbar without `:has`. A view's unload clears a mark once no other live view is in its host. |
 | `src/ui/listModal.ts` | The body of the Show all list, shared with the modal. |
 | `focus.ts`, `header.ts`, `page.ts`, `clock.ts` | Focus across redraws, the view head with its pager, the page and its folding tiles, and the time helpers (`minutes`, `hasEnded`, `nextChange`, `wakeAt`). |
 
@@ -209,24 +210,25 @@ Session state lives in memory and ends when the view closes: the week shown, the
 
 ### Tests and build
 
-`npm test` runs every `src/**/*.test.ts` and `test/**/*.test.ts` with Node's test runner, with TypeScript types stripped at run time. `test/sample.ts` loads `sample-vault/` as raw notes. `test/edit-cases.json` holds the shared edit examples. The script loads `test/obsidian-hook.mjs` first, which puts `test/obsidian-stub.ts` in place of the `obsidian` package, so the modules that import it run under Node. `test/nodes.test.ts` fails when an assertion compares a DOM node. `test/styles.test.ts` checks `styles.css` against the mockup's `#brain-css` block. The two differences allowed are the scoping under `.brain-view` and one reset. The build is [`esbuild.config.mjs`](../esbuild.config.mjs): it bundles `main.js` as CommonJS and leaves `obsidian` and the editor packages external. [`scripts/sandbox.mjs`](../scripts/sandbox.mjs) installs the build into the sandbox vault.
+`npm test` runs every `src/**/*.test.ts` and `test/**/*.test.ts` with Node's test runner, with TypeScript types stripped at run time. `test/sample.ts` loads `sample-vault/` as raw notes. `test/edit-cases.json` holds the shared edit examples. The script loads `test/obsidian-hook.mjs` first, which puts `test/obsidian-stub.ts` in place of the `obsidian` package, so the modules that import it run under Node. `test/nodes.test.ts` fails when an assertion compares a DOM node. `test/styles.test.ts` checks `styles.css` against the mockup's `#brain-css` block. The two differences allowed are the scoping under `.brain-view` and one reset. The build is [`esbuild.config.mjs`](../esbuild.config.mjs): it bundles `main.js` as CommonJS and leaves `obsidian` and the editor packages external. [`scripts/sandbox.mjs`](../scripts/sandbox.mjs) installs the build into the sandbox vault. `npm run lint` runs ESLint with Obsidian's review rules over `src` and `preview`.
 
 ## Key design decisions
 
 | Decision | Rationale | Alternatives considered |
 |---|---|---|
-| No data of its own. Views draw the vault, and every change is one edit to one note. | "a view always matches your vault" ([plugin README](../README.md)). | One note per task, as TaskNotes does. The research rejected it as "the wrong model here" ([research, 13 October 2026](https://alexsendula.github.io/second-brain/research/2026-10-13-obsidian-plugins/)). |
+| No data of its own. Views draw the vault, and every change is one edit to one note. | "A view can never drift from the vault" ([plugin README](../README.md)). | One note per task, as TaskNotes does. The research rejected it as "the wrong model here" ([research, 13 October 2026](https://alexsendula.github.io/second-brain/research/2026-10-13-obsidian-plugins/)). |
 | Bases selects and filters the notes; Ninja Board draws them. | Bases already selects notes in a dashboard note. Ninja Board adds the views ([plugin design, section 2](design/2026-10-13-brain-plugin-design.md)). | Bases kanban, which shows notes only, not checkbox lines. Tasks queries, whose lists "look plain and can't show a story's tasks on a board card" ([implementation spec, section 1](https://alexsendula.github.io/second-brain/implementation/)). |
 | Ticking a task goes through the Tasks plugin's toggle. | "One completion engine, wherever you tick from" ([plugin design, section 2](design/2026-10-13-brain-plugin-design.md)). For dropped, Ninja Board writes the cancelled date itself. | Not recorded. |
 | The plugin and the agent make the same edits, with the same result. | "Anything you can do in the plugin, the agent can do with the same result" ([implementation spec, section 1](https://alexsendula.github.io/second-brain/implementation/)). Both sides are pinned by `test/edit-cases.json`. | Not recorded. |
 | Arrangement is saved in the dashboard note's base block, as `arrange:`. Nothing is written to task notes. | Layout only: "a position means just arrangement, not priority" ([round 2, section 1](design/2026-10-14-brain-plugin-round-2-design.md)). | Writing the position into task notes, which round 2 ruled out ([round 2, section 3](design/2026-10-14-brain-plugin-round-2-design.md)). |
-| The order of an arrangement has no meaning beyond layout. | Only the board reads it. Today, Projects' Next and the agent do not ([round 2, section 3](design/2026-10-14-brain-plugin-round-2-design.md)). | A priority order, which was not asked for. |
+| The order of an arrangement has no meaning beyond layout. | Only the board reads it. Today, Projects' Next and the agent do not ([round 2, section 3](design/2026-10-14-brain-plugin-round-2-design.md)). | A priority order, which the author did not ask for. |
 | Today and the time of day are passed in. The model never reads the clock. | Keeps the model and the UI pure and testable. The preview fixes the clock. The code says so at [`clock.ts`](../src/ui/clock.ts) and [`view.ts`](../src/obsidian/view.ts) (line 32). | Not recorded. |
-| Ninja Board does little date math: filtering and words, plus the one next-date step a repeating task note takes when an occurrence is completed. Carry-over and other repeats belong elsewhere. | The [user guide](USER_GUIDE.md#dates-ninja-board-writes) section "Dates Ninja Board writes": its one step is a repeating task note's next due date, when an occurrence is completed. | Ninja Board computing other dates, such as carry-over or task-line repeats, which the user guide rules out. |
+| Ninja Board does little date math: filtering and words, plus the one next-date step a repeating task note takes when an occurrence is completed. Carry-over and other repeats belong elsewhere. | The [plugin README](../README.md) section "Ninja Board does little date math": its one step is a repeating task note's next due date, when an occurrence is completed. | Ninja Board computing other dates, such as carry-over or task-line repeats, which the README rules out. |
 | Past weeks are read from the agent's frozen record. Without one, they come from the notes. | The record freezes what was true at the week's turn. Ninja Board only reads it ([round 2, section 5](design/2026-10-14-brain-plugin-round-2-design.md), and the [implementation spec, section 1](https://alexsendula.github.io/second-brain/implementation/)). The notes are the fallback ([round 2, section 4](design/2026-10-14-brain-plugin-round-2-design.md)). | Not recorded. |
 | Cards replace Obsidian's status menu. | Round 2 added the planner card, and the states, story, project and repeat cards. The planner card is in [round 2, section 4](design/2026-10-14-brain-plugin-round-2-design.md). | Obsidian's own `Menu`, in the first design ([plugin design, section 2](design/2026-10-13-brain-plugin-design.md)). |
 | The edit rules are pure functions, shared by the plugin, the preview and the tests. | One set of rules, so the preview and the tests run the code the plugin runs. | Not recorded. |
 | Undo is one history in the obsidian layer, and a step goes back only where nothing changed since. | Every write passes through one place, so none is left out of the history. A restore uses the same writers and the same stale guard as an edit ([undo design, sections 3 to 6](design/2026-10-15-brain-undo-design.md)). | Restoring snapshots of the DOM, as the mockup's demo does. The plugin restores notes and layouts, not pictures of the screen (undo design, section 6). |
+| Styles are classes, and a run-time value goes through the Obsidian helpers. `styles.css` uses no `:has`. | Obsidian's review rules flag inline style writes, `:has` and `!important`; iOS before 16.4 has no lookbehind ([styles test](../test/styles.test.ts)). | Inline style writes from the views, which the review flags. |
 | No runtime dependencies. Only Obsidian's and Tasks' APIs are used. The plugin is mobile-safe. | The phone app has no Node or Electron APIs, so `isDesktopOnly` is `false` ([plugin design, section 2](design/2026-10-13-brain-plugin-design.md)). `package.json` lists only dev dependencies. | Not recorded. |
 
 ## External dependencies
@@ -246,6 +248,6 @@ Session state lives in memory and ends when the view closes: the week shown, the
 ## Related documentation
 
 - [API reference](API.md): the views, commands, dashboard note format, `Actions` and the edit contract.
-- [User guide](USER_GUIDE.md): what the user sees and does.
+- [Plugin README](../README.md): what the user sees and does.
 - [Plugin design](design/2026-10-13-brain-plugin-design.md) and [round 2 design](design/2026-10-14-brain-plugin-round-2-design.md).
 - [Implementation spec](https://alexsendula.github.io/second-brain/implementation/): the agent side, and the Edits table.

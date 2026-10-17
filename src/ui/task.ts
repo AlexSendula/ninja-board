@@ -183,11 +183,11 @@ export function noNativeDrag(item: HTMLElement): void {
  * Each item acts only on its own events, so a row inside a card leaves the card alone.
  */
 export function bindItem(item: HTMLElement, on: ItemHandlers): void {
-  menus.set(item, on.menu);
+  menus.set(item, (at) => on.menu(at));
   // When the menu key last opened this item's menu: browsers follow that key with a contextmenu event.
   const keyMenu = { at: 0 };
   bindKeys(item, on, keyMenu);
-  bindMenuGestures(item, on.menu, keyMenu);
+  bindMenuGestures(item, (at) => on.menu(at), keyMenu);
 }
 
 function bindKeys(item: HTMLElement, on: ItemHandlers, keyMenu: { at: number }): void {
@@ -211,12 +211,12 @@ function bindKeys(item: HTMLElement, on: ItemHandlers, keyMenu: { at: number }):
 function bindMenuGestures(item: HTMLElement, menu: (at: Point) => void, keyMenu: { at: number }): void {
   const own = (e: Event) => (e.target as Element).closest('[data-state][tabindex]') === item;
   let touching = false;
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  let timer: number | undefined;
   let start: Point = { x: 0, y: 0 };
   let swallowClick = false;
   const release = () => {
     touching = false;
-    clearTimeout(timer);
+    window.clearTimeout(timer);
     timer = undefined;
   };
 
@@ -233,7 +233,7 @@ function bindMenuGestures(item: HTMLElement, menu: (at: Point) => void, keyMenu:
     // Inside a draggable, drag.ts owns the long-press: it lifts, and a still release opens the menu.
     if (!touching || !own(e) || (e.target as Element).closest('button') || item.closest('.brain-draggable')) return;
     start = { x: e.clientX, y: e.clientY };
-    timer = setTimeout(() => {
+    timer = window.setTimeout(() => {
       timer = undefined;
       swallowClick = true;
       menu(start);
@@ -242,7 +242,7 @@ function bindMenuGestures(item: HTMLElement, menu: (at: Point) => void, keyMenu:
   item.addEventListener('pointermove', (e) => {
     if (timer === undefined) return;
     if (Math.hypot(e.clientX - start.x, e.clientY - start.y) >= MOVE_SLOP_PX) {
-      clearTimeout(timer);
+      window.clearTimeout(timer);
       timer = undefined;
     }
   });

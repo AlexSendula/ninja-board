@@ -24,6 +24,16 @@ import { isBrainUndoKey } from '../src/ui/undoKey.ts';
 import { memoryWrites } from './memoryWrites.ts';
 import { openDayModal, openListModal } from './modal.ts';
 import { tokensOf } from './tokens.ts';
+import { installObsidianDom } from './obsidian-dom.ts';
+// The sample vault and the mockup's markup are bundled at build time: npm run preview writes sample.json, then esbuild reads both.
+import sampleNotes from './sample.json';
+import mockupHtml from '../design/mockup.html';
+
+installObsidianDom(document, HTMLElement, SVGElement);
+
+// The preview is not Obsidian, so it has no Platform.isMacOS: the browser's user-agent data names the system. Safari has
+// none, so there the shortcut reads Ctrl+Z.
+const isMac = (navigator as { userAgentData?: { platform?: string } }).userAgentData?.platform === 'macOS';
 
 const TODAY = '2026-10-13';
 // The clock is fixed, as TODAY is: 11:10, so the Schedule's now-line and what has ended on the strip read the same on every visit.
@@ -53,15 +63,10 @@ const VIEWS: Record<View, (root: HTMLElement, c: Context) => void> = {
   guide: (root, c) => renderGuide(root, buildGuide(SETUP), c.actions),
 };
 
-start().catch((err: unknown) => {
-  say(`Preview failed: ${String(err)}`);
-  throw err;
-});
+start();
 
-async function start(): Promise<void> {
-  const res = await fetch('sample.json');
-  if (!res.ok) throw new Error(`sample.json: HTTP ${res.status}. Start the preview with npm run preview.`);
-  const notes = (await res.json()) as RawNote[];
+function start(): void {
+  const notes: RawNote[] = [...sampleNotes];
   const root = $('.brain-view');
   // The list modal goes over the stage, beside the frame: the frame is made inert while a modal is open.
   const stage = $('.mock-stage');
@@ -115,6 +120,7 @@ async function start(): Promise<void> {
   };
 
   const actions: Actions = {
+    mac: isMac,
     toggle: recorded(writes.toggle, (t) => tickUndoLabel(titleOf(t), stateOf(t))),
     setState: recorded(writes.setState, (t) => stateUndoLabel(titleOf(t), stateOf(t))),
     setNoteStatus: recorded(writes.setNoteStatus, (path, status) => {
@@ -205,11 +211,11 @@ function bindBar(showView: (view: View) => void): void {
     }
     if (theme) document.body.className = theme;
     if (surface) frame.classList.toggle('mod-sidedock', surface === 'sidebar');
-    if (width) frame.style.width = `${width}px`;
+    if (width) frame.setCssStyles({ width: `${width}px` });
   });
 }
 
-// ---------- Console check: await checkView() ----------
+// ---------- Console check: checkView() ----------
 
 /** What checkView reports when the page differs: the first token that differs, and the next six on each side. */
 type Diff = { at: number; of: [number, number]; mockup: string[]; preview: string[] };
@@ -224,10 +230,9 @@ type Diff = { at: number; of: [number, number]; mockup: string[]; preview: strin
  * 'no mockup state'; a `part` that matches nothing on either side says 'nothing compared', so a typo in the
  * selector can't read as a pass.
  */
-async function checkView(part?: string): Promise<{ dom: 'same' | 'nothing compared' | 'no mockup state' | Diff; overflow: string[] }> {
+function checkView(part?: string): { dom: 'same' | 'nothing compared' | 'no mockup state' | Diff; overflow: string[] } {
   const view = document.querySelector<HTMLElement>('#mock-bar [aria-pressed="true"][data-view]')?.dataset.view ?? '';
-  const html = await (await fetch('../design/mockup.html')).text();
-  const mock = new DOMParser().parseFromString(html, 'text/html');
+  const mock = new DOMParser().parseFromString(mockupHtml, 'text/html');
   const root = $('.brain-view');
   const page = root.querySelector('.brain-page');
   const right = root.getBoundingClientRect().right;
@@ -275,7 +280,7 @@ function say(text: string): void {
   const toast = $('#mock-toast');
   toast.textContent = text;
   toast.hidden = false;
-  clearTimeout(toastTimer);
+  window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => {
     toast.hidden = true;
   }, 1600);

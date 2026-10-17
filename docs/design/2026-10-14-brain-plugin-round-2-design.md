@@ -174,7 +174,7 @@ Chosen on 2026-10-15 from two options: a Waiting column (A) and a Waiting group 
 
 ## 5. The week record (implementation spec change, built by the agent's `brain week`)
 
-The week plan's generated overview gains a record, so a past week can be shown as it was. In `2026-10-13-second-brain-implementation.md`, "Week plan":
+The week plan's generated overview gains a record, so a past week can be shown as it was. In the [implementation spec](https://alexsendula.github.io/second-brain/implementation/), "Week plan":
 - Every refresh writes, inside the overview markers, five sections in this order: `### Appointments`, `### Done`, `### In progress`, `### Not done`, `### Backlog`.
 - Each item is a plain list item, never a checkbox (so it's never a live task): `- <title> · <context>`, then fields in square brackets where they apply: `[day:: YYYY-MM-DD]`, `[time:: HH:MM]`, `[due:: YYYY-MM-DD]`, `[moved:: YYYY-MM-DD]`, `[dropped:: YYYY-MM-DD]`. Example: `- Clean the gutters · Home [day:: 2026-10-15] [moved:: 2026-10-22]`.
 - **Nothing gets lost.** An item that was ever listed in the week and later leaves it stays in Not done: with `[moved:: <new date>]` when its date moved out of the week, or `[dropped:: <date>]` when it was dropped. This holds whoever moved it: the agent, an edit in a note, or Ninja Board.

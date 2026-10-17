@@ -1,3 +1,4 @@
+import { normalizePath } from 'obsidian';
 import type { App, TFile } from 'obsidian';
 import type { RawNote, VaultSnapshot } from '../model/types.ts';
 import { compareText } from '../model/order.ts';
@@ -9,7 +10,7 @@ import { logLineNumbers } from '../model/repeat.ts';
 const ARCHIVE = '10 Archive/';
 
 /** The vault's config note (99 System, with the contexts and the add-ons). Its `points_per_week` is the week's points target. */
-export const CONFIG_PATH = '99 System/config.md';
+export const CONFIG_PATH = normalizePath('99 System/config.md');
 
 /**
  * The snapshot of the notes Bases selected. buildSnapshot skips the archive too; this skips reading it.
@@ -37,7 +38,7 @@ export function readPointsTarget(app: App): number {
  * A plan holds no task lines, so the snapshot skips its text; the Week view reads the plan it shows.
  */
 export async function readWeekPlan(app: App, start: string): Promise<RawNote | undefined> {
-  const file = app.vault.getFileByPath(weekPlanPath(start));
+  const file = app.vault.getFileByPath(normalizePath(weekPlanPath(start)));
   if (!file) return undefined;
   const lines = (await app.vault.cachedRead(file)).split(/\r?\n/);
   return { path: file.path, frontmatter: app.metadataCache.getFileCache(file)?.frontmatter, lines };

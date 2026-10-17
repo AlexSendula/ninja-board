@@ -1,0 +1,41 @@
+# Builds a release from a version tag and attests the files Obsidian installs.
+# Push a tag equal to manifest.json's version (for example 1.0.1); this does the rest.
+name: Release
+
+on:
+  push:
+    tags: ['*']
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: The tag must equal the manifest's version
+        run: test "$(node -p "require('./manifest.json').version")" = "$GITHUB_REF_NAME"
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          awk -v v="$GITHUB_REF_NAME" '$0 ~ "^## \\[" v "\\]" {p=1; next} /^## \[/ {p=0} p' docs/CHANGELOG.md > notes.md || true
+          [ -s notes.md ] || echo "Ninja Board $GITHUB_REF_NAME." > notes.md
+          gh release create "$GITHUB_REF_NAME" main.js manifest.json styles.css --title "$GITHUB_REF_NAME" --notes-file notes.md

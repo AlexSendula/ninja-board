@@ -4,7 +4,7 @@ import type { Actions } from './actions.ts';
 import { noteRow } from '../model/rows.ts';
 import { absent, fire, recorder, rowFor, sampleNote } from '../../test/ui.ts';
 import { h } from './dom.ts';
-import { dropLists, enableDrag } from './drag.ts';
+import { cancelDrags, dropLists, enableDrag } from './drag.ts';
 import type { DragOpts, DropTarget } from './drag.ts';
 import { taskRow } from './task.ts';
 
@@ -441,15 +441,16 @@ test('the landing slot: at the top, between two items, at the end; its height is
   assert.deepEqual(b.drops, [['Clean the gutters', column('todo', 2)]]);
 });
 
-test('a lifted row is fixed where it was, and has no inline style once it lands', () => {
+test('a lifted row is fixed where it was, by its classes, and has no inline style once it lands', () => {
   const b = arranging();
   const gutters = b.rows[2];
   press(gutters, 90);
   move(gutters, 60);
-  assert.equal(gutters.style.getPropertyValue('position'), 'fixed');
-  assert.equal(gutters.style.getPropertyValue('pointer-events'), 'none');
-  assert.equal(gutters.classList.contains('brain-is-lifted'), true);
+  assert.equal(gutters.classList.contains('brain-is-floating'), true);   // fixed at the origin, no margin: styles.css
+  assert.equal(gutters.classList.contains('brain-is-lifted'), true);     // no pointer events: styles.css
+  assert.equal(gutters.style.getPropertyValue('width'), '200px');   // its width at lift, the only inline style it keeps
   fire(b.root, 'pointerup', mouse(10, 60));
+  assert.equal(gutters.classList.contains('brain-is-floating'), false);
   assert.equal(gutters.classList.contains('brain-is-lifted'), false);
   assert.equal(gutters.getAttribute('style') ?? '', '');
 });
@@ -857,4 +858,86 @@ test('a carried card is not counted twice: the copy already in the column is lef
   assert.deepEqual(order(list), ['Book a physio session', 'Clean the gutters', 'slot', 'Fix the hallway light switch']);
   fire(grid, 'pointerup', mouse(10, 90));
   assert.deepEqual(b.drops, [['Clean the gutters', column('todo', 1)]]);
+});
+
+test('a day pick dropped on marks its strip, so only the day beneath shows as picked; the mark goes with the drop', () => {
+  const { actions } = recorder();
+  const row = taskRow(rowFor('Clean the gutters', { draggable: true, plan: {} }), actions);
+  const picked = h('button', 'brain-day-pick', { 'aria-pressed': 'true', 'data-drop': 'day', 'data-date': '2026-10-16' }, [h('span', 'brain-day-num', {}, ['16'])]);
+  const pick = h('button', 'brain-day-pick', { 'data-drop': 'day', 'data-date': '2026-10-17' }, [h('span', 'brain-day-num', {}, ['17'])]);
+  const strip = h('div', 'brain-picks', {}, [picked, pick]);
+  const todo = h('section', 'brain-col', { 'data-column': 'todo', 'data-arrange': '' }, [h('ul', 'brain-col-items', {}, [row])]);
+  const root = h('div', 'brain-page', {}, [strip, todo]);
+  const b = { root, row, ...listen(root, row) };
+  const handle = row.querySelector('.brain-task-text')!;
+  b.over(pick.querySelector('.brain-day-num')!);
+  fire(handle, 'pointerdown', mouse(10, 10));
+  fire(handle, 'pointermove', mouse(300, 300));
+  assert.deepEqual([pick.classList.contains('brain-is-drop'), strip.classList.contains('brain-picks-drop')], [true, true]);
+  fire(root, 'pointerup', mouse(300, 300));
+  assert.deepEqual([pick.classList.contains('brain-is-drop'), strip.classList.contains('brain-picks-drop')], [false, false]);
+});
+
+test('cancelDrags ends a lifted drag and a touch still in its long-press: the document listeners go, and no timer lifts', (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const b = board({ 'data-states': 'doing waiting' });
+  // The keydown and scroll listeners a drag adds to the document, until it removes them.
+  const doc = b.row.ownerDocument as unknown as Record<'addEventListener' | 'removeEventListener', (...args: unknown[]) => void>;
+  const { addEventListener, removeEventListener } = doc;
+  const open = new Set<unknown>();
+  doc.addEventListener = (type, fn, opts) => {
+    if (type === 'keydown' || type === 'scroll') open.add(fn);
+    addEventListener.call(doc, type, fn, opts);
+  };
+  doc.removeEventListener = (type, fn, opts) => {
+    open.delete(fn);
+    removeEventListener.call(doc, type, fn, opts);
+  };
+  t.after(() => {
+    doc.addEventListener = addEventListener;
+    doc.removeEventListener = removeEventListener;
+  });
+  press(b.row, 10);
+  move(b.row, 30);
+  assert.equal(b.row.classList.contains('brain-is-lifted'), true);
+  assert.equal(open.size, 2);   // Escape and the scroll that follows the pointer
+  cancelDrags();
+  assert.equal(open.size, 0);
+  assert.equal(b.row.classList.contains('brain-is-lifted'), false);
+  assert.deepEqual(b.drops, []);
+  // A touch still waiting out its long-press holds a timer: cancelDrags clears it, so nothing lifts when it would have.
+  const c = board({ 'data-states': 'doing waiting' });
+  fire(c.row.querySelector('.brain-task-text')!, 'pointerdown', { ...mouse(10, 10), pointerType: 'touch' });
+  cancelDrags();
+  t.mock.timers.tick(500);
+  assert.equal(c.row.classList.contains('brain-is-lifted'), false);
+  assert.equal(c.row.classList.contains('brain-is-floating'), false);
+  assert.deepEqual(c.drops, []);
+});
+
+test('cancelDrags(view) ends the drags that land in that view, and leaves another view\'s drag lifted', () => {
+  const mine = board({ 'data-states': 'doing waiting' });
+  const theirs = board({ 'data-states': 'doing waiting' });
+  press(mine.row, 10);
+  move(mine.row, 30);
+  press(theirs.row, 10);
+  move(theirs.row, 30);
+  cancelDrags(mine.root);
+  assert.equal(mine.row.classList.contains('brain-is-lifted'), false);
+  assert.equal(theirs.row.classList.contains('brain-is-lifted'), true);
+  cancelDrags(theirs.root);
+  assert.equal(theirs.row.classList.contains('brain-is-lifted'), false);
+});
+
+test('a drag carried out of a modal ends with the view its drop zones are in, not with the modal it started in', () => {
+  const { actions } = recorder();
+  const row = taskRow(rowFor('Clean the gutters', { meta: [{ text: 'Home' }, { text: 'Thu' }], draggable: true }), actions);
+  const view = h('div', 'brain-view', {}, [h('section', 'brain-col', { 'data-states': 'doing waiting' }, [h('ul', 'brain-col-items')])]);
+  const modal = h('ul', 'brain-tiles', {}, [h('li', 'brain-tile', {}, [row])]);
+  listen(modal, row, { zones: view });   // the modal's grid is the root; the view's root is where the drop zones are
+  press(row, 10);
+  move(row, 30);
+  assert.equal(row.classList.contains('brain-is-lifted'), true);
+  cancelDrags(view);
+  assert.equal(row.classList.contains('brain-is-lifted'), false);
 });

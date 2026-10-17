@@ -9,12 +9,27 @@ export function focusedKey(root: HTMLElement): string | undefined {
  * Focuses the row, card or tile in `root` whose data-key is `key`, without scrolling. A keyed
  * element that is itself a focus stop (has a tabindex, or is a button or a link) takes focus. One
  * that isn't (an inbox row: its link is the stop) hands it to its first link, button or focusable descendant.
+ * When that stop can't take focus (a row in a Done group that is shut, or a disabled button), the focus goes to
+ * the toggle that opens the group, or else to root itself, so it stays in the view and Cmd/Ctrl+Z still reaches it.
  */
 export function refocus(root: HTMLElement, key: string): void {
   // Compared as strings rather than through a selector, so a key's quotes and slashes need no escaping.
   const keyed = [...root.querySelectorAll<HTMLElement>('[data-key]')].find((el) => el.getAttribute('data-key') === key);
   const stop = keyed?.matches('[tabindex], button, a[href]') ? keyed : keyed?.querySelector<HTMLElement>('a[href], button, [tabindex]');
-  stop?.focus({ preventScroll: true });
+  if (stop && !shut(root, stop)) {
+    stop.focus({ preventScroll: true });
+    return;
+  }
+  const folded = stop?.closest<HTMLElement>('[hidden]');
+  const opener = folded && root.contains(folded) ? root.querySelector<HTMLElement>(`[aria-controls~="${folded.id}"]`) : null;
+  (opener ?? root).focus({ preventScroll: true });
+}
+
+/** Whether `el` can't take focus where it is: disabled, or inside a part of root that is hidden. */
+function shut(root: HTMLElement, el: HTMLElement): boolean {
+  if (el.hasAttribute('disabled')) return true;
+  const hidden = el.closest('[hidden]');
+  return hidden !== null && root.contains(hidden);
 }
 
 /**
@@ -51,4 +66,22 @@ export function refocusPager(root: HTMLElement, was: PagerFocus | undefined): vo
 
 function pagerSteps(root: HTMLElement): HTMLElement[] {
   return [...root.querySelectorAll<HTMLElement>('.brain-pager > .brain-step')];
+}
+
+/**
+ * Puts `cls` on the section while keyboard focus is inside it, so the CSS can show a control there for the keyboard alone: the
+ * focus that a click leaves is not focus-visible. The section's focusin and focusout do it; a focus the browser can't tell
+ * (no :focus-visible) is not keyboard focus.
+ */
+export function markKeyboardFocus(section: HTMLElement, cls: string): void {
+  section.addEventListener('focusin', (e) => section.classList.toggle(cls, isFocusVisible(e.target)));
+  section.addEventListener('focusout', () => section.classList.remove(cls));
+}
+
+function isFocusVisible(target: EventTarget | null): boolean {
+  try {
+    return (target as Element | null)?.matches(':focus-visible') ?? false;
+  } catch {
+    return false;
+  }
 }

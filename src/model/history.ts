@@ -71,7 +71,7 @@ export class History<W> {
       settled = run();
     } catch (error) {
       close();
-      return Promise.reject(error);
+      return Promise.reject(error instanceof Error ? error : new Error(String(error)));
     }
     if (settled instanceof Promise) return settled.finally(close);
     close();

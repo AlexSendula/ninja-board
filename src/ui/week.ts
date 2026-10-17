@@ -2,6 +2,7 @@ import type { BoardItem, RowTarget, ThisWeekVM, WaitingView, WeekVM } from '../m
 import type { Actions } from './actions.ts';
 import { h } from './dom.ts';
 import { viewHead } from './header.ts';
+import { markKeyboardFocus } from './focus.ts';
 import { nextChange } from './clock.ts';
 import { weekStrip } from './strip.ts';
 import { taskRow } from './task.ts';
@@ -124,13 +125,15 @@ function comingUp(vm: ThisWeekVM, actions: Actions): HTMLElement {
  * that the CSS shows Column view whatever is saved. Waiting's label row holds both labels, and the CSS shows one.
  */
 function board(vm: ThisWeekVM, actions: Actions, waiting: WaitingView): HTMLElement {
-  return h('div', 'brain-board brain-board-week', waiting === 'group' ? { 'data-waiting': 'group' } : {}, COLUMNS.map(({ key, title, empty }) => {
+  return h('div', 'brain-board brain-board-week', { 'data-waiting': waiting }, COLUMNS.map(({ key, title, empty }) => {
     const items = vm.columns[key];
     const attrs: Record<string, string> = { 'data-column': key, 'data-states': key };   // what the CSS selects the columns by
     if (key !== 'done') attrs['data-arrange'] = '';   // To do, Doing and Waiting can be arranged; Done keeps its time order
     const label = labelRow(title, items.length);
     if (key === 'waiting') label.append(h('h4', 'brain-group-name', {}, [`Waiting on · ${items.length}`]), waitingSwitch(waiting, actions));
-    return h('section', 'brain-col', attrs, [label, h('ul', 'brain-col-items', {}, rowsOf(items, empty, actions))]);
+    const section = h('section', 'brain-col', attrs, [label, h('ul', 'brain-col-items', {}, rowsOf(items, empty, actions))]);
+    if (key === 'waiting') markKeyboardFocus(section, 'brain-keyboard-focus');   // its switch shows for the keyboard at once
+    return section;
   }));
 }
 

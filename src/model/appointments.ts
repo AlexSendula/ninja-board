@@ -35,7 +35,34 @@ function inItem(item: string, day: number): boolean {
 }
 
 function toEvent(n: NoteInfo, iso: string): EventVM {
-  // The lookbehind reads each run of spaces once, not from each space (see DONE_DATES_RE in obsidian/edits.ts).
-  const [start = '', end] = (n.time ?? '').split(/(?<!\s)\s*[-–]\s*/);
+  const [start = '', end] = splitTime(n.time ?? '');
   return { key: `${n.path}@${iso}`, path: n.path, title: n.name.replace(/^\d{4}-\d{2}-\d{2} /, ''), start, end, where: n.where };
+}
+
+const DASHES = '-–';
+const isSpace = (c: string): boolean => /\s/.test(c);
+
+/**
+ * A time split at its dashes, with the spaces round each dash in neither piece: "09:00 - 10:30" gives "09:00" and "10:30". It is
+ * the split of a regex with a lookbehind that keeps a separator from starting in the middle of a run of spaces; iOS
+ * before 16.4 has no lookbehind, so the same rule is run here, in one pass (a regex without it would be quadratic over a long run).
+ * The rule: a separator's run of spaces starts at the first space after the text before it, but never before the piece's start,
+ * and a run that starts at the piece's start needs a non-space before it. So "a - - b" is "a" and "- b".
+ */
+function splitTime(time: string): string[] {
+  const pieces: string[] = [];
+  let from = 0;                                           // where the current piece starts
+  for (let d = 0; d < time.length; d++) {
+    if (!DASHES.includes(time[d] ?? '')) continue;
+    let at = d;
+    while (at > from && isSpace(time[at - 1] ?? '')) at--;
+    if (at === from && from > 0 && isSpace(time[from - 1] ?? '')) continue;   // a separator needs a non-space before its run
+    pieces.push(time.slice(from, at));
+    let end = d + 1;
+    while (end < time.length && isSpace(time[end] ?? '')) end++;
+    from = end;
+    d = end - 1;
+  }
+  pieces.push(time.slice(from));
+  return pieces;
 }

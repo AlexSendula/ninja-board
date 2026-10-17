@@ -216,3 +216,16 @@ test('an empty week: Nothing planned or due, and To plan has Nothing to plan', (
   assert.equal(toPlan.querySelector(':scope > .brain-label-row > .brain-count')?.textContent, '0');
   assert.deepEqual([...toPlan.children].slice(1).map((c) => [c.tagName, c.className, c.textContent]), [['P', 'brain-empty', 'Nothing to plan']]);
 });
+
+test('the planner is marked while To plan is open, and Plan this week marks and unmarks it', () => {
+  assert.equal(planParts(w43, fresh(), recorder().actions, true).hasAttribute('data-to-plan'), true);
+  assert.equal(planParts(w43, fresh(), recorder().actions, false).hasAttribute('data-to-plan'), false);
+  const root = rendered(w43);
+  const toggle = root.querySelector<HTMLButtonElement>('.brain-plan-toggle')!;
+  const marked = () => root.querySelector('.brain-plan')!.hasAttribute('data-to-plan');
+  assert.equal(marked(), false);
+  fire(toggle, 'click');
+  assert.equal(marked(), true);
+  fire(toggle, 'click');
+  assert.equal(marked(), false);
+});

@@ -120,6 +120,11 @@ test('a step is recorded with what was written before a failure, and the failure
   assert.equal(h.label(), 'broken');
 });
 
+test('a group whose run throws something other than an Error rejects with an Error that says what it was', async () => {
+  const h = new History<W>();
+  await assert.rejects(h.group('broken', () => { throw 'vault refused'; }), (e: unknown) => e instanceof Error && e.message === 'vault refused');
+});
+
 test('a restore that throws counts as changed, and the queue carries on', async () => {
   const h = new History<W>();
   await h.act('x', async (w) => { w.push({ n: 1 }); });

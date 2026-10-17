@@ -48,6 +48,6 @@ export function wakeAt(time: string, from: Date, fire: () => void): () => void {
   if (Number.isNaN(minutes(time))) return () => {};
   const sinceMidnight = ((from.getHours() * 60 + from.getMinutes()) * 60 + from.getSeconds()) * 1000 + from.getMilliseconds();
   const delay = Math.max(0, minutes(time) * 60_000 + 1000 - sinceMidnight);
-  const timer = setTimeout(fire, delay);
-  return () => clearTimeout(timer);
+  const timer = window.setTimeout(fire, delay);
+  return () => window.clearTimeout(timer);
 }

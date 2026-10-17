@@ -22,6 +22,7 @@ const preview = {
   format: 'iife',
   platform: 'browser',
   target: 'es2022',
+  loader: { '.html': 'text' },   // design/mockup.html, the console check's copy of the markup
   logLevel: 'info',
 };
 

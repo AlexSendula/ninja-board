@@ -1,5 +1,5 @@
-// Tiny DOM helpers. They use the global document, so the same code runs in Obsidian,
-// in the browser preview and in linkedom under node:test.
+// Tiny DOM helpers. They use Obsidian's createEl and the global document, so the same code runs in Obsidian,
+// in the browser preview and in linkedom under node:test (the last two install createEl: preview/obsidian-dom.ts).
 
 export type Child = Node | string | null;
 
@@ -9,7 +9,7 @@ export function h<K extends keyof HTMLElementTagNameMap>(
   attrs: Record<string, string> = {},
   children: Child[] = [],
 ): HTMLElementTagNameMap[K] {
-  const el = document.createElement(tag);
+  const el = createEl(tag);
   if (cls) el.className = cls;
   for (const [name, value] of Object.entries(attrs)) el.setAttribute(name, value);
   for (const child of children) if (child !== null) el.append(child);

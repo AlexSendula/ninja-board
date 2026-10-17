@@ -94,3 +94,32 @@ test('occurrencesOn reads a 40 KB time value in linear time', () => {
   assert.equal(occurrencesOn(oneNote({ time }), '2026-10-16')[0]?.start, time);
   assert.ok(performance.now() - started < 200, 'a 40 KB time value took too long');
 });
+
+test('a time splits at its dash as the lookbehind form did: the spaces round the dash belong to neither part', () => {
+  const split = (t: string): [string, string | undefined] => {
+    const [start = '', end] = t.split(/(?<!\s)\s*[-–]\s*/);   // the lookbehind form this replaced: Node has one, iOS 16.3 does not
+    return [start, end];
+  };
+  // Every string of up to four characters from these, which covers the cases that split differently.
+  const chars = ['0', ' ', '-', '–', '\t', 'x'];
+  const times = [''];
+  for (let len = 1; len <= 4; len++) {
+    const all = times.filter((t) => t.length === len - 1);
+    for (const t of all) for (const c of chars) times.push(t + c);
+  }
+  const notes = times.map((time, i) => ({ path: `N${i}.md`, frontmatter: { type: 'appointment', date: '2026-10-13', time }, lines: [] }));
+  const byPath = new Map(occurrencesOn(buildSnapshot(notes), '2026-10-13').map((e) => [e.path, e]));
+  times.forEach((time, i) => {
+    const e = byPath.get(`N${i}.md`);
+    assert.deepEqual([e?.start, e?.end], split(time), JSON.stringify(time));
+  });
+});
+
+test('a time with a 40 KB run of spaces splits in linear time', () => {
+  const time = `${' '.repeat(40000)}-${' '.repeat(40000)}x${' '.repeat(40000)}`;
+  const started = performance.now();
+  const [e] = occurrencesOn(buildSnapshot([{ path: 'Long.md', frontmatter: { type: 'appointment', date: '2026-10-13', time }, lines: [] }]), '2026-10-13');
+  assert.equal(e?.start, '');
+  assert.equal(e?.end?.trimEnd(), 'x');   // the end keeps its trailing spaces, as the split always did
+  assert.ok(performance.now() - started < 200, 'took too long');
+});

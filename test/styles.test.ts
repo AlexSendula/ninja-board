@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 
 // styles.css is the mockup's #brain-css block with two differences, and only these: every rule is
 // scoped under .brain-view, and the note-context reset stands in for the mockup's one-line reset
@@ -33,12 +33,12 @@ function stylesCss(): string {
 }
 
 /**
- * Whitespace collapsed, then the scope taken off. Three scoping forms: `.brain-view ` (by descent, and the
- * rules that already start with .brain-view), `.brain-view.brain-` (the planner card and the list modal's
- * content, which carry .brain-view themselves) and `:has(> .brain-view)` (the list modal's frame).
+ * Whitespace collapsed, then the scope taken off. Two scoping forms: `.brain-view ` (by descent, and the rules
+ * that already start with .brain-view) and `.brain-view.brain-` (the planner card and the list modal's content,
+ * which carry .brain-view themselves).
  */
 function unscoped(css: string): string {
-  return css.replace(/\s+/g, ' ').replaceAll('.brain-view ', '').replaceAll('.brain-view.brain-', '.brain-').replaceAll(':has(> .brain-view)', '').trim();
+  return css.replace(/\s+/g, ' ').replaceAll('.brain-view ', '').replaceAll('.brain-view.brain-', '.brain-').trim();
 }
 
 /** Every selector of every style rule, split at top-level commas. Rules inside @keyframes are left out. */
@@ -98,21 +98,43 @@ test('styles.css has no colour literals', () => {
   assert.doesNotMatch(STYLES, /(?:rgba?|hsla?)\(/);
 });
 
-test('every selector in styles.css is scoped under .brain-view', () => {
+test('every selector in styles.css is scoped under .brain-view, or is a modal frame', () => {
   const all = selectors(STYLES);
   assert.ok(all.length > 100, `only ${all.length} selectors found: the parser is off`);
-  assert.deepEqual(all.filter((s) => !/\.brain-view(?![\w-])/.test(s)), []);
+  // A modal's frame is the element Obsidian opens around the view, so it is outside .brain-view: its own class scopes it.
+  // The carry's class is set on that container too (src/obsidian/listModal.ts).
+  // A note or an embed that holds a view is marked by src/ui/host.ts, and its mark scopes the rule.
+  const frames = ['.brain-modal', '.brain-day-modal', '.brain-carrying'];
+  assert.deepEqual(all.filter((s) => !/\.brain-view(?![\w-])/.test(s) && !frames.includes(s) && !/\.brain-(note|embed)-host(?![\w-])/.test(s)), []);
 });
 
-test('the scope forms: the card and the modal content are compound, the frame is :has', () => {
+test('the note and embed rules are keyed to the marks src/ui/host.ts sets', () => {
+  const host = readFileSync(new URL('../src/ui/host.ts', import.meta.url), 'utf8');
+  for (const mark of ['brain-note-host', 'brain-embed-host']) {
+    assert.match(STYLES, new RegExp(`\\.${mark}\\b`));
+    assert.match(host, new RegExp(`'${mark}'`));
+  }
+});
+
+test('the scope forms: the card and the modal content are compound, and the modal frames are their own classes', () => {
   assert.doesNotMatch(STYLES, /\.brain-view \.brain-(popover|modal-body)\b/);
-  assert.doesNotMatch(STYLES, /\.brain-modal(?![\w:-])/);
+  // The frames carry the class the modal is opened with (src/obsidian), and only a brain view is in them: no :has needed.
+  assert.match(STYLES, /\n\.brain-modal \{ --dialog-width/);
+  assert.match(STYLES, /\n\.brain-day-modal \{ --dialog-width/);
+});
+
+test('styles.css uses none of the features Obsidian review flags: :has, !important, clip-path, multicolumn or display: contents', () => {
+  assert.doesNotMatch(STYLES, /:has\(/);
+  assert.doesNotMatch(STYLES, /!important/);
+  assert.doesNotMatch(STYLES, /clip-path/);
+  assert.doesNotMatch(STYLES, /(?<![-\w])columns?\s*:|column-count|column-width|column-rule/);
+  assert.doesNotMatch(STYLES, /display:\s*contents/);
 });
 
 test('the list and day modals lay their content out as a flex column, so the grid scrolls beneath the search', () => {
   // Obsidian makes .modal-content a block on a desktop; only the plugin's own rule makes the grid and the day scroller shrink.
   assert.match(STYLES, /\.brain-view\.brain-modal-body \{[^}]*display: flex;[^}]*flex-direction: column;[^}]*min-height: 0;/);
-  assert.match(STYLES, /\.brain-day-modal:has\(> \.brain-view\) > \.brain-view \{[^}]*display: flex;[^}]*min-height: 0;/);
+  assert.match(STYLES, /\.brain-day-modal > \.brain-view \{[^}]*display: flex;[^}]*min-height: 0;/);
 });
 
 test('Waiting on the Week board: one view below 720px, and Group view is a three-up grid only at 720px and up', () => {
@@ -137,4 +159,45 @@ test('Group view from 560px is two columns below 720px, as Column view; the thre
 test('Group view puts Waiting right under Doing: the 720px layout has no row gap', () => {
   // The board's base gap is 24px between rows, so the layout sets its own row gap: none, so Waiting sits under Doing's last row.
   assert.match(STYLES, /\.brain-view \.brain-board-week\[data-waiting="group"\] \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\); grid-template-rows: auto 1fr; row-gap: 0; \}/);
+});
+
+test('a carried list modal hides its container by class, in styles.css and in the mockup', () => {
+  // The carry sets the class on the modal's container, the element that holds the backdrop; the board beneath then takes the pointer.
+  assert.match(STYLES, /\n\.brain-carrying \{ visibility: hidden; \}/);
+  assert.match(MOCKUP, /\n\.brain-carrying \{ visibility: hidden; \}/);
+});
+
+test('no source writes an element style directly: a run-time value goes through setCssProps or setCssStyles, a fixed one to a class', () => {
+  // Obsidian's review flags a literal written to .style, and passes one computed at run time, so this reads the source for both.
+  // The preview's shim is the one place that writes the style: it is what setCssProps and setCssStyles stand for.
+  const base = new URL('../src/', import.meta.url);
+  const previewBase = new URL('../preview/', import.meta.url);
+  const sources = [
+    ...readdirSync(base, { recursive: true, encoding: 'utf8' }).map((f) => new URL(f, base)),
+    ...readdirSync(previewBase, { recursive: true, encoding: 'utf8' }).map((f) => new URL(f, previewBase)),
+  ].filter((u) => u.pathname.endsWith('.ts') && !u.pathname.endsWith('.test.ts') && !u.pathname.endsWith('/obsidian-dom.ts') && !u.pathname.includes('/dist/'));
+  const direct = /\.style\.(?:setProperty\(|cssText\b|[a-zA-Z]+\s*=(?!=))|\.style\s*=(?!=)|setAttribute\(\s*['"]style['"]/;
+  const found: string[] = [];
+  for (const u of sources) {
+    readFileSync(u, 'utf8').split('\n').forEach((line, i) => {
+      if (direct.test(line)) found.push(`${u.pathname.split('/plugin/')[1]}:${i + 1}: ${line.trim()}`);
+    });
+  }
+  assert.ok(sources.length > 50, `only ${sources.length} source files found: the walk is off`);
+  assert.deepEqual(found, []);
+});
+
+test('no source uses a lookbehind: iOS before 16.4 has none', () => {
+  // The tests may keep one as an oracle (they are not shipped), so only the shipped .ts files are read.
+  const base = new URL('../src/', import.meta.url);
+  const files = readdirSync(base, { recursive: true, encoding: 'utf8' }).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts'));
+  assert.ok(files.length > 50, `only ${files.length} source files found: the walk is off`);
+  for (const f of files) assert.doesNotMatch(readFileSync(new URL(f, base), 'utf8'), /\(\?<[=!]/, f);
+});
+
+test('the Undo button is never taken out of the layout: styles.css hides it by visibility, so the head keeps its height', () => {
+  const rules = STYLES.match(/[^{}]*brain-undo[^{}]*\{[^{}]*\}/g) ?? [];
+  assert.ok(rules.length > 0, 'styles.css styles the Undo button');
+  for (const rule of rules) assert.doesNotMatch(rule, /display\s*:\s*none/, rule);
+  assert.match(STYLES, /\.brain-view button\.brain-undo:disabled \{ visibility: hidden; \}/);
 });

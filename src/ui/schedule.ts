@@ -80,19 +80,21 @@ export function timeline(events: EventVM[], actions: Actions, now?: string): HTM
   const at = (min: number) => round((min / 60 - first) / hours);
 
   const el = h('div', 'brain-timeline');
-  el.style.setProperty('--brain-hours', String(hours));
+  el.setCssProps({ '--brain-hours': String(hours) });
   for (let hour = first; hour <= last; hour++) {
     const mark = h('span', 'brain-hour', { 'aria-hidden': 'true' }, [h('span', undefined, {}, [String(hour % 24).padStart(2, '0')])]);
-    mark.style.setProperty('--brain-at', String(at(hour * 60)));
+    mark.setCssProps({ '--brain-at': String(at(hour * 60)) });
     el.append(mark);
   }
   const lanes = lanesOf(spans);
   spans.forEach(({ ev, from, to }, i) => {
     const block = eventBlock(ev, actions);
-    block.style.setProperty('--brain-at', String(at(from)));
-    block.style.setProperty('--brain-len', String(round((to - from) / 60 / hours)));
-    block.style.setProperty('--brain-lane', String(lanes[i].lane));
-    block.style.setProperty('--brain-lanes', String(lanes[i].lanes));
+    block.setCssProps({
+      '--brain-at': String(at(from)),
+      '--brain-len': String(round((to - from) / 60 / hours)),
+      '--brain-lane': String(lanes[i].lane),
+      '--brain-lanes': String(lanes[i].lanes),
+    });
     el.append(block);
   });
   if (now !== undefined) {
@@ -163,7 +165,7 @@ function tickTimeline(el: HTMLElement, now: string): void {
     return;
   }
   line ??= el.appendChild(h('span', 'brain-now-line', {}, [h('span', 'brain-sr')]));
-  line.style.setProperty('--brain-at', String(round(at)));
+  line.setCssProps({ '--brain-at': String(round(at)) });
   line.setAttribute('title', `Now, ${now}`);
   line.querySelector('.brain-sr')!.textContent = `Now, ${now}`;
 }
@@ -180,7 +182,7 @@ function scrollWindow(tl: HTMLElement, opts: ScheduleOpts): HTMLElement {
   const scroller = h('div', opts.whole ? 'brain-scroll brain-is-whole' : 'brain-scroll', {
     tabindex: '0', role: 'region', 'aria-label': 'Schedule, scrolls', 'data-day': opts.day ?? '',
   }, [h('span', 'brain-fade brain-fade-top'), tl, h('span', 'brain-fade brain-fade-bottom')]);
-  scroller.style.setProperty('--brain-hours', String(hoursOf(tl)));   // Whole day grows the window to this many hours
+  scroller.setCssProps({ '--brain-hours': String(hoursOf(tl)) });   // Whole day grows the window to this many hours
   const fades = (): void => {
     scroller.toggleAttribute('data-above', scroller.scrollTop > 1);
     scroller.toggleAttribute('data-below', scroller.scrollTop + scroller.clientHeight < scroller.scrollHeight - 1);
@@ -235,7 +237,7 @@ function wholeButton(scroller: HTMLElement): HTMLButtonElement {
     if (whole) return;
     // Folding: the window can scroll only once it has shrunk, so wait out the height transition (none with reduced motion).
     const reduced = scroller.ownerDocument.defaultView?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    setTimeout(() => {
+    window.setTimeout(() => {
       if (!scroller.classList.contains('brain-is-whole')) atNow(scroller);
     }, reduced ? 0 : 320);
   });

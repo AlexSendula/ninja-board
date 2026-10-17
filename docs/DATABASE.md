@@ -8,7 +8,7 @@ Ninja Board has no database. The vault's notes are the data. Ninja Board reads e
 
 The only state Ninja Board saves is layout: a board's order and the Schedule's form. Both live in the dashboard note's `base` block (see [Dashboard notes](#dashboard-notes)).
 
-The note format is set by the implementation spec. Its [reference format](https://alexsendula.github.io/second-brain/implementation/#2-reference-format) (section 2) defines the fields, the value formats and the task-line format. The **Edits** table in the same section defines every change Ninja Board may make. This page says what Ninja Board reads and writes as built in v0.2.0.
+The note format is set by the implementation spec. Its [reference format](https://alexsendula.github.io/second-brain/implementation/) (section 2) defines the fields, the value formats and the task-line format. The **Edits** table in the same section defines every change Ninja Board may make. This page says what Ninja Board reads and writes as built in v0.2.0.
 
 ## Data flow
 
@@ -116,7 +116,7 @@ When Ninja Board writes:
 - Tasks writes its own completion line, with two spaces before each field. The spec's **Edits** table shows that shape next to Ninja Board's.
 - A pointer line, whose text is only one wikilink, such as `- [ ] [[Choose hosting for Sam's site]]`, points to a story. Ninja Board shows the story and not the line.
 
-The edits Ninja Board makes are the rows of the spec's [Edits table](https://alexsendula.github.io/second-brain/implementation/#2-reference-format). In summary:
+The edits Ninja Board makes are the rows of the spec's [Edits table](https://alexsendula.github.io/second-brain/implementation/). In summary:
 
 - **State** (lines): start, wait, drop and reopen. Tick and done go through Tasks.
 - **Plan** (lines and notes): a day sets `scheduled` and removes `start`. A week sets `start` and removes `scheduled`. No date yet removes both. A `due` that the plan leaves behind goes too, except a repeating note's. The rule is one function, `planDropsDue` ([model/plan.ts](../src/model/plan.ts), line 12).
@@ -170,7 +170,7 @@ The record is specified in the [round-2 design, section 5](design/2026-10-14-bra
 | `views[].schedule` | The Today note | `compact`. Absent, or any other value, means large. | [arrange.ts](../src/model/arrange.ts), `readScheduleView` |
 | `views[].waiting` | The Week note | `group`. Absent, or any other value, means the column view. | [arrange.ts](../src/model/arrange.ts), `waitingViewOf` |
 
-An example from the user guide, for the Week board:
+An example from the README, for the Week board:
 
 ```yaml
 views:
@@ -182,7 +182,7 @@ views:
 
 - **Item keys.** A card, or a row that is a task note, is keyed by its note's name. A line is keyed `<note name> › <text as shown>`, where the separator is U+203A with a space either side ([arrange.ts](../src/model/arrange.ts), `ARRANGE_SEPARATOR`, `lineKey`). The text has its fields, link brackets and tags removed.
 - **Order.** Keys that are listed come first, in the listed order. A key with no item on the board is ignored, and the next save drops it.
-- **Saving.** Bases writes the whole `base` block back each time, so its formatting and comments are normalised. Ninja Board saves only where Bases can write the block: the dashboard note itself, not an embed, a hover or a canvas ([edits.ts](../src/obsidian/edits.ts), `arrangementPersists`). The [user guide](USER_GUIDE.md#arranging) covers what happens elsewhere.
+- **Saving.** Bases writes the whole `base` block back each time, so its formatting and comments are normalised. Ninja Board saves only where Bases can write the block: the dashboard note itself, not an embed, a hover or a canvas ([edits.ts](../src/obsidian/edits.ts), `arrangementPersists`). The README covers what happens elsewhere.
 - **Grouping and sorting.** Ninja Board ignores Bases' own grouping and sorting, and keeps its own order.
 
 ## Other data Ninja Board reads

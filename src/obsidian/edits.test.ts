@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import '../../test/ui.ts';   // installs linkedom's document, for arrangementPersists
 import { arrangementPersists, isUsableToggle, lineWithDue, lineWithPlan, lineWithState, readTasksSetup, replaceLineIfUnchanged, tasksApi } from './edits.ts';
+import { BRACKET_VALUE } from '../model/taskLine.ts';
 
 // The sample's Website for Sam note: frontmatter on lines 0-6, "## Tasks" on line 8, task lines on 9-14.
 const SITE = readFileSync(new URL('../../sample-vault/03 Projects/Website for Sam/Website for Sam.md', import.meta.url), 'utf8');
@@ -153,9 +154,6 @@ test('arrangementPersists: only where Bases can write the base block back into t
 test("readTasksSetup: Tasks off, its saved settings, never saved, or settings it can't read", async () => {
   const withTasks = (tasks: object) => ({ plugins: { plugins: { 'obsidian-tasks-plugin': tasks } } });
   const saved = { taskFormat: 'dataview', statusSettings: { customStatuses: [] } };
-  // Only loaded plugins are in app.plugins.plugins: missing and turned off look the same.
-  assert.deepEqual(await readTasksSetup({ plugins: { plugins: {} } }), { on: false });
-  assert.deepEqual(await readTasksSetup({}), { on: false });
   // loadData is called on the plugin, as Obsidian's Plugin.loadData expects.
   const tasks = { saved, loadData() { return Promise.resolve(this.saved); } };
   assert.deepEqual(await readTasksSetup(withTasks(tasks)), { on: true, settings: saved });
@@ -177,4 +175,45 @@ test("readTasksSetup: Tasks enabled but not loaded yet (the Guide at launch) is 
   );
   // Another plugin enabled, Tasks not: off.
   assert.deepEqual(await readTasksSetup(enabled(['dataview'])), { on: false });
+});
+
+test('a run of spaces before a field goes with it, once, and the spaces after a kept field stay', () => {
+  assert.equal(lineWithDue('- [ ] a [due:: 2026-10-17] b  [due:: 2026-10-18] c', null), '- [ ] a b c');
+  assert.equal(lineWithDue('- [ ] a      [due:: 2026-10-17]', null), '- [ ] a');
+  // A field with no space before it, and a field at the very start of the text, are removed the same way.
+  assert.equal(lineWithDue('- [ ] a[due:: 2026-10-17]', null), '- [ ] a');
+  assert.equal(lineWithState('- [x] a   (completion:: 2026-10-09)   [cancelled:: 2026-10-11] b', 'todo', TODAY), '- [ ] a b');
+  // A scheduled field the due date does not match is kept, with the spaces before it.
+  assert.equal(lineWithDue('- [ ] a [scheduled:: 2026-10-13]   [due:: 2026-10-20]', '2026-10-20'), '- [ ] a [scheduled:: 2026-10-13]   [due:: 2026-10-20]');
+});
+
+test('the field edits remove exactly what the lookbehind form they replaced removed, over generated lines', () => {
+  // The lookbehind form (Node has one; iOS before 16.4 does not): a run of spaces read once, from its first space.
+  const dueOld = new RegExp(`(?<!\\s)\\s*(?:\\[due::${BRACKET_VALUE}\\]|\\(due::[^)(]*\\))`, 'g');
+  const doneOld = new RegExp(`(?<!\\s)\\s*(?:\\[(?:completion|cancelled)::${BRACKET_VALUE}\\]|\\((?:completion|cancelled)::[^)(]*\\))`, 'g');
+  const parts = ['a', ' ', '  ', '\t', '[due:: 2026-10-17]', '(due:: 2026-10-17)', '[due:: x]', ' [completion:: 2026-10-13]', '[cancelled:: 2026-10-11]',
+    '(completion:: 2026-10-12)', '[[Note]]', '[', ']', '(', ')', '^b7k2', ' - ', '[scheduled:: 2026-10-13]'];
+  let seed = 7;
+  const pick = (n: number): number => {
+    seed = (seed * 1103515245 + 12345) % 2147483648;
+    return seed % n;
+  };
+  for (let i = 0; i < 3000; i++) {
+    let text = '- [ ] ';
+    for (let j = 1 + pick(10); j > 0; j--) text += parts[pick(parts.length)];
+    assert.equal(lineWithDue(text, null), text.replace(dueOld, ''), JSON.stringify(text));
+    assert.equal(lineWithState(text, 'todo', TODAY), text.replace(doneOld, ''), JSON.stringify(text));
+  }
+});
+
+test("readTasksSetup: a plugin list that can't be read, or that isn't a list of ids, gives no answer about Tasks (Can't check)", async () => {
+  const unreadable = { get plugins(): never { throw new Error('gone'); } };
+  assert.deepEqual(await readTasksSetup(unreadable), {});
+  // No plugin list, or a loaded list with no enabledPlugins beside it: nothing says whether Tasks is on.
+  assert.deepEqual(await readTasksSetup({}), {});
+  assert.deepEqual(await readTasksSetup({ plugins: { plugins: {} } }), {});
+  // Enabled plugins as something without has(): the check is refused, not thrown into the Guide's draw.
+  assert.deepEqual(await readTasksSetup({ plugins: { enabledPlugins: ['obsidian-tasks-plugin'], plugins: {} } }), {});
+  // A loaded entry that is not a plugin: no loadData, so Tasks is on and its settings are unknown.
+  assert.deepEqual(await readTasksSetup({ plugins: { plugins: { 'obsidian-tasks-plugin': 'on' } } }), { on: true });
 });

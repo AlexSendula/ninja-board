@@ -263,7 +263,7 @@ The Week view shows the points planned for the week as a ring against the week's
 
 ## Undo
 
-**Undo the last Ninja Board change** (a command, with no default hotkey) reverts the newest change. Cmd/Ctrl+Z in a view does the same; text fields and the editor keep their own undo. Undo leaves alone anything changed since, and says so.
+**Undo the last change** (a command, with no default hotkey) reverts the newest change. Cmd/Ctrl+Z in a view does the same; text fields and the editor keep their own undo. Undo leaves alone anything changed since, and says so. The Undo button at the top right of each page shows only when there is a step to undo; its space is kept, so the page does not jump when it appears.
 
 ## Dates Ninja Board writes
 

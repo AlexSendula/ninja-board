@@ -184,7 +184,7 @@ test('the plan controls follow the state: done, dropped and waiting take them aw
   const { el } = openFor(energy(), actions);
   // The whole plan body: the any-day button, the day row (or Later's scroller) and the two buttons.
   const body = () => ['.brain-plan-main', '.brain-plan-days', '.brain-plan-pair'].map((q) => el.querySelector<HTMLElement>(q)!);
-  const hidden = () => body().map((n) => n.style.getPropertyValue('visibility') === 'hidden');
+  const hidden = () => body().map((n) => n.classList.contains('brain-is-shelved'));
   const live = () => [...el.querySelectorAll<HTMLElement>('.brain-plan-main, .brain-plan-days, .brain-plan-pair')]
     .flatMap((n) => [n, ...n.querySelectorAll<HTMLElement>('button')]).filter((n) => n.localName === 'button' && !n.hasAttribute('disabled'));
   const pick = async (state: string) => {
@@ -229,7 +229,7 @@ test('the plan controls of a card on Later follow the state too', async () => {
   assert.equal(later().length, 3);
   fire(el.querySelector('[data-set="waiting"]')!, 'click');
   await settle();
-  assert.deepEqual(later().map((n) => n.style.getPropertyValue('visibility')), ['hidden', 'hidden', 'hidden']);
+  assert.deepEqual(later().map((n) => n.classList.contains('brain-is-shelved')), [true, true, true]);
   closeCard();
 });
 

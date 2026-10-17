@@ -36,18 +36,18 @@
 .brain-view.brain-view :where(h2, h3, h4, p, ul, ol, li) { margin: 0; padding: 0; font: inherit; color: inherit; letter-spacing: inherit; list-style: none; position: static; }
 /* A dashboard note, one that shows a Ninja Board view, hides its Properties and its base block's Bases toolbar: Ninja Board's views have
    their own sorting and grouping. Source mode still shows the block's code to edit. (A note embedding a dashboard hides its own too.) */
-:is(.markdown-source-view, .markdown-preview-view):has(.brain-view) .metadata-container { display: none; }
-:is(.block-language-base, .bases-embed):has(.brain-view) .bases-header { display: none; }
+:is(.markdown-source-view, .markdown-preview-view).brain-note-host .metadata-container { display: none; }
+:is(.block-language-base, .bases-embed).brain-embed-host .bases-header { display: none; }
 .brain-view.brain-view li > :is(ul, ol) { position: static; }            /* Obsidian's indentation guide: */
 .brain-view.brain-view li > :is(ul, ol)::before { content: none; }      /* a line beside a list in a list item */
-.brain-view [hidden] { display: none !important; }
 .brain-view [data-state][tabindex] { -webkit-user-select: none; user-select: none; }   /* long-press opens the menu, not a selection */
-.brain-view .brain-sr { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }   /* read, not shown */
+.brain-view .brain-sr { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; white-space: nowrap; }   /* read, not shown: the 1px box clips its text */
 
 /* ---------- Page ---------- */
 .brain-view .brain-page { display: flex; flex-direction: column; gap: var(--size-4-6); padding: var(--size-4-8) var(--size-4-6) var(--size-4-12); }
 .brain-view .brain-part { display: flex; flex-direction: column; gap: var(--size-4-6); }
 .brain-view .brain-part + .brain-part { margin-top: var(--size-4-6); }
+.brain-view:focus { outline: none; }   /* the view takes the focus when the item that had it is folded away (refocus, in ui/focus.ts) */
 @container brain (max-width: 559px) {
   .brain-view .brain-page { padding: var(--size-4-6) var(--size-4-4) var(--size-4-8); --brain-fs-display: calc(var(--font-ui-large) * 1.4); }
   .brain-view .brain-head { column-gap: var(--size-4-4); }
@@ -75,13 +75,17 @@
 }
 
 /* ---------- Meta line: items split by a faint dot ----------
-   The clip on the inline start hides a dot that wrapped to the start of a line;
-   the other sides leave room for focus rings and the padded links. */
+   The clip on the left hides a dot that wrapped to the start of a line. The clip is the padding, which the margin cancels,
+   so the box and its layout stay as they are. A meta line (a p) leaves room on the other sides for focus rings and padded links. */
 .brain-view .brain-meta {
   display: flex; flex-wrap: wrap; column-gap: var(--size-4-4);
   font-size: var(--font-ui-smaller); line-height: 1.333; color: var(--text-muted); font-variant-numeric: tabular-nums;
-  clip-path: inset(calc(var(--size-4-3) * -1) calc(var(--size-4-3) * -1) calc(var(--size-4-3) * -1) calc(var(--size-4-1) * -1));
+  overflow: hidden; margin-left: calc(var(--size-4-1) * -1); padding-left: var(--size-4-1);
   pointer-events: none;   /* plain meta text passes clicks to the stretched link beneath */
+}
+.brain-view p.brain-meta {
+  margin: calc(var(--size-4-3) * -1) calc(var(--size-4-3) * -1) calc(var(--size-4-3) * -1) calc(var(--size-4-1) * -1);
+  padding: var(--size-4-3) var(--size-4-3) var(--size-4-3) var(--size-4-1);
 }
 .brain-view .brain-meta > * + *::before {
   content: "·"; display: inline-block; width: var(--size-4-4); margin-inline-start: calc(var(--size-4-4) * -1);
@@ -158,7 +162,7 @@
   border-radius: var(--radius-m); -webkit-touch-callout: none;
 }
 .brain-view .brain-task-body {
-  position: relative; flex: 1; min-width: 0; min-height: var(--brain-hit);
+  position: relative; flex: 1; min-width: 0; min-height: var(--brain-hit); display: flex; flex-direction: column;
   padding-block: calc((var(--brain-hit) - 1em * var(--brain-lh)) / 2);
 }
 .brain-view .brain-task-text { overflow-wrap: break-word; transition: color 0.3s var(--brain-ease); }
@@ -399,8 +403,8 @@
    The Week board has a column per column present (a week without a record shows two). */
 .brain-view .brain-board { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--size-4-6) var(--size-4-4); }
 @container brain (min-width: 720px) { .brain-view .brain-board-week { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); } }
-@container brain (min-width: 560px) { .brain-view .brain-board-week:has(> .brain-col[data-states~="waiting"]):not([data-waiting="group"]) { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); } }   /* four columns: as Projects */
-@container brain (min-width: 880px) { .brain-view .brain-board-week:has(> .brain-col[data-states~="waiting"]):not([data-waiting="group"]) { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@container brain (min-width: 560px) { .brain-view .brain-board-week[data-waiting="column"] { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); } }   /* four across, as Projects */
+@container brain (min-width: 880px) { .brain-view .brain-board-week[data-waiting="column"] { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @container brain (min-width: 560px) { .brain-view .brain-board-week[data-waiting="group"] { grid-template-columns: repeat(2, minmax(0, 1fr)); } }   /* Group view below 720px: two columns, as Column view */
 /* Group view, three-up at 720px and up: To do and Done span both rows; Doing is row 1 beside To do, and Waiting is row 2 under Doing, with a hairline
    and the group's label, taking the rest of the height as its drop area. Below 720px the board is Column view, whatever is saved. */
@@ -429,7 +433,7 @@
 /* ---------- Card: a story or project, drawn as a tile ---------- */
 .brain-view .brain-card { position: relative; gap: var(--size-4-2); -webkit-touch-callout: none; }
 .brain-view .brain-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--size-4-3); }
-.brain-view .brain-card-head > div { min-width: 0; }
+.brain-view .brain-card-head > div { min-width: 0; display: flex; flex-direction: column; }
 .brain-view .brain-card-head > .brain-progress, .brain-view .brain-card-head > .brain-cal { min-height: calc(var(--font-ui-medium) * var(--brain-lh)); }
 .brain-view .brain-card-title { font-size: var(--font-ui-medium); line-height: var(--brain-lh); font-weight: 600; overflow-wrap: break-word; }
 .brain-view .brain-card > .brain-label { margin-top: var(--size-4-1); }
@@ -447,7 +451,7 @@
 }
 .brain-view .brain-peek-icon { width: var(--size-4-4); height: var(--size-4-4); overflow: visible; transition: rotate 0.2s var(--brain-ease); }
 .brain-view .brain-peek[aria-expanded="true"] > .brain-peek-icon { rotate: 90deg; }
-.brain-view .brain-card-head:has(> .brain-peek) { position: relative; }
+.brain-view .brain-card[data-story] > .brain-card-head { position: relative; }
 .brain-view .brain-card-head > button.brain-peek { position: static; }   /* so its hit area below spans the head, not the chevron */
 .brain-view .brain-peek::after {   /* the left 15% of a story card's head, its padding too, folds it open or shut: not just the chevron */
   content: ""; position: absolute; z-index: 2; cursor: pointer;
@@ -468,6 +472,9 @@
   position: relative; z-index: 2; cursor: grabbing;
   background-color: var(--brain-surface-lifted); box-shadow: var(--shadow-s); rotate: -1deg; scale: 1.02;
 }
+/* A lifted row floats where it was: fixed at the origin with no margin (the drag sets its left, top and width), and no pointer
+   events so elementFromPoint finds the zone beneath. Set on lift, before the origin is read; after the lifted rule, to win. */
+.brain-view .brain-draggable.brain-is-floating { position: fixed; left: 0; top: 0; margin: 0; pointer-events: none; }
 .brain-view .brain-col.brain-is-drop > .brain-col-items { background-color: var(--brain-tint); }
 /* The landing slot: where a drop puts the item (above the first, between two, below the last). The room that opens there is
    a grey outlined box, no fill, the height of the dragged item (--brain-slot, set by the drag); the item's old place closes up.
@@ -522,7 +529,7 @@
   .brain-view button.brain-step:hover { color: var(--text-normal); background-color: var(--background-modifier-hover); }
 }
 
-/* Undo: one quiet round button at the top right of a page's head, above its figures. It shows only with something to undo */
+/* Undo: one quiet round button at the top right of a page's head, above its figures. Always there: with nothing to undo it is disabled and invisible, so the head keeps its height */
 .brain-view .brain-head-end { display: flex; flex-direction: column; align-items: flex-end; gap: var(--size-4-1); }
 .brain-view button.brain-undo,
 .brain-view button.brain-undo:is(:hover, :active, :focus, :focus-visible) {
@@ -535,13 +542,22 @@
 .brain-view .brain-undo-icon { width: var(--size-4-4); height: var(--size-4-4); overflow: visible; }
 @keyframes brain-undo-in { from { opacity: 0; } }
 .brain-view button.brain-undo[data-steady] { animation: none; }   /* a redraw that keeps it shown does not replay the fade */
+.brain-view button.brain-undo:disabled { visibility: hidden; }   /* nothing to undo: it keeps its place, unseen and out of the tab order */
 @media (hover: hover) {
   .brain-view button.brain-undo:hover { color: var(--text-normal); background-color: var(--background-modifier-hover); }
 }
-@container brain (max-width: 399px) {   /* 320 and 360px: the button stays on the title's row, at its right; the figures take the row beneath */
-  .brain-view .brain-head-end { display: contents; }
-  .brain-view .brain-head-end > button.brain-undo { margin-inline-start: auto; }
-  .brain-view .brain-head-end > .brain-figure { flex: 1 1 100%; justify-content: flex-end; }
+@container brain (max-width: 399px) {   /* 320 and 360px: the button stays on the title's row, at its right; the figures take the row beneath.
+   The head is a grid of two rows. Its end takes both rows as a subgrid, so the button and the figures are placed in those rows as they
+   would be if the end had no box of its own. */
+  .brain-view .brain-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 0; row-gap: 0; }
+  .brain-view .brain-head > :first-child { grid-column: 1; grid-row: 1; justify-self: start; }   /* its width is its text's, as a flex item's is */
+  .brain-view .brain-head-end {
+    display: grid; grid-template-columns: subgrid; grid-template-rows: subgrid; grid-column: 1 / -1; grid-row: 1 / 3;
+    gap: inherit; align-items: last baseline; align-self: stretch;
+  }
+  .brain-view .brain-head-end > button.brain-undo { grid-column: 2; grid-row: 1; margin-inline-start: var(--size-4-4); }   /* the head's column gap at this width */
+  .brain-view .brain-head-end > :is(.brain-figure, .brain-figures) { grid-column: 1 / -1; grid-row: 2; margin-top: var(--size-4-2); }   /* the row gap, which an empty row would add to */
+  .brain-view .brain-head-end > .brain-figure { justify-content: flex-end; }
 }
 @media (prefers-reduced-motion: reduce) {
   .brain-view button.brain-undo { animation: none; }
@@ -579,7 +595,7 @@
   .brain-view button.brain-switch { opacity: 1; }
 }
 .brain-view [data-states~="waiting"]:hover .brain-switch { opacity: 1; transition-delay: 1.5s, 0s, 0s; }   /* after a 1.5s rest over the section: passing over it shows nothing */
-.brain-view [data-states~="waiting"]:has(:focus-visible) .brain-switch { opacity: 1; transition-delay: 0s; }   /* keyboard focus shows it at once */
+.brain-view [data-states~="waiting"].brain-keyboard-focus .brain-switch { opacity: 1; transition-delay: 0s; }   /* keyboard focus shows it at once */
 @container brain (max-width: 719px) { .brain-view button.brain-switch, .brain-view button.brain-switch:is(:hover, :active, :focus, :focus-visible) { display: none; } }   /* below 720px the board has one view: no switch, out of the tab order */
 
 /* ---------- Week: paging in the head, Coming up and the record line under the strip ---------- */
@@ -651,14 +667,14 @@
    The strip's days take a row to plan it on that day; the Planned or due tile takes one for the week, any day;
    To plan takes one back to unplan it. All three tint as drop targets. */
 .brain-view .brain-plan { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--size-4-4); }
-@container brain (min-width: 720px) { .brain-view .brain-plan:has(> .brain-to-plan:not([hidden])) { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container brain (min-width: 720px) { .brain-view .brain-plan[data-to-plan] { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .brain-view .brain-to-plan > .brain-label-row ~ .brain-label-row { margin-top: var(--size-4-2); }   /* the sections breathe */
 .brain-view .brain-day.brain-is-drop,
 .brain-view button.brain-day-pick.brain-is-drop,
 .brain-view .brain-planned.brain-is-drop,
 .brain-view .brain-to-plan.brain-is-drop { background-color: var(--brain-tint); }
 .brain-view :is(.brain-planned, .brain-to-plan) { transition: background-color 0.2s var(--brain-ease); }
-.brain-view .brain-picks:has(.brain-is-drop) .brain-day-pick[aria-pressed="true"]:not(.brain-is-drop) { background: none; }   /* mid-drag, only the day beneath shows */
+.brain-view .brain-picks.brain-picks-drop .brain-day-pick[aria-pressed="true"]:not(.brain-is-drop) { background: none; }   /* mid-drag, only the day beneath shows */
 
 /* ---------- Guide: Marks beside Doing things and Planning, then the views, time words, who does what and setup ---------- */
 .brain-view .brain-guide { grid-template-areas: "marks" "ways" "plan" "views" "words" "who" "setup"; }
@@ -703,7 +719,7 @@
 
 /* ---------- List modal: Show all opens Obsidian's Modal (full screen on a phone). Its content is a brain view:
    a search field, then the same cards as the board in a grid of 1 → 2 → 3 → 4, scrolling beneath the search ---------- */
-.brain-modal:has(> .brain-view) { --dialog-width: calc(var(--size-4-12) * 21); }
+.brain-modal { --dialog-width: calc(var(--size-4-12) * 21); }
 .brain-view.brain-modal-body { display: flex; flex-direction: column; min-height: 0; gap: var(--size-4-4); }   /* Obsidian makes .modal-content a block on a desktop: only in a flex column does the grid scroll beneath the search */
 .brain-view .brain-search { width: 100%; flex: none; }
 .brain-view .brain-modal-grid {
@@ -712,11 +728,12 @@
   margin: calc(var(--size-4-2) * -1); padding: var(--size-4-2);   /* room inside the scroller for focus rings and the hover shadow */
 }
 .brain-view .brain-modal-grid > .brain-empty { grid-column: 1 / -1; }
+.brain-carrying { visibility: hidden; }   /* the modal's container while an item is carried out of it: the board beneath takes the pointer */
 
 /* ---------- Day view: a day's whole timeline, finished appointments included, in Obsidian's Modal (full screen on a phone).
    Its content is a brain view: a content width of 400px or more has room for the timeline, less shows the agenda list ---------- */
-.brain-day-modal:has(> .brain-view) { --dialog-width: calc(var(--size-4-12) * 10); }
-.brain-day-modal:has(> .brain-view) > .brain-view { display: flex; flex-direction: column; min-height: 0; }   /* and the day's scroller shrinks in its modal */
+.brain-day-modal { --dialog-width: calc(var(--size-4-12) * 10); }
+.brain-day-modal > .brain-view { display: flex; flex-direction: column; min-height: 0; }   /* and the day's scroller shrinks in its modal */
 .brain-view .brain-day-scroll {
   flex: 1; min-height: 0; overflow-y: auto;
   margin: calc(var(--size-4-1) * -1); padding: var(--size-4-1);   /* room inside the scroller for focus rings */
@@ -758,6 +775,8 @@
 .brain-view .brain-plan-scroll { display: grid; grid-template-columns: var(--brain-hit) repeat(3, minmax(0, 1fr)) var(--brain-hit); height: var(--brain-plan-row); gap: var(--size-2-1); }
 .brain-view .brain-plan-scroll > .brain-step { align-self: center; }
 .brain-view .brain-plan-sep { height: var(--border-width); margin-inline: calc(var(--size-2-3) * -1); background-color: var(--background-modifier-border); }
+/* A plan control taken out of use keeps its room: hidden, and its children with it (visibility inherits). */
+.brain-view .brain-is-shelved { visibility: hidden; }
 
 /* The card's buttons. The reset beats Obsidian's button rules on every state. */
 .brain-view button:is(.brain-plan-main, .brain-plan-chip, .brain-plan-go, .brain-state, .brain-plan-pick),
@@ -829,6 +848,13 @@
   .brain-view button.brain-state:not([aria-checked="true"]):hover { background-color: var(--background-modifier-hover); }
 }
 
+/* Last, so the rules here win on specificity alone. [hidden] shows nothing, whatever a component's display says: the buttons' display
+   rules are 0,3,1, so this is 0,3,1 too and comes after them. */
+.brain-view.brain-view [hidden], .brain-view.brain-view button[hidden] { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
-  .brain-view *, .brain-view *::before, .brain-view *::after { transition: none !important; }
+  /* No motion. Every element: 0,2,0, which ties the component rules that set a transition and comes after them. The buttons: 0,3,1,
+     the weight of their rules. */
+  .brain-view.brain-view *, .brain-view.brain-view *::before, .brain-view.brain-view *::after { transition: none; }
+  .brain-view.brain-view.brain-view button { transition: none; }
 }

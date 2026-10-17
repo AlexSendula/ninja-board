@@ -126,16 +126,14 @@ export function openCard(item: HTMLElement, at: Point, spec: CardSpec, actions: 
   };
   const win = doc.defaultView;
   const view = { w: win?.innerWidth ?? 1024, h: win?.innerHeight ?? 768 };
-  el.style.setProperty('max-width', `${view.w - 16}px`);
-  el.style.setProperty('max-height', `${view.h - 16}px`);
+  el.setCssStyles({ maxWidth: `${view.w - 16}px`, maxHeight: `${view.h - 16}px` });
   (item.closest<HTMLElement>('.modal-container') ?? doc.body).append(el);
   paint();
   const anchor = item.classList.contains('brain-card')
     ? { left: at.x, right: at.x, top: at.y, bottom: at.y }
     : item.getBoundingClientRect();
   const pos = placeCard(anchor, { w: el.offsetWidth || 0, h: el.offsetHeight || 0 }, view);
-  el.style.setProperty('left', `${pos.left}px`);
-  el.style.setProperty('top', `${pos.top}px`);
+  el.setCssStyles({ left: `${pos.left}px`, top: `${pos.top}px` });
 
   // Where the focus goes back to: the item, or, when a re-render has replaced it, the row with its key in its view.
   const viewRoot = item.closest<HTMLElement>('[data-today]');
@@ -401,7 +399,7 @@ function pointsRow(points: Points | undefined): HTMLElement {
  * reading, and its buttons disabled. It stays in the layout.
  */
 function shelve(el: HTMLElement): void {
-  el.style.setProperty('visibility', 'hidden');
+  el.classList.add('brain-is-shelved');
   el.setAttribute('aria-hidden', 'true');
   for (const b of [el, ...el.querySelectorAll<HTMLElement>('button')]) if (b.localName === 'button') b.setAttribute('disabled', '');
 }
