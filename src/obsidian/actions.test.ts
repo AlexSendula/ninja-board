@@ -3,6 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { App } from 'obsidian';
+import { TFile, TFolder } from '../../test/obsidian-stub.ts';
 import { obsidianActions } from './actions.ts';
 
 const PROJECT = '03 Projects/Renovate the kitchen/Renovate the kitchen.md';
@@ -12,11 +13,11 @@ const AREA = '04 Areas/Home/Renew passport.md';
 
 /** A vault of notes by path, with their frontmatter as the metadata cache reads it; processFrontMatter edits it in place. */
 function vault(frontmatter: Record<string, Record<string, unknown>>) {
-  const files = Object.keys(frontmatter).map((path) => ({ path, extension: 'md' }));
+  const files = Object.keys(frontmatter).map((path) => Object.assign(new TFile(), { path, extension: 'md' }));
   const app = {
     vault: {
       getFileByPath: (path: string) => files.find((f) => f.path === path) ?? null,
-      getMarkdownFiles: () => files,
+      getAbstractFileByPath: (path: string) => Object.assign(new TFolder(), { path, children: files.filter((f) => f.path.startsWith(path + '/') && !f.path.slice(path.length + 1).includes('/')) }),
       cachedRead: async () => '',
     },
     metadataCache: { getFileCache: (file: { path: string }) => ({ frontmatter: frontmatter[file.path], listItems: [] }) },

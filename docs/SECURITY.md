@@ -1,12 +1,12 @@
 # Security
 
-> Last updated: 15 October 2026
+> Last updated: 17 October 2026
 
 ## Overview
 
 Ninja Board is a local Obsidian plugin. It has no server, no account and no network code. It runs with Obsidian's access, and the implementation spec keeps third-party plugins to a minimum because a plugin can do anything on the computer ([implementation spec, section 1](https://alexsendula.github.io/second-brain/implementation/)). So the protection for the vault is in the code: what Ninja Board reads, the small set of writes it makes, and how it builds the screen.
 
-The rest of this page is what the code does, checked against the source and against a fresh build of it (15 October 2026).
+The rest of this page is what the code does, checked against the source (17 October 2026).
 
 ## What Ninja Board can touch
 
@@ -15,13 +15,14 @@ Obsidian's API lets a plugin reach the whole vault. Ninja Board's code reaches m
 | Area | What the code does | Where |
 |---|---|---|
 | Notes Bases selects | Reads their frontmatter from the metadata cache. Reads their text only when they have task lines | [obsidian/snapshot.ts](../src/obsidian/snapshot.ts), `snapshotFromFiles` and `rawNote` |
+| The folders above a story | `isStoryFile`, the story check behind the points edit, reads the note and the folders above it, up to the nearest one that holds a project note. It takes their frontmatter from the metadata cache, reads no note text, and never lists the vault's files | [obsidian/snapshot.ts](../src/obsidian/snapshot.ts), `isStoryFile` and `projectsAbove` |
 | `10 Archive/` | Never read. Both snapshot builders drop it | [obsidian/snapshot.ts](../src/obsidian/snapshot.ts), line 16; [model/snapshot.ts](../src/model/snapshot.ts), line 5 |
 | A past week's plan | Read by its path, `08 Weeks/<year>/<YYYY-Www>.md`, only when that week is shown | [obsidian/snapshot.ts](../src/obsidian/snapshot.ts), `readWeekPlan` |
 | The dashboard note's layout | Bases' view config: `arrange`, `schedule` and `waiting` | [obsidian/view.ts](../src/obsidian/view.ts), lines 115, 131 and 152 |
 | Tasks' saved settings | Read through Tasks' own `loadData()`, for the Guide's check. Only `taskFormat` and the custom statuses are used, and they are not shown | [obsidian/edits.ts](../src/obsidian/edits.ts), `readTasksSetup`; [model/guide.ts](../src/model/guide.ts) |
 | Other files, settings and plugins' data | Not read | None |
 
-Ninja Board opens a note only when you click its title or press Enter on it, or run **Ninja Board: Open Today** or **Ninja Board: Open guide**. Opening is in the current tab ([obsidian/actions.ts](../src/obsidian/actions.ts), `openNote`).
+Ninja Board opens a note only when you click its title or press Enter on it, or run **Ninja Board: Open today** or **Ninja Board: Open guide**. Opening is in the current tab ([obsidian/actions.ts](../src/obsidian/actions.ts), `openNote`).
 
 ## Reading note text
 

@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 17 October 2026 (Ninja Board v1.0.1)
+> Last updated: 17 October 2026 (Ninja Board v1.0.2)
 
 ## Overview
 
@@ -8,7 +8,7 @@ Ninja Board is an Obsidian plugin in this repository. It draws five views over t
 
 Ninja Board keeps no data of its own. Each change is one small edit to one note, written straight back to the vault, so a view cannot drift from the vault. The agent makes the same edits through `brain` commands. Both sides are meant to pass one set of examples. Only Ninja Board's side is tested in this repository so far (see [API.md](API.md#edit-contract-shared-with-the-agent)).
 
-Versions: v0.1.0 was built on 14 October 2026 (round 1), and v0.2.0 on 15 October 2026 (round 2, with busy days added the same day), v1.0.0 on 16 October 2026, and v1.0.1 on 17 October 2026 (the Obsidian review fixes). Obsidian 1.10.2 or newer is required, because that release added the Bases view API ([`manifest.json`](../manifest.json), [`versions.json`](../versions.json)).
+Versions: v0.1.0 was built on 14 October 2026 (round 1), and v0.2.0 on 15 October 2026 (round 2, with busy days added the same day), v1.0.0 on 16 October 2026, v1.0.1 on 17 October 2026 (the Obsidian review fixes), and v1.0.2 on 17 October 2026 (the last review warnings). Obsidian 1.10.2 or newer is required, because that release added the Bases view API ([`manifest.json`](../manifest.json), [`versions.json`](../versions.json)).
 
 Specs and design: [plugin design](design/2026-10-13-brain-plugin-design.md), [round 2](design/2026-10-14-brain-plugin-round-2-design.md), and the user's guide in [`README.md`](../README.md).
 
@@ -153,6 +153,7 @@ A browser page that runs the same model and UI on `preview/sample.json`, generat
 7. **The write is one small edit.** [`obsidianActions`](../src/obsidian/actions.ts) (line 15) calls [`writes.ts`](../src/obsidian/writes.ts).
    - Task lines: `vault.process` replaces the line only if it still reads as it did when drawn ([`replaceLineIfUnchanged`](../src/obsidian/edits.ts), line 42). Otherwise the write is refused and a Notice says the task changed. Ticking done goes through Tasks' toggle ([`toggleViaTasks`](../src/obsidian/writes.ts), line 26).
    - Task notes and projects: `fileManager.processFrontMatter`, with the pure rules from [`src/model/plan.ts`](../src/model/plan.ts) and [`edits.ts`](../src/obsidian/edits.ts).
+   - Story points: `points` writes only a story. [`isStoryFile`](../src/obsidian/snapshot.ts) decides it from the note and the folders above it, reading frontmatter from the metadata cache. It never lists the vault's files.
    - Arrangements and the Schedule's form: the view's config, which Bases writes into the dashboard note.
 8. **The vault reports back.** A metadata cache change to a shown note, or Bases' data update, calls `rerender`. That runs 150 ms after the last call ([`view.ts`](../src/obsidian/view.ts), line 74). The view also redraws at midnight, when a Week strip changes, and every minute to move the now-line ([`view.ts`](../src/obsidian/view.ts), lines 164 to 175).
 
@@ -200,7 +201,7 @@ Session state lives in memory and ends when the view closes: the week shown, the
 | Module | Role |
 |---|---|
 | `view.ts` | `BrainView`, a `BasesView`. One class serves all five view types. It draws, re-renders, and owns the view config (`arrange`, `schedule`). |
-| `src/obsidian/snapshot.ts` | Reads the selected notes, and a past week's plan note. |
+| `src/obsidian/snapshot.ts` | Reads the selected notes, and a past week's plan note. `isStoryFile` is the story check: it reads one note's folders, not the vault. |
 | `src/obsidian/actions.ts` | `obsidianActions`: the `Actions` the views call. A failed write becomes a Notice, never an unhandled error. |
 | `writes.ts` | `today()` and `now()`, the line and frontmatter writes, and the Tasks toggle. |
 | `edits.ts` | The pure edit rules (`lineWithState`, `lineWithPlan`, `lineWithDue`, `applyNoteStatus`), the Tasks API check, `arrangementPersists`, and `readTasksSetup`. |
@@ -235,7 +236,7 @@ Session state lives in memory and ends when the view closes: the week shown, the
 
 | Dependency | Purpose | Version | Documentation |
 |---|---|---|---|
-| Obsidian (`obsidian` package) | Views (`registerBasesView`), commands, modals, file writes, the moment library | Built against 1.14.4. Requires 1.10.2 or newer ([`manifest.json`](../manifest.json)). | Type declarations in `node_modules/obsidian`. |
+| Obsidian (`obsidian` package) | Views (`registerBasesView`), commands, modals, file writes | Built against 1.14.4. Requires 1.10.2 or newer ([`manifest.json`](../manifest.json)). | Type declarations in `node_modules/obsidian`. |
 | Bases core plugin | Selects the notes and hosts the five views. Ninja Board shows a Notice without it. | Core, must be on | [research, Bases section](https://alexsendula.github.io/second-brain/research/2026-10-13-obsidian-plugins/) |
 | Tasks community plugin (`obsidian-tasks-plugin`) | Ticking (`apiV1.executeToggleTaskDoneCommand`), and its saved settings for the Guide's check. Ninja Board needs its Dataview format and a custom `w` status (ON_HOLD). | Not pinned by Ninja Board. The research recorded 8.5.0, released 10 October 2026. | [research, candidates table](https://alexsendula.github.io/second-brain/research/2026-10-13-obsidian-plugins/) |
 | Node.js | Runs the tests and scripts directly, with type stripping. Only needed to build. | 24 or newer (`engines` in [`package.json`](../package.json)) | |

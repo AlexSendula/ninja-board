@@ -40,7 +40,7 @@ Ninja Board ticks task lines through Tasks, so done dates come from one engine (
 `01 Dashboard/` holds one note per view, numbered so the file list shows them in order: `01 Today.md`, `02 Week.md`, `03 Projects.md`, `04 Backlog.md` and `05 Guide.md`. Each one is a `type: note` with a single `base` block. The [README](../README.md#add-the-dashboards) has the block and the view types.
 
 - Bases' own toolbar stays above each view. Its filter chooses which notes Ninja Board shows. Ninja Board ignores Bases' grouping and sorting and uses its own order.
-- The command **Ninja Board: Open Today** opens it from anywhere.
+- The command **Ninja Board: Open today** opens it from anywhere.
 - The command **Ninja Board: Open guide** opens `05 Guide.md`. When that note is missing, a Notice says so. The Guide is also in Bases' view picker as Ninja Board · Guide.
 
 ## The views

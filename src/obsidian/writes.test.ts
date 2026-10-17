@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { App } from 'obsidian';
-import { moment, notices } from '../../test/obsidian-stub.ts';
+import { notices } from '../../test/obsidian-stub.ts';
 import type { LineTarget } from './writes.ts';
 import { dueLine, dueNote, now, planLine, planNote, setLineState, setNoteState, setNoteStatus, toggleNoteStatus, toggleViaTasks, today } from './writes.ts';
 import type { Write } from './undo.ts';
@@ -145,15 +145,17 @@ test('without the Tasks plugin a tick tells the user and writes nothing', async 
   assert.equal(v.notes[PATH], '- [ ] Renew passport\n');
 });
 
-test('today and now are ASCII digits whatever locale moment is set to (Obsidian sets it to the interface language)', () => {
-  moment.locale('ar');
-  try {
-    assert.equal(moment.locale(), 'ar');
-    assert.match(today(), /^\d{4}-\d{2}-\d{2}$/);
-    assert.match(now(), /^\d{2}:\d{2}$/);
-  } finally {
-    moment.locale('en');
-  }
+test('today and now read the local clock, zero-padded, at a fixed time', (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2026, 9, 5, 9, 7) });
+  assert.deepEqual([today(), now()], ['2026-10-05', '09:07']);
+});
+
+test('today and now at the first and last minute of a year', (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2027, 0, 1, 0, 0) });
+  assert.deepEqual([today(), now()], ['2027-01-01', '00:00']);
+  t.mock.timers.reset();
+  t.mock.timers.enable({ apis: ['Date'], now: new Date(2026, 11, 31, 23, 59) });
+  assert.deepEqual([today(), now()], ['2026-12-31', '23:59']);
 });
 
 /** A vault with `notes`, whose notes' frontmatter is `frontmatter` (the fake keeps it apart from the text, as Obsidian does). */

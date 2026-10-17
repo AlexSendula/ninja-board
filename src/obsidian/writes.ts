@@ -1,4 +1,4 @@
-import { Notice, moment } from 'obsidian';
+import { Notice } from 'obsidian';
 import type { App } from 'obsidian';
 import type { PlanTo, RowTarget, TaskState } from '../model/types.ts';
 import type { Points } from '../model/points.ts';
@@ -12,14 +12,18 @@ import { fieldWrites, type Write } from './undo.ts';
 
 export type LineTarget = Extract<RowTarget, { kind: 'line' }>;
 
-/** Today's local date, YYYY-MM-DD. English digits: Obsidian sets moment's locale to the interface language, and Arabic or Hindi digits would reach the notes. */
+const pad = (n: number): string => String(n).padStart(2, '0');
+
+/** Today's local date, YYYY-MM-DD. Plain digits by construction: no locale can change them, so none reaches the notes. */
 export function today(): string {
-  return moment().locale('en').format('YYYY-MM-DD');
+  const d = new Date();
+  return `${String(d.getFullYear()).padStart(4, '0')}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-/** The local time of day, HH:MM: what the views are drawn at (the Schedule's now-line, what has ended). English digits, as today(). */
+/** The local time of day, HH:MM: what the views are drawn at (the Schedule's now-line, what has ended). Plain digits, as today(). */
 export function now(): string {
-  return moment().locale('en').format('HH:mm');
+  const d = new Date();
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 /**

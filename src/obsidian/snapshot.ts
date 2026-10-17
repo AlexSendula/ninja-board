@@ -1,9 +1,10 @@
-import { normalizePath } from 'obsidian';
-import type { App, TFile } from 'obsidian';
+import { normalizePath, TFile, TFolder } from 'obsidian';
+import type { App } from 'obsidian';
 import type { RawNote, VaultSnapshot } from '../model/types.ts';
 import { compareText } from '../model/order.ts';
 import { weekPlanPath } from '../model/record.ts';
 import { buildSnapshot } from '../model/snapshot.ts';
+import { isStoryAt } from '../model/week.ts';
 import { targetOf } from '../model/points.ts';
 import { logLineNumbers } from '../model/repeat.ts';
 
@@ -22,6 +23,37 @@ export async function snapshotFromFiles(app: App, files: TFile[]): Promise<Vault
     .filter((f) => f.extension === 'md' && !f.path.startsWith(ARCHIVE))
     .sort((a, b) => compareText(a.path, b.path));
   return buildSnapshot(await Promise.all(notes.map((f) => rawNote(app, f))));
+}
+
+/**
+ * Whether the note at `path` is a story: isStoryAt's answer over the whole vault, read for this note alone. A story's project is
+ * the project note of the nearest folder above it that holds one (projectsAbove), so the snapshot is built from the note and
+ * those projects only, and buildSnapshot and isStoryAt decide as they do for every note in the vault.
+ */
+export function isStoryFile(app: App, path: string): boolean {
+  const file = app.vault.getFileByPath(path);
+  if (!file || file.extension !== 'md') return false;
+  const notes = [file, ...projectsAbove(app, path)].map((f) => ({
+    path: f.path,
+    frontmatter: app.metadataCache.getFileCache(f)?.frontmatter,
+    lines: [],
+  }));
+  return isStoryAt(buildSnapshot(notes), path);
+}
+
+/**
+ * The project notes of the nearest folder above `path` that holds any, walking up from the note's own folder. The vault's root
+ * never counts: a project there has the folder "", and buildSnapshot's rule needs a path that starts with "/", which none does.
+ */
+function projectsAbove(app: App, path: string): TFile[] {
+  for (let slash = path.lastIndexOf('/'); slash > 0; slash = path.lastIndexOf('/', slash - 1)) {
+    const folder = app.vault.getAbstractFileByPath(path.slice(0, slash));
+    if (!(folder instanceof TFolder)) continue;
+    const projects = folder.children.filter((child): child is TFile => child instanceof TFile && child.extension === 'md'
+      && child.path !== path && app.metadataCache.getFileCache(child)?.frontmatter?.type === 'project');
+    if (projects.length > 0) return projects;
+  }
+  return [];
 }
 
 /**

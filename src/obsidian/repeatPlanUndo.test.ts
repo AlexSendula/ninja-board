@@ -16,7 +16,6 @@ function vault(frontmatter: Record<string, Record<string, unknown>>) {
   const app = {
     vault: {
       getFileByPath: (path: string) => files.find((f) => f.path === path) ?? null,
-      getMarkdownFiles: () => files,
       cachedRead: async () => '',
       read: async (file: { path: string }) => `---\n${stringifyYaml(frontmatter[file.path])}---\n`,
       process: async () => undefined,

@@ -26,8 +26,17 @@ import { openDayModal, openListModal } from './modal.ts';
 import { tokensOf } from './tokens.ts';
 import { installObsidianDom } from './obsidian-dom.ts';
 // The sample vault and the mockup's markup are bundled at build time: npm run preview writes sample.json, then esbuild reads both.
-import sampleNotes from './sample.json';
+import sampleJson from './sample.json';
 import mockupHtml from '../design/mockup.html';
+
+/**
+ * The sample vault's notes, as scripts/sample-json.mjs wrote them. The import is checked here, not typed by it: sample.json is
+ * generated and not in git, so where it is missing the import is `any`, and that would reach the notes.
+ */
+function sampleNotesOf(json: unknown): RawNote[] {
+  if (!Array.isArray(json)) throw new Error('preview/sample.json is not a list of notes: run npm run preview');
+  return json as RawNote[];
+}
 
 installObsidianDom(document, HTMLElement, SVGElement);
 
@@ -66,7 +75,7 @@ const VIEWS: Record<View, (root: HTMLElement, c: Context) => void> = {
 start();
 
 function start(): void {
-  const notes: RawNote[] = [...sampleNotes];
+  const notes: RawNote[] = [...sampleNotesOf(sampleJson)];
   const root = $('.brain-view');
   // The list modal goes over the stage, beside the frame: the frame is made inert while a modal is open.
   const stage = $('.mock-stage');

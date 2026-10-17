@@ -1,6 +1,6 @@
 # Environment
 
-> Last updated: 15 October 2026
+> Last updated: 17 October 2026 (Ninja Board v1.0.2)
 
 ## Overview
 
@@ -46,9 +46,9 @@ Task statuses in Tasks' own terms: `[ ]` is TODO, `[/]` IN_PROGRESS, `[w]` ON_HO
 
 | File | What it holds |
 |---|---|
-| [manifest.json](../manifest.json) | `id` `ninja-board`, `name`, `version` `1.0.1`, `minAppVersion` `1.10.2`, `description`, `author`, and `isDesktopOnly` `false`. The `id` is the folder name Obsidian uses under `.obsidian/plugins/`. |
-| [versions.json](../versions.json) | Each plugin version mapped to the minimum Obsidian version it needs: `"0.1.0": "1.10.2"`, `"0.2.0": "1.10.2"`, `"1.0.0": "1.10.2"` and `"1.0.1": "1.10.2"`. |
-| [package.json](../package.json) | Name `ninja-board`, version `1.0.1`, `"private": true` (npm won't publish it), `"type": "module"`, `engines`, and the scripts. |
+| [manifest.json](../manifest.json) | `id` `ninja-board`, `name`, `version` `1.0.2`, `minAppVersion` `1.10.2`, `description`, `author`, and `isDesktopOnly` `false`. The `id` is the folder name Obsidian uses under `.obsidian/plugins/`. |
+| [versions.json](../versions.json) | Each plugin version mapped to the minimum Obsidian version it needs: `"0.1.0": "1.10.2"`, `"0.2.0": "1.10.2"`, `"1.0.0": "1.10.2"`, `"1.0.1": "1.10.2"` and `"1.0.2": "1.10.2"`. |
+| [package.json](../package.json) | Name `ninja-board`, version `1.0.2`, `"private": true` (npm won't publish it), `"type": "module"`, `engines`, and the scripts. |
 | [esbuild.config.mjs](../esbuild.config.mjs) | Bundles `src/main.ts` to `main.js` (CommonJS, ES2022). Obsidian, Electron and the CodeMirror packages stay external. Source maps are inline in development and off in production. It also bundles the preview to `preview/dist/preview.js`. |
 | [tsconfig.json](../tsconfig.json) | Strict TypeScript, no emit. Covers `src`, `test` and `preview`. |
 | [styles.css](../styles.css) | The plugin's styles. It uses Obsidian's CSS variables, so Ninja Board follows the user's theme. |

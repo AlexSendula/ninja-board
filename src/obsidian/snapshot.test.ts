@@ -1,7 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { App, TFile } from 'obsidian';
-import { readWeekPlan, snapshotFromFiles, taskLinesOnly } from './snapshot.ts';
+import { TFile as FakeFile, TFolder as FakeFolder } from '../../test/obsidian-stub.ts';
+import { isStoryFile, readWeekPlan, snapshotFromFiles, taskLinesOnly } from './snapshot.ts';
+import { buildSnapshot } from '../model/snapshot.ts';
+import { isStoryAt } from '../model/week.ts';
+import type { RawNote } from '../model/types.ts';
+import { readSample } from '../../test/sample.ts';
 
 // snapshot.ts only imports types from 'obsidian', so Node can load it; the vault is a stand-in.
 const CONTENT: Record<string, string> = {
@@ -111,4 +116,88 @@ test('a repeating note with no task lines still reads its Log section: its compl
   const [note] = (await snapshotFromFiles(app, [file('dentist.md')])).notes;
   assert.deepEqual(note?.occurrences, [{ on: '2026-10-20', due: '2026-10-16', next: '2027-04-20', nth: 1 }]);
   assert.deepEqual(note?.tasks, []);
+});
+
+// isStoryFile decides one note's story from the folders above it. isStoryAt, over the whole vault, is the answer it must give.
+const note = (path: string, frontmatter?: Record<string, unknown>): RawNote => ({ path, frontmatter, lines: [] });
+
+/** A stand-in vault of `notes`: each note as a file, and each folder above one as a folder whose children are what Obsidian's are. */
+function vaultOf(notes: RawNote[]): App {
+  const files = new Map(notes.map((n) => [n.path, Object.assign(new FakeFile(), { path: n.path, extension: 'md' })]));
+  const folders = new Set<string>();
+  for (const n of notes) {
+    for (let slash = n.path.lastIndexOf('/'); slash > 0; slash = n.path.lastIndexOf('/', slash - 1)) folders.add(n.path.slice(0, slash));
+  }
+  const parentOf = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf('/')));
+  function folder(path: string): FakeFolder {
+    const children: FakeFolder['children'] = [
+      ...[...files.values()].filter((f) => parentOf(f.path) === path),
+      ...[...folders].filter((f) => parentOf(f) === path).map(folder),
+    ];
+    return Object.assign(new FakeFolder(), { path, children });
+  }
+  const frontmatter = new Map(notes.map((n) => [n.path, n.frontmatter]));
+  return {
+    vault: {
+      getFileByPath: (path: string) => files.get(path) ?? null,
+      getAbstractFileByPath: (path: string) => (folders.has(path) ? folder(path) : (files.get(path) ?? null)),
+    },
+    metadataCache: { getFileCache: (f: { path: string }) => ({ frontmatter: frontmatter.get(f.path) }) },
+  } as unknown as App;
+}
+
+/** isStoryFile's answer for `path` in a vault of `notes`, which must be the answer isStoryAt gives over the whole vault. */
+function storyAt(notes: RawNote[], path: string): boolean {
+  const answer = isStoryFile(vaultOf(notes), path);
+  assert.equal(answer, isStoryAt(buildSnapshot(notes), path), `${path}: isStoryAt`);
+  return answer;
+}
+
+test('isStoryFile gives isStoryAt\'s answer for every note in the sample vault, which has stories and other notes', () => {
+  const notes = readSample();
+  const answers = notes.map((n) => storyAt(notes, n.path));
+  assert.ok(answers.includes(true) && answers.includes(false), 'the sample has stories and notes that are not');
+});
+
+test('a task at any depth below a project folder is a story of that project', () => {
+  const notes = [note('A/Proj/Proj.md', { type: 'project' }), note('A/Proj/Sub/Deep/task.md', { type: 'task' })];
+  assert.equal(storyAt(notes, 'A/Proj/Sub/Deep/task.md'), true);
+});
+
+test('the nearest project is the one the task belongs to, and a folder with no project is passed through', () => {
+  const notes = [note('A/Proj.md', { type: 'project' }), note('A/Proj/Inner/Inner.md', { type: 'project' }), note('A/Proj/Inner/Deep/task.md', { type: 'task' })];
+  assert.equal(storyAt(notes, 'A/Proj/Inner/Deep/task.md'), true);
+});
+
+test('a task in a sibling folder of a project is not a story', () => {
+  const notes = [note('A/Proj/Proj.md', { type: 'project' }), note('A/Other/task.md', { type: 'task' })];
+  assert.equal(storyAt(notes, 'A/Other/task.md'), false);
+});
+
+test('a note in the vault root is not a story, and a project in the root owns nothing', () => {
+  const notes = [note('Root project.md', { type: 'project' }), note('loose.md', { type: 'task' }), note('Folder/task.md', { type: 'task' })];
+  assert.equal(storyAt(notes, 'loose.md'), false);
+  assert.equal(storyAt(notes, 'Folder/task.md'), false);
+});
+
+test('a project note is not a story of its own project', () => {
+  assert.equal(storyAt([note('A/Proj/Proj.md', { type: 'project' })], 'A/Proj/Proj.md'), false);
+});
+
+test('an archived project owns nothing, and the archived notes are not stories', () => {
+  const notes = [note('10 Archive/Old/Old.md', { type: 'project' }), note('10 Archive/Old/task.md', { type: 'task' }), note('Old/task.md', { type: 'task' })];
+  assert.equal(storyAt(notes, '10 Archive/Old/task.md'), false);
+  assert.equal(storyAt(notes, 'Old/task.md'), false);
+});
+
+test('a repeating task in a project is not a story, and a task with an empty repeat is', () => {
+  const notes = [note('A/Proj/Proj.md', { type: 'project' }), note('A/Proj/Monthly.md', { type: 'task', repeat: 'every month' }), note('A/Proj/Once.md', { type: 'task', repeat: '' })];
+  assert.equal(storyAt(notes, 'A/Proj/Monthly.md'), false);
+  assert.equal(storyAt(notes, 'A/Proj/Once.md'), true);
+});
+
+test('an area task note is not a story, and a path that is not a note is not one either', () => {
+  const notes = [note('A/Area/Area.md', { type: 'area' }), note('A/Area/task.md', { type: 'task' }), note('A/Proj/Proj.md', { type: 'project' })];
+  assert.equal(storyAt(notes, 'A/Area/task.md'), false);
+  assert.equal(storyAt(notes, 'A/Proj/missing.md'), false);
 });

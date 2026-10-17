@@ -1,6 +1,6 @@
 # Developer guide
 
-> Last updated: 17 October 2026 (Ninja Board v1.0.1)
+> Last updated: 17 October 2026 (Ninja Board v1.0.2)
 
 This guide covers working on Ninja Board, the Obsidian plugin in this repository: setup, the commands, where the code lives, the preview and the sandbox, commits, and the spec rules. For how the parts fit together, read [Architecture](./ARCHITECTURE.md). For tests, read [Testing](./TESTING.md). For code style, read [Style guide](./STYLE_GUIDE.md). Users read the [plugin README](../README.md).
 
@@ -38,7 +38,7 @@ Run them from the repository root.
 
 `npm test` runs `sandbox.test.ts` too, and that test runs `npm run build`, so a test run rewrites `main.js`. The build outputs are gitignored: `main.js`, `preview/dist/` and `preview/sample.json` (see [`.gitignore`](../.gitignore)).
 
-The plugin is three files: `main.js`, `manifest.json` and `styles.css`. [`manifest.json`](../manifest.json) gives version 1.0.1, `minAppVersion` 1.10.2 and `isDesktopOnly: false`. [`versions.json`](../versions.json) maps each version to its minimum Obsidian version.
+The plugin is three files: `main.js`, `manifest.json` and `styles.css`. [`manifest.json`](../manifest.json) gives version 1.0.2, `minAppVersion` 1.10.2 and `isDesktopOnly: false`. [`versions.json`](../versions.json) maps each version to its minimum Obsidian version.
 
 ## Where the code lives
 
@@ -78,7 +78,7 @@ Four rules decide where code goes:
 - **What a view shows.** Change the model's `build*` function in `src/model/`, then the `render*` function in `src/ui/`. Give each a test.
 - **What a click writes.** Start with the rule in `src/obsidian/edits.ts`, and add its examples to `test/edit-cases.json`. Then make the write in `src/obsidian/writes.ts`, and its in-memory twin in `preview/memoryWrites.ts`. The agent's `brain` command must make the same edit. The `brain` commands are specified in the implementation spec and are not in this repository (see [Architecture](./ARCHITECTURE.md)).
 - **How it looks.** Change the mockup first: `design/mockup.html`, its `#brain-css` block. Then copy the rule into `styles.css` under `.brain-view`. `test/styles.test.ts` fails if the two drift. For the busy-day work, the mockup and `styles.css` changed together, and the code followed.
-- **Styles and the DOM.** Write no element style directly. A fixed value goes to a class in `styles.css`; a value computed at run time goes through `setCssProps` or `setCssStyles`, which Obsidian gives every HTML and SVG element. `styles.css` uses no `:has`, `!important`, `clip-path`, multicolumn or `display: contents`, and no source uses a lookbehind regex (iOS before 16.4 has none). `test/styles.test.ts` checks these, and `npm run lint` checks Obsidian's other rules.
+- **Styles and the DOM.** Write no element style directly. A fixed value goes to a class in `styles.css`; a value computed at run time goes through `setCssProps` or `setCssStyles`, which Obsidian gives every HTML and SVG element. `styles.css` uses no `:has`, `!important`, `clip-path`, multicolumn (`column-gap` included) or `display: contents`, and no source uses a lookbehind regex (iOS before 16.4 has none). `test/styles.test.ts` checks these, and `npm run lint` checks Obsidian's other rules.
 - **A new view type.** Add its id to `BrainViewType` and to `DRAW` in `src/obsidian/view.ts`, to `VIEWS` in `src/main.ts`, and to the `View` type and `VIEWS` in `preview/preview.ts`. Add a dashboard note for it under `sample-vault/01 Dashboard/`.
 
 For a feature that spans these layers, the round-2 work went roughly in this order:

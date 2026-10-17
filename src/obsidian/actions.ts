@@ -2,11 +2,10 @@ import { MarkdownView, Notice, Platform, normalizePath } from 'obsidian';
 import type { App } from 'obsidian';
 import type { TaskState } from '../model/types.ts';
 import type { Actions, ListHandle, ListSpec } from '../ui/actions.ts';
-import { isStoryAt } from '../model/week.ts';
 import { parseTaskLine } from '../model/taskLine.ts';
 import { datesUndoLabel, lineTitle, noteTitle, pointsUndoLabel, stateUndoLabel, tickUndoLabel } from '../model/undoLabel.ts';
 import { showList } from './listModal.ts';
-import { snapshotFromFiles } from './snapshot.ts';
+import { isStoryFile } from './snapshot.ts';
 import { history, undoLast, type Write } from './undo.ts';
 import { dueLine, dueNote, planLine, planNote, pointsNote, setLineState, setNoteState, setNoteStatus, toggleNoteStatus, toggleViaTasks } from './writes.ts';
 
@@ -59,7 +58,7 @@ export function obsidianActions(app: App, view: Pick<Actions, 'showWeek' | 'arra
     points: (target, points) => saved(() => history.act(pointsUndoLabel(titleOf(target)), async (journal) => {
       // Stories only: a line has no points, and a note that is not a story (or is gone) is refused.
       if (target.kind !== 'note') return null;
-      if (!isStoryAt(await snapshotFromFiles(app, app.vault.getMarkdownFiles()), target.path)) return null;
+      if (!isStoryFile(app, target.path)) return null;
       await pointsNote(app, target.path, points, journal);
       return target;
     })),

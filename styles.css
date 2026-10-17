@@ -50,7 +50,7 @@
 .brain-view:focus { outline: none; }   /* the view takes the focus when the item that had it is folded away (refocus, in ui/focus.ts) */
 @container brain (max-width: 559px) {
   .brain-view .brain-page { padding: var(--size-4-6) var(--size-4-4) var(--size-4-8); --brain-fs-display: calc(var(--font-ui-large) * 1.4); }
-  .brain-view .brain-head { column-gap: var(--size-4-4); }
+  .brain-view .brain-head { gap: var(--size-4-2) var(--size-4-4); }
 }
 
 /* ---------- Type ---------- */
@@ -78,7 +78,7 @@
    The clip on the left hides a dot that wrapped to the start of a line. The clip is the padding, which the margin cancels,
    so the box and its layout stay as they are. A meta line (a p) leaves room on the other sides for focus rings and padded links. */
 .brain-view .brain-meta {
-  display: flex; flex-wrap: wrap; column-gap: var(--size-4-4);
+  display: flex; flex-wrap: wrap; gap: 0 var(--size-4-4);
   font-size: var(--font-ui-smaller); line-height: 1.333; color: var(--text-muted); font-variant-numeric: tabular-nums;
   overflow: hidden; margin-left: calc(var(--size-4-1) * -1); padding-left: var(--size-4-1);
   pointer-events: none;   /* plain meta text passes clicks to the stretched link beneath */
@@ -318,7 +318,7 @@
 
 .brain-view .brain-agenda { display: flex; flex-direction: column; gap: var(--size-4-1); }
 .brain-view .brain-agenda-item {
-  position: relative; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--size-4-2);
+  position: relative; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--size-4-2);
   min-height: var(--brain-hit); padding: var(--size-4-1) var(--size-4-2) var(--size-4-1) var(--size-4-3);
   border-radius: var(--radius-s); box-shadow: inset var(--brain-bar) 0 0 var(--interactive-accent);
 }
@@ -549,7 +549,7 @@
 @container brain (max-width: 399px) {   /* 320 and 360px: the button stays on the title's row, at its right; the figures take the row beneath.
    The head is a grid of two rows. Its end takes both rows as a subgrid, so the button and the figures are placed in those rows as they
    would be if the end had no box of its own. */
-  .brain-view .brain-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 0; row-gap: 0; }
+  .brain-view .brain-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0; }
   .brain-view .brain-head > :first-child { grid-column: 1; grid-row: 1; justify-self: start; }   /* its width is its text's, as a flex item's is */
   .brain-view .brain-head-end {
     display: grid; grid-template-columns: subgrid; grid-template-rows: subgrid; grid-column: 1 / -1; grid-row: 1 / 3;
@@ -687,7 +687,7 @@
 .brain-view .brain-area-setup { grid-area: setup; }
 @container brain (min-width: 560px) {
   .brain-view .brain-guide { grid-template-areas: "marks views" "marks words" "ways ways" "plan plan" "who setup"; }
-  .brain-view .brain-area-plan .brain-tasks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--size-4-6); }   /* Planning runs across: two steps a row, then three */
+  .brain-view .brain-area-plan .brain-tasks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--size-4-6); }   /* Planning runs across: two steps a row, then three */
 }
 @container brain (min-width: 880px) {
   .brain-view .brain-guide { grid-template-areas: "marks ways ways" "marks views words" "plan plan plan" "who who setup"; }
@@ -702,7 +702,7 @@
 .brain-view .brain-ways tbody th { font-weight: 600; white-space: nowrap; }
 @container brain (max-width: 559px) {
   .brain-view .brain-ways, .brain-view .brain-ways :is(thead, tbody) { display: block; }
-  .brain-view .brain-ways tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--size-4-3); }
+  .brain-view .brain-ways tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 var(--size-4-3); }
   .brain-view .brain-ways :is(th, td) { padding-inline-end: 0; }
   .brain-view .brain-ways tbody th { grid-column: 1 / -1; padding-top: var(--size-4-3); }
   .brain-view .brain-ways thead td { display: none; }

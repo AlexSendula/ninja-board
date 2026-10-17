@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { App } from 'obsidian';
-import { notices, stringifyYaml } from '../../test/obsidian-stub.ts';
+import { notices, stringifyYaml, TFile, TFolder } from '../../test/obsidian-stub.ts';
 import { obsidianActions } from './actions.ts';
 import { history } from './undo.ts';
 
@@ -13,11 +13,11 @@ const AREA = '04 Areas/Home/Renew passport.md';
 
 /** A vault of note texts (with frontmatter where given), as the undo and the points edit read it. */
 function vault(notes: Record<string, string>, frontmatter: Record<string, Record<string, unknown>> = {}, answer?: (line: string) => string) {
-  const files = [...new Set([...Object.keys(notes), ...Object.keys(frontmatter)])].map((path) => ({ path, extension: 'md' }));
+  const files = [...new Set([...Object.keys(notes), ...Object.keys(frontmatter)])].map((path) => Object.assign(new TFile(), { path, extension: 'md' }));
   const app = {
     vault: {
       getFileByPath: (path: string) => files.find((f) => f.path === path) ?? null,
-      getMarkdownFiles: () => files,
+      getAbstractFileByPath: (path: string) => Object.assign(new TFolder(), { path, children: files.filter((f) => f.path.startsWith(path + '/') && !f.path.slice(path.length + 1).includes('/')) }),
       cachedRead: async () => '',
       read: async (file: { path: string }) => (file.path in frontmatter ? `---\n${stringifyYaml(frontmatter[file.path])}---\n` : '') + (notes[file.path] ?? ''),
       process: async (file: { path: string }, fn: (data: string) => string) => {

@@ -127,7 +127,8 @@ test('styles.css uses none of the features Obsidian review flags: :has, !importa
   assert.doesNotMatch(STYLES, /:has\(/);
   assert.doesNotMatch(STYLES, /!important/);
   assert.doesNotMatch(STYLES, /clip-path/);
-  assert.doesNotMatch(STYLES, /(?<![-\w])columns?\s*:|column-count|column-width|column-rule/);
+  // column-gap is a multicolumn property to the scanner, even in grid and flex: the plugin uses the gap shorthand.
+  assert.doesNotMatch(STYLES, /(?<![-\w])columns?\s*:|column-(?:count|width|rule|span|fill|gap)/);
   assert.doesNotMatch(STYLES, /display:\s*contents/);
 });
 

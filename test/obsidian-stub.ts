@@ -3,9 +3,7 @@
 // code uses at runtime; the types still come from the obsidian package.
 import { createRequire } from 'node:module';
 
-// Obsidian's moment is the library the obsidian package depends on, so the same one.
 const require = createRequire(import.meta.url);
-export const moment: any = require('moment');
 
 /** Every Notice shown, in order, for the tests to read. */
 export const notices: string[] = [];
@@ -26,6 +24,17 @@ export class Modal {
 }
 
 export class MarkdownView {}
+
+/** Obsidian's vault entries: a note is a TFile, a folder a TFolder with its children. The fakes build them with Object.assign. */
+export class TAbstractFile {
+  path = '';
+}
+export class TFile extends TAbstractFile {
+  extension = '';
+}
+export class TFolder extends TAbstractFile {
+  children: TAbstractFile[] = [];
+}
 
 /** Obsidian's base class for a plugin: main.ts extends it, and the tests call its methods on fakes. */
 export class Plugin {

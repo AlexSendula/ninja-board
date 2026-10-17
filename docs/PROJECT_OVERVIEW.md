@@ -1,6 +1,6 @@
 # Project Overview
 
-> Last updated: 16 October 2026
+> Last updated: 17 October 2026
 
 ## What is Ninja Board?
 
@@ -88,8 +88,8 @@ Anything you can do in Ninja Board, the agent can do with the same result. Every
 ## Status
 
 - **Started:** 13 October 2026, when the design was written. The first code was committed on 14 October 2026.
-- **Version:** 1.0.1 in `manifest.json`, `package.json` and `versions.json`. v0.1.0 was built on 14 October 2026, v0.2.0 on 15 October 2026, v1.0.0 on 16 October 2026, and v1.0.1 on 17 October 2026.
-- **Stage:** Ninja Board 1.0.1 is the current release. Its changes are listed under 1.0.1 in the [changelog](CHANGELOG.md), dated 17 October 2026.
+- **Version:** 1.0.2 in `manifest.json`, `package.json` and `versions.json`. v0.1.0 was built on 14 October 2026, v0.2.0 on 15 October 2026, v1.0.0 on 16 October 2026, v1.0.1 on 17 October 2026, and v1.0.2 on 17 October 2026.
+- **Stage:** Ninja Board 1.0.2 is the current release. Its changes are listed under 1.0.2 in the [changelog](CHANGELOG.md), dated 17 October 2026.
 - **Not built yet:** the agent's `brain` commands. The implementation spec defines them, and the shared edit examples pin the edits they must make, but this repository holds no `brain` code.
 - **Release:** the first public release is still to be made.
 

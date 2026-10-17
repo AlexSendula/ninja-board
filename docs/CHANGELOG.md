@@ -2,6 +2,17 @@
 
 All notable changes to Ninja Board are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and the project uses Semantic Versioning. Versions are not tagged in git yet.
 
+## [1.0.2] - 2026-10-17
+
+Ninja Board 1.0.2 clears the last warnings of Obsidian's community review. `manifest.json`, `versions.json` and `package.json` say 1.0.2.
+
+### Fixed
+- **Clears the last warnings of Obsidian's community review.** The views look the same.
+- **Setting story points reads less.** It no longer reads the list of every file in the vault. It reads the note and the project notes in the nearest folder above it that has any.
+
+### Changed
+- **No moment dependency.** Dates come from the platform's `Date`, so no interface language changes their digits.
+
 ## [1.0.1] - 2026-10-17
 
 Ninja Board 1.0.1 fixes the findings of Obsidian's community-plugin review and of our own pre-check. `manifest.json`, `versions.json` and `package.json` say 1.0.1.
@@ -80,7 +91,7 @@ Ninja Board 1.0.0, released on 16 October 2026, is the first release under the n
 - A lifted card no longer starts 4px off its place: its margin is cleared before its place is read. It showed on touch, where nothing moves the card until the finger does.
 - The planner card closes when the focus moves outside it (after a tab switch, for example), instead of floating.
 - **Keyless controls keep their focus across a redraw.** Whole day, Plan this week, a fold toggle, a Week strip day and Show all dropped the focus to the page when a background redraw came while one of them had it. Each now keeps it.
-- **Long bracket and whitespace runs are read in linear time (SEC-002, SEC-003).** Field values, wikilink targets and whitespace runs in task lines and appointment times no longer take quadratic time, so a long line of unclosed brackets does not slow every render and edit. Malformed input only changes: a bare `[` or `(` inside a field value, or a `[[` with a `[` before its `]]`, no longer belongs to the value or link. Well-formed lines read as before.
+- **Long bracket and whitespace runs are read in linear time.** Field values, wikilink targets and whitespace runs in task lines and appointment times no longer take quadratic time, so a long line of unclosed brackets does not slow every render and edit. Malformed input only changes: a bare `[` or `(` inside a field value, or a `[[` with a `[` before its `]]`, no longer belongs to the value or link. Well-formed lines read as before.
 
 ### Upgrade notes
 - **Stories with no date leave the Week board.** Until one is planned it is listed under No date, in Backlog and in To plan. Nothing in the notes is changed or moved.
