@@ -1,6 +1,14 @@
 # Changelog
 
-All notable changes to Ninja Board are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and the project uses Semantic Versioning. Versions are not tagged in git yet.
+All notable changes to Ninja Board are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and the project uses Semantic Versioning. Each release is tagged in git with its bare version number, such as `1.0.3`.
+
+## [1.0.3] - 2026-10-18
+
+Ninja Board 1.0.3 changes only the documentation. `manifest.json`, `versions.json` and `package.json` say 1.0.3.
+
+### Changed
+- **Install from Obsidian's community plugins.** Ninja Board is listed there now. The README no longer points to BRAT or to a manual install, and Obsidian updates the plugin.
+- **Second Brain Setup is the quickest way to a whole vault.** It sets up Tasks and the dashboards, and installs Ninja Board with you or for you.
 
 ## [1.0.2] - 2026-10-17
 

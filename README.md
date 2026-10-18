@@ -26,21 +26,15 @@ It works with any vault laid out like the [sample vault](sample-vault/): notes w
 
 ## Install
 
-Ninja Board is not in Obsidian's community plugin browser yet. Install it by hand or with BRAT.
+**A whole new vault, the quickest way:** ask your AI agent
 
-**By hand:**
+```text
+Install this second brain for me: https://github.com/AlexSendula/second-brain-setup
+```
 
-1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/AlexSendula/ninja-board/releases/latest).
-2. Put them in `<your vault>/.obsidian/plugins/ninja-board/`.
-3. Reload Obsidian, then turn on Ninja Board under Settings → Community plugins.
+[Second Brain Setup](https://github.com/AlexSendula/second-brain-setup) builds the vault with Tasks already set up and the five dashboards in place. Then you install Ninja Board and Tasks from Obsidian's community plugins, or your agent does it for you. You can skip [Set up Tasks](#set-up-tasks) and [Add the dashboards](#add-the-dashboards).
 
-**With BRAT:**
-
-1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat) from the community plugin browser.
-2. In BRAT's settings, choose **Add beta plugin** and enter `https://github.com/AlexSendula/ninja-board`.
-3. Turn on Ninja Board under Settings → Community plugins.
-
-**For a new vault**, [Second Brain Setup](https://github.com/AlexSendula/second-brain-setup) installs Ninja Board, Tasks (already set up) and the dashboard notes for you.
+**In a vault you already have:** in Obsidian, open Settings → Community plugins, turn on community plugins if they are off, and choose **Browse**. Search for **Ninja Board**, then choose **Install** and **Enable**. Install Tasks the same way, then follow the next two sections.
 
 ## Set up Tasks
 
@@ -103,7 +97,7 @@ The [user guide](docs/USER_GUIDE.md) covers each view, planning a week, the card
 
 ## Update
 
-Replace the three files with the ones from the new release, then reload Obsidian. BRAT can do this for you.
+Obsidian updates Ninja Board: Settings → Community plugins → **Check for updates**.
 
 ## Developing
 
