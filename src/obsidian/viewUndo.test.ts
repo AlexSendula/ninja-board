@@ -1,4 +1,5 @@
-// The saved layouts (arrange, the Schedule and Waiting switches) are undo steps, and a session-only choice is not.
+// The saved layouts (arrange, the Schedule and Waiting switches) are undo steps, and a session-only choice is not. Folding stories on the
+// Week board is saved in the config too, but it is not an undo step: it changes what is shown, not the board.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { BasesViewConfig, Plugin, QueryController } from 'obsidian';
@@ -60,6 +61,31 @@ test('a choice the config cannot hold is kept for the session, and is not an und
   history.clear();
   const brain = view({}, false);
   brain.scheduleView('compact');
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.equal(history.label(), undefined);
+});
+
+test('folded stories are saved in the config but are not an undo step, even next to a layout that is', async () => {
+  history.clear();
+  const saved: Record<string, unknown> = {};
+  const brain = view(saved);
+  brain.foldStories(['Order cabinets', "Choose hosting for Sam's site"], true);
+  brain.foldStories(['Order cabinets'], false);
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.deepEqual(saved.collapsed, ["Choose hosting for Sam's site"]);
+  assert.equal(history.label(), undefined);
+  brain.waitingView('group');
+  brain.foldStories(['Home'], true);
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.equal(history.label(), 'show Waiting as its own column');   // the waiting switch is the newest step; the fold after it is none
+  assert.deepEqual(saved.collapsed, ["Choose hosting for Sam's site", 'Home']);
+  history.clear();
+});
+
+test('a fold the config cannot hold is kept for the session, and is not an undo step', async () => {
+  history.clear();
+  const brain = view({}, false);
+  brain.foldStories(['Order cabinets'], true);
   await new Promise((resolve) => setTimeout(resolve, 5));
   assert.equal(history.label(), undefined);
 });

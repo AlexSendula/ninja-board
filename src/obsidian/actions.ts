@@ -13,13 +13,13 @@ import { dueLine, dueNote, planLine, planNote, pointsNote, setLineState, setNote
  * The Actions the views call, carried out with Obsidian's and the Tasks plugin's APIs. The views
  * fire them with `void`, so every async one catches its own errors: a failed write shows a Notice
  * and is logged, and never becomes an unhandled rejection. A write resolves to the target as it
- * was written, or to null when it failed or the vault refused it. Paging, arranging, the Schedule's view
- * and the day modal belong to the view that draws them, so `view` carries those out. Show all opens a list modal.
+ * was written, or to null when it failed or the vault refused it. Paging, arranging, the Schedule's view,
+ * folding stories and the day modal belong to the view that draws them, so `view` carries those out. Show all opens a list modal.
  *
  * Each write is one step of the session's undo history (see undo.ts), named for what Undo will do. A group of writes
  * (a drop, a planner edit) is one step.
  */
-export function obsidianActions(app: App, view: Pick<Actions, 'showWeek' | 'arrange' | 'scheduleView' | 'waitingView' | 'showDay'>): Actions {
+export function obsidianActions(app: App, view: Pick<Actions, 'showWeek' | 'arrange' | 'scheduleView' | 'waitingView' | 'foldStories' | 'showDay'>): Actions {
   const actions: Actions = {
     mac: Platform.isMacOS,
     toggle: async (target) => {
@@ -68,6 +68,7 @@ export function obsidianActions(app: App, view: Pick<Actions, 'showWeek' | 'arra
     arrange: (lists) => view.arrange(lists),
     scheduleView: (choice) => view.scheduleView(choice),
     waitingView: (choice) => view.waitingView(choice),
+    foldStories: (names, folded) => view.foldStories(names, folded),
     showWeek: (start) => view.showWeek(start),
     showDay: (spec) => view.showDay(spec),
     showAll: (spec: ListSpec): ListHandle => showList(app, spec, actions),

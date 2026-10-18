@@ -23,6 +23,25 @@ export function readArrangement(v: unknown): Arrangement {
 }
 
 /**
+ * The view's `collapsed:` value as Bases hands it over (`config.get('collapsed')`): the names of the stories folded on the
+ * Week board. Text names stay and finite numbers read as text (a note named "2026" comes back from YAML as a number); anything
+ * else is dropped, and a name is listed once. Anything that is not a list is no folded story.
+ */
+export function readCollapsed(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  const names = v.flatMap((k: unknown) => (typeof k === 'string' ? [k] : typeof k === 'number' && Number.isFinite(k) ? [String(k)] : []));
+  return [...new Set(names)];
+}
+
+/**
+ * The folded stories after `names` are folded (added after the saved ones) or opened (taken out; the others stay). A name stays
+ * in the list after its story has left the week, so it is still folded when it comes back: nothing is ever pruned. The result is new.
+ */
+export function setFolded(current: readonly string[], names: readonly string[], folded: boolean): string[] {
+  return folded ? [...new Set([...current, ...names])] : current.filter((name) => !names.includes(name));
+}
+
+/**
  * The arrangement to save: `current` (what the view's config holds) with `lists` written over it.
  * An empty list removes its column. The result is new, with new lists: Bases' own data is never touched.
  */

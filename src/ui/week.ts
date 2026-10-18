@@ -13,7 +13,7 @@ import { dropLists, enableDrag } from './drag.ts';
 import type { DropTarget } from './drag.ts';
 import type { HeadOpts } from './header.ts';
 import { pastParts } from './past.ts';
-import { switchIcon } from './marks.ts';
+import { foldAllIcon, switchIcon } from './marks.ts';
 import { foldWasOpen, labelRow, mountPage } from './page.ts';
 
 type Column = keyof ThisWeekVM['columns'];
@@ -33,8 +33,9 @@ const NOTE_STATUS: Record<Column, string> = { todo: 'open', doing: 'doing', wait
  * ended. The root's data-change-at says when the picture next changes by itself, the next end today, so that the
  * view can draw again then; it is removed when nothing will (an upcoming week, a record, a day that is over).
  * `waiting` is the view the config gives Waiting on the board: Column (the default), or Group view's layout under Doing.
+ * `collapsed` is the story names the config has folded: this week's story cards hide their lines, and no other week folds.
  */
-export function renderWeek(root: HTMLElement, vm: WeekVM, actions: Actions, opts: { now?: string; waiting?: WaitingView } = {}): void {
+export function renderWeek(root: HTMLElement, vm: WeekVM, actions: Actions, opts: { now?: string; waiting?: WaitingView; collapsed?: readonly string[] } = {}): void {
   // Read before mountPage clears root: a re-render keeps a past week's Backlog open.
   const backlogOpen = foldWasOpen(root, 'backlog');
   const toPlanOpen = vm.kind === 'upcoming' && planWasOpen(root, vm.start);   // read before the redraw clears root
@@ -61,7 +62,8 @@ export function renderWeek(root: HTMLElement, vm: WeekVM, actions: Actions, opts
   // The drag goes on the page, so the strip's days count. Not on root: it outlives renders and would
   // collect listeners. A past week is read-only and has none.
   if (vm.kind === 'this') {
-    page.append(comingUp(vm, actions), board(vm, actions, opts.waiting ?? 'column'));
+    const folded = new Set(opts.collapsed);
+    page.append(comingUp(vm, actions, folded), board(vm, actions, opts.waiting ?? 'column', folded));
     enableDrag(page, dropOnWeek(vm, actions));
   } else if (vm.kind === 'upcoming') {
     page.append(planParts(vm, root, actions, toPlanOpen));
@@ -103,8 +105,11 @@ function figureOf(vm: WeekVM): HeadOpts['figure'] {
 
 let comingUps = 0;   // a unique id per Coming up heading, for aria-labelledby
 
-/** Under this week's strip: the next three weeks, each with its count. A chip shows that week. */
-function comingUp(vm: ThisWeekVM, actions: Actions): HTMLElement {
+/**
+ * Under this week's strip: the next three weeks, each with its count. A chip shows that week. The row ends with the button that
+ * folds every story on the board or opens them all (none when there are no stories).
+ */
+function comingUp(vm: ThisWeekVM, actions: Actions, folded: ReadonlySet<string>): HTMLElement {
   const id = `brain-coming-up-${++comingUps}`;
   const chips = vm.comingUp.map(({ start, week, count }) => {
     const chip = h('button', count > 0 ? 'brain-week-chip' : 'brain-week-chip brain-is-empty', {
@@ -113,10 +118,30 @@ function comingUp(vm: ThisWeekVM, actions: Actions): HTMLElement {
     chip.addEventListener('click', () => actions.showWeek(start));
     return chip;
   });
+  const stories = storyNames(vm);
   return h('nav', 'brain-week-line', { 'aria-labelledby': id }, [
     h('h3', 'brain-label', { id }, ['Coming up']),
     h('div', 'brain-week-chips', {}, chips),
+    stories.length > 0 ? foldAllButton(stories, folded, actions) : null,
   ]);
+}
+
+/** The note names of the stories on the board, each once, column by column: what Collapse all and Expand all act on. */
+function storyNames(vm: ThisWeekVM): string[] {
+  const names = COLUMNS.flatMap(({ key }) => vm.columns[key].flatMap((item) => (item.kind === 'card' ? [item.arrangeKey] : [])));
+  return [...new Set(names)];
+}
+
+/**
+ * Collapse all, or Expand all once every story on the board is folded. It names what it does next, and keeps its key, so a
+ * redraw gives the focus back to it. Expand all opens the board's stories only: names of stories that are not here stay folded.
+ */
+function foldAllButton(stories: string[], folded: ReadonlySet<string>, actions: Actions): HTMLButtonElement {
+  const all = stories.every((name) => folded.has(name));
+  const label = all ? 'Expand all stories' : 'Collapse all stories';
+  const button = h('button', 'brain-quiet brain-fold-all', { 'aria-label': label, title: label, 'data-key': 'fold-all' }, [foldAllIcon(all ? 'expand' : 'collapse')]);
+  button.addEventListener('click', () => actions.foldStories(stories, !all));
+  return button;
 }
 
 /**
@@ -124,22 +149,22 @@ function comingUp(vm: ThisWeekVM, actions: Actions): HTMLElement {
  * view (the board's data-waiting) changes only the layout, and the CSS puts Waiting under Doing at 720px and up. Below
  * that the CSS shows Column view whatever is saved. Waiting's label row holds both labels, and the CSS shows one.
  */
-function board(vm: ThisWeekVM, actions: Actions, waiting: WaitingView): HTMLElement {
+function board(vm: ThisWeekVM, actions: Actions, waiting: WaitingView, folded: ReadonlySet<string>): HTMLElement {
   return h('div', 'brain-board brain-board-week', { 'data-waiting': waiting }, COLUMNS.map(({ key, title, empty }) => {
     const items = vm.columns[key];
     const attrs: Record<string, string> = { 'data-column': key, 'data-states': key };   // what the CSS selects the columns by
     if (key !== 'done') attrs['data-arrange'] = '';   // To do, Doing and Waiting can be arranged; Done keeps its time order
     const label = labelRow(title, items.length);
     if (key === 'waiting') label.append(h('h4', 'brain-group-name', {}, [`Waiting on · ${items.length}`]), waitingSwitch(waiting, actions));
-    const section = h('section', 'brain-col', attrs, [label, h('ul', 'brain-col-items', {}, rowsOf(items, empty, actions))]);
+    const section = h('section', 'brain-col', attrs, [label, h('ul', 'brain-col-items', {}, rowsOf(items, empty, actions, folded))]);
     if (key === 'waiting') markKeyboardFocus(section, 'brain-keyboard-focus');   // its switch shows for the keyboard at once
     return section;
   }));
 }
 
 /** A column's items as its list shows them: each drawn item, or the one line that says the list is empty. */
-function rowsOf(items: BoardItem[], empty: string, actions: Actions): HTMLElement[] {
-  return items.length > 0 ? items.map((item) => boardItem(item, actions)) : [h('li', 'brain-empty', {}, [empty])];
+function rowsOf(items: BoardItem[], empty: string, actions: Actions, folded: ReadonlySet<string>): HTMLElement[] {
+  return items.length > 0 ? items.map((item) => boardItem(item, actions, folded)) : [h('li', 'brain-empty', {}, [empty])];
 }
 
 /**
@@ -155,8 +180,9 @@ function waitingSwitch(view: WaitingView, actions: Actions): HTMLButtonElement {
   return button;
 }
 
-function boardItem(item: BoardItem, actions: Actions): HTMLElement {
-  const el = item.kind === 'row' ? taskRow(item.row, actions) : storyCard(item.card, actions);
+/** A board item: a task row, or a story card with its chevron, folded where the config has its name. */
+function boardItem(item: BoardItem, actions: Actions, folded: ReadonlySet<string>): HTMLElement {
+  const el = item.kind === 'row' ? taskRow(item.row, actions) : storyCard(item.card, actions, { name: item.arrangeKey, folded: folded.has(item.arrangeKey) });
   el.dataset.key = keyOf(item);
   return el;
 }

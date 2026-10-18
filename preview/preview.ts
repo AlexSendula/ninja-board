@@ -5,7 +5,7 @@ import { buildWeek } from '../src/model/week.ts';
 import { buildProjects } from '../src/model/projects.ts';
 import { buildBacklog } from '../src/model/backlog.ts';
 import { buildGuide } from '../src/model/guide.ts';
-import { mergeArrangement } from '../src/model/arrange.ts';
+import { mergeArrangement, setFolded } from '../src/model/arrange.ts';
 import { weekPlanPath } from '../src/model/record.ts';
 import { isoWeek } from '../src/model/dates.ts';
 import { renderToday } from '../src/ui/today.ts';
@@ -62,11 +62,12 @@ interface Context {
   arrangement: { week: Arrangement; projects: Arrangement };  // in Obsidian: the dashboard note's arrange:
   schedule: ScheduleView;                                     // in Obsidian: the dashboard note's schedule:
   waiting: WaitingView;                                       // in Obsidian: the dashboard note's waiting:
+  collapsed: string[];                                        // in Obsidian: the dashboard note's collapsed:, the stories folded on the Week board
 }
 
 const VIEWS: Record<View, (root: HTMLElement, c: Context) => void> = {
   today: (root, c) => renderToday(root, buildToday(c.s, TODAY), c.actions, { now: NOW, schedule: c.schedule }),
-  week: (root, c) => renderWeek(root, buildWeek(c.s, TODAY, { start: c.weekStart, arrange: c.arrangement.week, plan: c.plan }), c.actions, { now: NOW, waiting: c.waiting }),
+  week: (root, c) => renderWeek(root, buildWeek(c.s, TODAY, { start: c.weekStart, arrange: c.arrangement.week, plan: c.plan }), c.actions, { now: NOW, waiting: c.waiting, collapsed: c.collapsed }),
   projects: (root, c) => renderProjects(root, buildProjects(c.s, TODAY, c.arrangement.projects), c.actions),
   backlog: (root, c) => renderBacklog(root, buildBacklog(c.s, TODAY), c.actions),
   guide: (root, c) => renderGuide(root, buildGuide(SETUP), c.actions),
@@ -81,10 +82,12 @@ function start(): void {
   const stage = $('.mock-stage');
   let view: View = 'today';
   // The view state BrainView keeps: the shown week (undefined is this week, so the midnight refresh still moves
-  // along), the boards' arrangements, the Schedule's form and Waiting's view on the Week board.
+  // along), the boards' arrangements, the Schedule's form, Waiting's view and the folded stories on the Week board.
   let weekStart: string | undefined;
   let schedule: ScheduleView = 'large';
   let waiting: WaitingView = 'column';
+  // Folded stories are no undo step, so they are not in the snapshot below.
+  let collapsed: string[] = [];
   const arrangement: { week: Arrangement; projects: Arrangement } = { week: {}, projects: {} };
 
   // Undo in the preview: each action is one step, whose before and after are the whole page state (the notes, the
@@ -127,6 +130,10 @@ function start(): void {
     waiting = choice;
     render();
   };
+  const foldNow = (names: string[], folded: boolean): void => {
+    collapsed = setFolded(collapsed, names, folded);
+    render();
+  };
 
   const actions: Actions = {
     mac: isMac,
@@ -143,6 +150,7 @@ function start(): void {
     arrange: recorded(arrangeNow, () => 'move back'),
     scheduleView: recorded(setScheduleNow, () => 'restore the Schedule view'),
     waitingView: recorded(setWaitingNow, () => `show Waiting ${waiting === 'group' ? 'inside Doing' : 'as its own column'}`),
+    foldStories: foldNow,
     showWeek: (start) => {
       weekStart = start === isoWeek(TODAY).start ? undefined : start;
       render();
@@ -179,7 +187,7 @@ function start(): void {
     root.dataset.today = TODAY;
     if (view === 'week' && shown > isoWeek(TODAY).start) root.dataset.week = shown;
     else delete root.dataset.week;
-    VIEWS[view](root, { s: buildSnapshot(notes), actions, weekStart, plan: pastPlan(notes, weekStart), arrangement, schedule, waiting });
+    VIEWS[view](root, { s: buildSnapshot(notes), actions, weekStart, plan: pastPlan(notes, weekStart), arrangement, schedule, waiting, collapsed });
     if (key !== undefined) refocus(root, key);
     refocusPager(root, pager);
   }

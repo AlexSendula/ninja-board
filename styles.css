@@ -458,6 +458,19 @@
   inset-block: calc(var(--size-4-3) * -1) 0; inset-inline-start: calc(var(--size-4-3) * -1); width: calc(15% + var(--size-4-3));
 }
 .brain-view .brain-peek[aria-expanded="false"]::after { inset-block-end: calc(var(--size-4-3) * -1); }   /* folded, the whole card's height; open, the head only, so the lines' checks stay free */
+/* The Week board's story cards: the chevron shows while the card is hovered or has the keyboard's focus in it, and always on touch. Its place stays (opacity, not display), so nothing moves when it shows */
+.brain-view .brain-foldable { z-index: 0; }   /* its own stacking context: the hit area (2) and the lines (3) stay inside the card, so an open card's lines never draw over a row dragged across it */
+.brain-view .brain-foldable > .brain-card-head > button.brain-peek { transition: opacity 0.15s var(--brain-ease); }
+.brain-view .brain-foldable > .brain-card-head > .brain-peek::after { inset-block: 0; inset-inline-start: 0; width: calc(15% + var(--size-4-3)); }   /* its hit area is the card's left edge, since the head is not positioned here: the title's link keeps the whole card as its target */
+.brain-view .brain-foldable > .brain-story-lines { z-index: 3; }   /* the lines stay above the hit area, so their checks are free while the card is open */
+@media (hover: hover) {
+  .brain-view .brain-foldable > .brain-card-head > button.brain-peek { opacity: 0; }
+  .brain-view .brain-foldable:hover > .brain-card-head > button.brain-peek,
+  .brain-view .brain-foldable.brain-keyboard-focus > .brain-card-head > button.brain-peek { opacity: 1; }
+}
+@media (hover: none) {
+  .brain-view .brain-foldable > .brain-card-head > button.brain-peek { opacity: 1; }
+}
 
 /* ---------- Drag: pointer events, lift and drop target ---------- */
 .brain-view .brain-draggable {
@@ -522,7 +535,7 @@
   font-size: inherit; cursor: pointer; transition: color 0.15s var(--brain-ease), background-color 0.15s var(--brain-ease);
 }
 .brain-view .brain-step-icon { width: var(--size-4-4); height: var(--size-4-4); overflow: visible; }
-.brain-view :is(.brain-step-icon, .brain-plan-icon, .brain-switch-icon, .brain-tally-icon, .brain-peek-icon, .brain-flag-icon, .brain-undo-icon) > * {
+.brain-view :is(.brain-step-icon, .brain-plan-icon, .brain-switch-icon, .brain-tally-icon, .brain-peek-icon, .brain-flag-icon, .brain-undo-icon, .brain-fold-icon) > * {
   fill: none; stroke: currentColor; stroke-width: var(--brain-stroke); stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke;
 }
 @media (hover: hover) {
@@ -622,7 +635,7 @@
   font: inherit; font-size: var(--font-ui-small); line-height: 1.333; font-weight: 600;
   white-space: nowrap; cursor: pointer; transition: background-color 0.15s var(--brain-ease), color 0.15s var(--brain-ease);
 }
-.brain-view .brain-plan-icon, .brain-view .brain-switch-icon { flex: none; width: var(--size-4-4); height: var(--size-4-4); overflow: visible; }
+.brain-view .brain-plan-icon, .brain-view .brain-switch-icon, .brain-view .brain-fold-icon { flex: none; width: var(--size-4-4); height: var(--size-4-4); overflow: visible; }
 .brain-view button.brain-plan-toggle[aria-expanded="true"],
 .brain-view button.brain-plan-toggle[aria-expanded="true"]:is(:hover, :active, :focus, :focus-visible) { background-color: var(--brain-surface); color: var(--text-normal); }
 @media (hover: hover) {
@@ -637,6 +650,9 @@
 }
 .brain-view .brain-week-line > .brain-label { margin-inline-end: var(--size-4-2); }
 .brain-view .brain-week-chips { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--size-4-2); min-width: 0; }
+.brain-view .brain-week-line > button.brain-fold-all {   /* Collapse all / Expand all: a quiet icon button at the right end, its icon on the board's edge as Show all's text is; the row keeps a label's height */
+  flex: none; margin-inline-end: calc(var(--size-4-2) * -1); margin-block: calc((var(--brain-hit) - var(--font-ui-smaller) * 1.333) / -2);
+}
 .brain-view button.brain-week-chip,
 .brain-view button.brain-week-chip:is(:hover, :active, :focus, :focus-visible) {
   appearance: none; flex: none; display: inline-flex; align-items: center; gap: var(--size-4-2);
@@ -651,8 +667,9 @@
 @media (hover: hover) {
   .brain-view button.brain-week-chip:hover { background-color: var(--background-modifier-hover); }
 }
-@container brain (max-width: 559px) {   /* the label takes its own line; the chips share the next */
-  .brain-view .brain-week-line > .brain-label { flex-basis: 100%; }
+@container brain (max-width: 559px) {   /* the label and the fold button share a line; the chips take the next */
+  .brain-view .brain-week-line > .brain-label { flex: 1 1 auto; }
+  .brain-view .brain-week-chips { order: 1; flex-basis: 100%; }
 }
 @container brain (max-width: 359px) {   /* 320px: the chips give up a little padding and gap, so Coming up stays on one line */
   .brain-view .brain-week-chips { gap: var(--size-4-1); }

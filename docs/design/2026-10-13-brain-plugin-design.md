@@ -133,3 +133,22 @@ Visual design and exact markup: the final mockup. In short:
 
 ## 7. Open points for the checkpoint
 - Setup, once by hand: the `[w]` waiting status in Tasks' settings. The Guide's Setup tile checks it.
+
+## 8. Folding stories on the Week board (decided 2026-10-18)
+Folding the task lines of a story card on this week's board was approved. Built in 1.0.4.
+- **What it is.** On the Week view's this-week board, a story card (a task note inside a project) can fold its task lines away.
+  - A folded card keeps its head: title, meta (project, waiting on, due), the progress ring and count, and its points. Its lines are hidden.
+  - New stories start open.
+- **The chevron.** The same chevron the planner's story cards have, first in the card's head: `button.brain-peek`, with `aria-expanded` and an `aria-label` that says what it does next ("Hide the lines of ..." or "Show the lines of ...").
+  - It uses the existing chevron styles. Its hit area on a board card is the card's left edge (the left 15% and 12px) at the card's full height, with the open lines kept above it: a click there folds the card, and the lines' checks stay free. The rest of the card still opens the note or starts a drag.
+  - It shows only while the card is hovered or has the keyboard's focus in it, and always on a touch screen (`@media (hover: none)`). Its place stays (opacity, not display), so nothing shifts when it appears.
+  - This is scoped to the Week board's story cards by a class of their own, `brain-foldable`. The planner's and Backlog's chevrons stay as they are, and board cards carry no `data-story`.
+- **Remembered across restarts.** Folded stories are saved in the Week view's own config, the base block in the Week dashboard note, under `collapsed`: a list of story names, the note name (the key an arrangement uses).
+  - It is saved the way an arrangement is, through the view's config, but it is **not an undo step**.
+  - Where the config can't hold it (an embed, a hover preview or a canvas) or the save fails, the fold lasts for the session, as the Schedule's view does. A Notice appears the first time, saying "Open the dashboard note itself to keep stories folded" where the config can't hold it, and "Couldn't save the folded stories" when a save fails.
+  - A name stays in the list after its story leaves the week, so it is still folded when it comes back. The list is never pruned, and a name is listed once.
+- **Collapse all and Expand all.** An icon button at the right end of the "Coming up" row, after the week chips, quiet like the other icon buttons.
+  - Collapse all is a compact list: three short lines, each with a dot before it. Expand all is a detailed list: two small squares, each with two lines beside them.
+  - When every story card on this week's board is folded the button reads "Expand all stories" and shows the detailed list; otherwise it reads "Collapse all stories" and shows the compact list. With no story card on the board there is no button.
+  - Collapse all adds every story name on the board to `collapsed`. Expand all removes those names and keeps any others.
+- **Scope.** Only the current week's board. The upcoming week's planner, To plan and Backlog keep their own folding, unchanged. A past week's board is read-only and does not fold.

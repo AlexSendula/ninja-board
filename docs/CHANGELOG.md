@@ -2,6 +2,14 @@
 
 All notable changes to Ninja Board are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and the project uses Semantic Versioning. Each release is tagged in git with its bare version number, such as `1.0.3`.
 
+## [1.0.4] - 2026-10-18
+
+Ninja Board 1.0.4 lets you fold a story's task lines away on this week's board. `manifest.json`, `versions.json` and `package.json` say 1.0.4.
+
+### Added
+- **Folding stories on the Week board.** A story card on this week's board starts with a chevron, which folds the card's task lines away and opens them again. The chevron shows when you point at the card or focus it from the keyboard, and always on a touch screen. Folded stories are saved in the dashboard note's base block, as `collapsed:`, so they are remembered across restarts. Folding is not an undo step. Where the config can't be saved (an embed, a hover or a canvas), the fold lasts for the session and a Notice says so; a failed save is reported in a Notice too.
+- **Collapse all and Expand all.** The Coming up row ends with an icon button. It folds every story on the board, or expands them all once every one of them is folded. It is not shown when the board has no story.
+
 ## [1.0.3] - 2026-10-18
 
 Ninja Board 1.0.3 changes only the documentation. `manifest.json`, `versions.json` and `package.json` say 1.0.3.

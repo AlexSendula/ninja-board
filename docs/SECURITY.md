@@ -1,6 +1,6 @@
 # Security
 
-> Last updated: 17 October 2026
+> Last updated: 18 October 2026
 
 ## Overview
 
@@ -18,7 +18,7 @@ Obsidian's API lets a plugin reach the whole vault. Ninja Board's code reaches m
 | The folders above a story | `isStoryFile`, the story check behind the points edit, reads the note and the folders above it, up to the nearest one that holds a project note. It takes their frontmatter from the metadata cache, reads no note text, and never lists the vault's files | [obsidian/snapshot.ts](../src/obsidian/snapshot.ts), `isStoryFile` and `projectsAbove` |
 | `10 Archive/` | Never read. Both snapshot builders drop it | [obsidian/snapshot.ts](../src/obsidian/snapshot.ts), line 16; [model/snapshot.ts](../src/model/snapshot.ts), line 5 |
 | A past week's plan | Read by its path, `08 Weeks/<year>/<YYYY-Www>.md`, only when that week is shown | [obsidian/snapshot.ts](../src/obsidian/snapshot.ts), `readWeekPlan` |
-| The dashboard note's layout | Bases' view config: `arrange`, `schedule` and `waiting` | [obsidian/view.ts](../src/obsidian/view.ts), lines 115, 131 and 152 |
+| The dashboard note's layout | Bases' view config: `arrange`, `schedule`, `waiting` and `collapsed` | [obsidian/view.ts](../src/obsidian/view.ts), lines 136, 152, 173 and 197 (the first three through `saveLayout`, whose `config.set` is at line 234) |
 | Tasks' saved settings | Read through Tasks' own `loadData()`, for the Guide's check. Only `taskFormat` and the custom statuses are used, and they are not shown | [obsidian/edits.ts](../src/obsidian/edits.ts), `readTasksSetup`; [model/guide.ts](../src/model/guide.ts) |
 | Other files, settings and plugins' data | Not read | None |
 
@@ -38,7 +38,7 @@ Ninja Board makes writes in three places, and nowhere else. Opening a note is li
 |---|---|---|
 | A task line: tick, state, plan, deadline | `vault.process` on the line's note, replacing one line ([writes.ts](../src/obsidian/writes.ts), `writeLine`, line 88) | `replaceLineIfUnchanged`: the line must still be the text Ninja Board read. If not, nothing is written, and the Notice "That task changed — refreshed" shows ([edits.ts](../src/obsidian/edits.ts), line 42) |
 | A task note's frontmatter: status, done, scheduled, start, due, points | `fileManager.processFrontMatter`, in `setNoteStatus`, `planNote`, `dueNote` and `pointsNote` ([writes.ts](../src/obsidian/writes.ts), lines 73, 120, 129 and 147) | The note must still exist. There is no line check: the change is applied to the frontmatter as it is when Obsidian writes it. A points write is refused unless the note is a story (a non-repeating task note in a project); an area task note, a repeating note and a task line are refused before any write |
-| The layout: `arrange`, `schedule`, `waiting` | Bases' `config.set`, which Bases writes into the dashboard note's `base` block ([view.ts](../src/obsidian/view.ts), lines 115, 131 and 152; `schedule` and `waiting` take only fixed words) | Only where Bases can write the block back. In an embed, a hover or a canvas, nothing is saved ([edits.ts](../src/obsidian/edits.ts), `arrangementPersists`) |
+| The layout: `arrange`, `schedule`, `waiting` and `collapsed` | Bases' `config.set`, which Bases writes into the dashboard note's `base` block ([view.ts](../src/obsidian/view.ts), lines 136, 152, 173 and 197; `schedule` and `waiting` take only fixed words, and `collapsed` takes only the names of the board's stories) | Only where Bases can write the block back. In an embed, a hover or a canvas, nothing is saved, and a fold lasts for the session instead ([edits.ts](../src/obsidian/edits.ts), `arrangementPersists`) |
 | Opening a note | `openFile` | None. It writes nothing |
 
 **Undo** writes through the same three places, and checks each restore again: a line only if it is still the text Ninja Board wrote, a field only if it still holds the value Ninja Board wrote, and a saved layout only if the view still holds what Ninja Board saved. A step that fails a check is skipped with the Notice "Changed since: not undone", and nothing is written for it.

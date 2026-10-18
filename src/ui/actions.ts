@@ -26,6 +26,11 @@ export interface Actions {
   scheduleView(view: ScheduleView): void;
   /** Saves which view Waiting takes on the Week board in the view's `waiting:`. Where the config can't be saved the choice lasts for the session. */
   waitingView(view: WaitingView): void;
+  /**
+   * Folds (true) or opens (false) the lines of these stories on the Week board, by note name. Saved in the view's `collapsed:`; it is
+   * not an undo step. Where the config can't be saved the fold lasts for the session.
+   */
+  foldStories(names: string[], folded: boolean): void;
   /** Week view: show the week starting on this Monday. */
   showWeek(start: string): void;
   /** Opens the day modal: one day's whole timeline. */

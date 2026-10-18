@@ -106,6 +106,16 @@ The Week view opens on this week, the live board. **‹** and **›** step to th
 
 On this week, Coming up always lists the next three weeks, each with its count: the open tasks due or planned that week, plus its one-off appointments. Weekly repeating appointments are left out. Other weeks don't show Coming up.
 
+### Folding stories
+
+On this week's board, a story card can fold its task lines away. A folded card keeps its title, its details, its ring and count, and its points. New stories start open.
+
+- **Fold one story.** Hover the story card and click the arrow at its start, or click the card's left edge. The arrow also shows when the keyboard's focus is in the card, and on a touch screen it is always there. Click it again to open the lines.
+- **Fold or open them all.** The **Coming up** row ends with an icon button. **Collapse all stories** (a compact list) folds every story on the board. When every story is folded, it becomes **Expand all stories** (a detailed list), which opens them all. With no story on the board there is no button.
+- **Remembered.** Folded stories are saved in `02 Week.md`, as a `collapsed:` list of story names under the Week view, so they stay folded after a restart. A name stays in the list after its story leaves the week, so the story is still folded when it comes back. Folding is not an undo step.
+- **Only in the note itself.** As with [arranging](#arranging), Bases can save only when the base is shown in its own note or in a `.base` file. In an embed, a hover preview or a canvas, a fold lasts for the session, and a Notice says "Open the dashboard note itself to keep stories folded". If a save fails, the Notice says "Couldn't save the folded stories" and the fold lasts for the session.
+- **Only this week.** Upcoming weeks, To plan and Backlog keep their own folding, and a past week's record doesn't fold.
+
 ### An upcoming week
 
 An upcoming week is a preview.
@@ -191,7 +201,7 @@ views:
 - **Only in the note itself.** Bases can save only when the base is shown in its own note (Reading view or Live Preview) or in a `.base` file. In an embed (`![[Week]]`), a hover preview or a canvas, a move between columns still changes the task's state, but the arrangement isn't saved, and a Notice says "Open the dashboard note itself to arrange this board".
 - **Layout only.** Nothing reads meaning into the order. The agent can edit the same lists.
 
-The Schedule's view is saved the same way, as `schedule: compact` under the Today view (see [Busy days](#busy-days)).
+The Schedule's view is saved the same way, as `schedule: compact` under the Today view (see [Busy days](#busy-days)). So are the folded stories, as `collapsed:` under the Week view (see [Folding stories](#folding-stories)).
 
 ## Repeats
 

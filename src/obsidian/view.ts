@@ -2,7 +2,7 @@ import { BasesView, Notice, debounce } from 'obsidian';
 import type { Plugin, QueryController } from 'obsidian';
 import type { Arrangement, RawNote, ScheduleView, TasksSetup, VaultSnapshot, WaitingView } from '../model/types.ts';
 import type { Actions, DaySpec } from '../ui/actions.ts';
-import { mergeArrangement, readArrangement, readScheduleView, waitingViewOf } from '../model/arrange.ts';
+import { mergeArrangement, readArrangement, readCollapsed, readScheduleView, setFolded, waitingViewOf } from '../model/arrange.ts';
 import { isoWeek } from '../model/dates.ts';
 import { buildToday } from '../model/today.ts';
 import { buildWeek } from '../model/week.ts';
@@ -36,6 +36,7 @@ interface DrawContext {
   arrange: Arrangement;            // readArrangement(this.config.get('arrange'))
   schedule: ScheduleView;          // which form Today's Schedule takes: the saved `schedule:`, or this session's choice
   waiting: WaitingView;            // which view Waiting takes on the Week board: the saved `waiting:`, or this session's choice
+  collapsed: string[];             // the stories folded on the Week board: the saved `collapsed:`, or this session's list
   weekStart?: string;              // the Monday the Week view shows; undefined: this week
   target: number;                  // the week's points target: points_per_week in the config note, 8 when absent
   plan?: RawNote;                  // that week's plan note, read only for a past week
@@ -50,7 +51,7 @@ const DRAW: Record<BrainViewType, Draw> = {
     root,
     buildWeek(ctx.snapshot, ctx.today, { start: ctx.weekStart, arrange: ctx.arrange, plan: ctx.plan, target: ctx.target }),
     ctx.actions,
-    { now: ctx.now, waiting: ctx.waiting },
+    { now: ctx.now, waiting: ctx.waiting, collapsed: ctx.collapsed },
   ),
   'ninja-board-projects': (root, ctx) => renderProjects(root, buildProjects(ctx.snapshot, ctx.today, ctx.arrange), ctx.actions),
   'ninja-board-backlog': (root, ctx) => renderBacklog(root, buildBacklog(ctx.snapshot, ctx.today), ctx.actions),
@@ -84,6 +85,9 @@ export class BrainView extends BasesView {
   private scheduleChoice: ScheduleView | undefined;
   // Waiting's view where the config can't hold it, as for the Schedule: the session's choice.
   private waitingChoice: WaitingView | undefined;
+  // The folded stories where the config can't hold them, as for the Schedule: the whole list as this session has it.
+  private collapsedChoice: string[] | undefined;
+  private foldNoticed = false;         // the Notice about a fold the config can't hold is shown once
   // The strip changes by itself when an appointment ends: one timer, set at each draw, for the next end today.
   private changeAt: string | undefined;
   private stopChange: (() => void) | undefined;
@@ -178,6 +182,42 @@ export class BrainView extends BasesView {
       this.waitingChoice = view;
     }
     this.redraw();
+  }
+
+  /**
+   * Folds (or opens) these stories on the Week board and saves the list in this view's `collapsed:`, the way scheduleView() saves
+   * the Schedule's form: through the config, which Bases writes back into the dashboard note. It is not an undo step: it changes
+   * what the board shows, not the board. Where the config can't hold it (an embed, a hover, a canvas) or the save fails, the list
+   * lasts for the session and a Notice says so, the first time.
+   */
+  foldStories(names: string[], folded: boolean): void {
+    const next = setFolded(this.collapsedNow(), names, folded);
+    if (arrangementPersists(this.root)) {
+      try {
+        this.config.set('collapsed', next);
+        this.collapsedChoice = undefined;   // the config holds it now
+      } catch (error) {
+        console.error(error);
+        this.noticeFold("Couldn't save the folded stories");
+        this.collapsedChoice = next;
+      }
+    } else {
+      this.noticeFold('Open the dashboard note itself to keep stories folded');
+      this.collapsedChoice = next;
+    }
+    this.redraw();
+  }
+
+  /** The folded stories as the board is drawn: this session's list where the config couldn't hold it, else the saved one. */
+  private collapsedNow(): string[] {
+    return this.collapsedChoice ?? readCollapsed(this.config.get('collapsed'));
+  }
+
+  /** A Notice about folding, once per view: a Collapse all would otherwise show one for every click. */
+  private noticeFold(message: string): void {
+    if (this.foldNoticed) return;
+    this.foldNoticed = true;
+    new Notice(message);
   }
 
   /** Opens a day's full view in a modal. */
@@ -300,6 +340,7 @@ export class BrainView extends BasesView {
         target: readPointsTarget(this.plugin.app),
         schedule: this.scheduleChoice ?? readScheduleView(this.config.get('schedule')),
         waiting: this.waitingChoice ?? waitingViewOf(this.config.get('waiting')),
+        collapsed: this.collapsedNow(),
         ...extras,
       });
       this.armChange(this.root.dataset.changeAt);

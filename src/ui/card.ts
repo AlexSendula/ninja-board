@@ -3,23 +3,32 @@ import type { Actions } from './actions.ts';
 import { h, link } from './dom.ts';
 import { peekIcon, pointsSpan, progress } from './marks.ts';
 import { pointsOf } from '../model/points.ts';
+import { markKeyboardFocus } from './focus.ts';
 import { openCard, rowCard } from './popover.ts';
 import { bindItem, metaLine, noNativeDrag, taskRow } from './task.ts';
 
-/** A story on the Week board: title, project and due, ring, and its lines, tickable on the card. A plannable one plans, as a card's menu says. */
-export function storyCard(card: StoryCardVM, actions: Actions): HTMLLIElement {
+/**
+ * A story on the Week board: title, project and due, ring, and its lines, tickable on the card. A plannable one plans, as a card's
+ * menu says. With `fold` (this week's board) the head starts with the chevron that folds the lines away, as To plan's cards have;
+ * `name` is the story's note name, the key of the view's `collapsed:` list, and `folded` is where the list has it.
+ */
+export function storyCard(card: StoryCardVM, actions: Actions, fold?: { name: string; folded: boolean }): HTMLLIElement {
   const state = card.column;   // a story's column is its state
   const status = state === 'todo' ? 'open' : state;
   const points = pointsOf(card.points);
-  const li = h('li', 'brain-tile brain-card brain-draggable', {
+  const peek = fold ? foldChevron(card, fold, actions) : null;
+  const lines = card.rows.length > 0 ? h('ul', fold ? 'brain-tasks brain-story-lines' : 'brain-tasks', {}, card.rows.map((row) => taskRow(row, actions))) : null;
+  if (fold?.folded) lines?.setAttribute('hidden', '');
+  const li = h('li', fold ? 'brain-tile brain-card brain-draggable brain-foldable' : 'brain-tile brain-card brain-draggable', {
     'data-state': state,
     tabindex: '0',
     'data-key': card.key,
     ...(card.plan ? { 'data-plannable': '' } : {}),
   }, [
-    cardHead(card.title, card.meta, cardSide(card.done, card.total, card.points), () => actions.open(card.path), actions),
-    card.rows.length > 0 ? h('ul', 'brain-tasks', {}, card.rows.map((row) => taskRow(row, actions))) : null,
+    cardHead(card.title, card.meta, cardSide(card.done, card.total, card.points), () => actions.open(card.path), actions, peek),
+    lines,
   ]);
+  if (fold) markKeyboardFocus(li, 'brain-keyboard-focus');   // the CSS shows the chevron for the keyboard: a click's focus is not that
   bindItem(li, {
     open: () => actions.open(card.path),
     toggle: () => void actions.setNoteStatus(card.path, status === 'done' ? 'open' : 'done'),
@@ -27,6 +36,16 @@ export function storyCard(card: StoryCardVM, actions: Actions): HTMLLIElement {
   });
   noNativeDrag(li);
   return li;
+}
+
+/**
+ * The chevron of a story card on the Week board: it folds the lines away while they show, and opens them while they are folded.
+ * It has a key of its own, so a redraw after a click on it gives the focus back to it, not to the card.
+ */
+function foldChevron(card: StoryCardVM, { name, folded }: { name: string; folded: boolean }, actions: Actions): HTMLButtonElement {
+  const peek = h('button', 'brain-peek', { 'aria-expanded': String(!folded), 'aria-label': foldLabel(card.title, !folded), 'data-key': `fold-story:${card.key}` }, [peekIcon()]);
+  peek.addEventListener('click', () => actions.foldStories([name], !folded));
+  return peek;
 }
 
 /** The story cards whose lines are open while planning, by key. A card drawn again keeps its lines open. */
@@ -134,10 +153,11 @@ function cardSide(done: number, total: number, points: number | undefined): HTML
   return h('div', 'brain-card-side', {}, [progress(done, total), points !== undefined ? pointsSpan(points) : null]);
 }
 
-function cardHead(title: string, meta: MetaPart[], aside: HTMLElement | null, onOpen: () => void, actions: Actions): HTMLElement {
+function cardHead(title: string, meta: MetaPart[], aside: HTMLElement | null, onOpen: () => void, actions: Actions, lead: HTMLElement | null = null): HTMLElement {
   const titleLink = link(title, 'brain-link brain-stretch', onOpen);
   titleLink.setAttribute('tabindex', '-1');   // the card is the focus stop
   return h('header', 'brain-card-head', {}, [
+    lead,
     h('div', undefined, {}, [
       h('h4', 'brain-card-title', {}, [titleLink]),
       meta.length > 0 ? metaLine(meta, actions) : null,

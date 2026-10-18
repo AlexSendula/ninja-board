@@ -629,6 +629,19 @@ p.brain-meta {
   inset-block: calc(var(--size-4-3) * -1) 0; inset-inline-start: calc(var(--size-4-3) * -1); width: calc(15% + var(--size-4-3));
 }
 .brain-peek[aria-expanded="false"]::after { inset-block-end: calc(var(--size-4-3) * -1); }   /* folded, the whole card's height; open, the head only, so the lines' checks stay free */
+/* The Week board's story cards: the chevron shows while the card is hovered or has the keyboard's focus in it, and always on touch. Its place stays (opacity, not display), so nothing moves when it shows */
+.brain-foldable { z-index: 0; }   /* its own stacking context: the hit area (2) and the lines (3) stay inside the card, so an open card's lines never draw over a row dragged across it */
+.brain-foldable > .brain-card-head > button.brain-peek { transition: opacity 0.15s var(--brain-ease); }
+.brain-foldable > .brain-card-head > .brain-peek::after { inset-block: 0; inset-inline-start: 0; width: calc(15% + var(--size-4-3)); }   /* its hit area is the card's left edge, since the head is not positioned here: the title's link keeps the whole card as its target */
+.brain-foldable > .brain-story-lines { z-index: 3; }   /* the lines stay above the hit area, so their checks are free while the card is open */
+@media (hover: hover) {
+  .brain-foldable > .brain-card-head > button.brain-peek { opacity: 0; }
+  .brain-foldable:hover > .brain-card-head > button.brain-peek,
+  .brain-foldable.brain-keyboard-focus > .brain-card-head > button.brain-peek { opacity: 1; }
+}
+@media (hover: none) {
+  .brain-foldable > .brain-card-head > button.brain-peek { opacity: 1; }
+}
 
 /* ---------- Drag: pointer events, lift and drop target ---------- */
 .brain-draggable {
@@ -693,7 +706,7 @@ p.brain-meta {
   font-size: inherit; cursor: pointer; transition: color 0.15s var(--brain-ease), background-color 0.15s var(--brain-ease);
 }
 .brain-step-icon { width: var(--size-4-4); height: var(--size-4-4); overflow: visible; }
-:is(.brain-step-icon, .brain-plan-icon, .brain-switch-icon, .brain-tally-icon, .brain-peek-icon, .brain-flag-icon, .brain-undo-icon) > * {
+:is(.brain-step-icon, .brain-plan-icon, .brain-switch-icon, .brain-tally-icon, .brain-peek-icon, .brain-flag-icon, .brain-undo-icon, .brain-fold-icon) > * {
   fill: none; stroke: currentColor; stroke-width: var(--brain-stroke); stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke;
 }
 @media (hover: hover) {
@@ -793,7 +806,7 @@ p.brain-meta {
   font: inherit; font-size: var(--font-ui-small); line-height: 1.333; font-weight: 600;
   white-space: nowrap; cursor: pointer; transition: background-color 0.15s var(--brain-ease), color 0.15s var(--brain-ease);
 }
-.brain-plan-icon, .brain-switch-icon { flex: none; width: var(--size-4-4); height: var(--size-4-4); overflow: visible; }
+.brain-plan-icon, .brain-switch-icon, .brain-fold-icon { flex: none; width: var(--size-4-4); height: var(--size-4-4); overflow: visible; }
 .brain-view button.brain-plan-toggle[aria-expanded="true"],
 .brain-view button.brain-plan-toggle[aria-expanded="true"]:is(:hover, :active, :focus, :focus-visible) { background-color: var(--brain-surface); color: var(--text-normal); }
 @media (hover: hover) {
@@ -808,6 +821,9 @@ p.brain-meta {
 }
 .brain-week-line > .brain-label { margin-inline-end: var(--size-4-2); }
 .brain-week-chips { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--size-4-2); min-width: 0; }
+.brain-week-line > button.brain-fold-all {   /* Collapse all / Expand all: a quiet icon button at the right end, its icon on the board's edge as Show all's text is; the row keeps a label's height */
+  flex: none; margin-inline-end: calc(var(--size-4-2) * -1); margin-block: calc((var(--brain-hit) - var(--font-ui-smaller) * 1.333) / -2);
+}
 .brain-view button.brain-week-chip,
 .brain-view button.brain-week-chip:is(:hover, :active, :focus, :focus-visible) {
   appearance: none; flex: none; display: inline-flex; align-items: center; gap: var(--size-4-2);
@@ -822,8 +838,9 @@ p.brain-meta {
 @media (hover: hover) {
   .brain-view button.brain-week-chip:hover { background-color: var(--background-modifier-hover); }
 }
-@container brain (max-width: 559px) {   /* the label takes its own line; the chips share the next */
-  .brain-week-line > .brain-label { flex-basis: 100%; }
+@container brain (max-width: 559px) {   /* the label and the fold button share a line; the chips take the next */
+  .brain-week-line > .brain-label { flex: 1 1 auto; }
+  .brain-week-chips { order: 1; flex-basis: 100%; }
 }
 @container brain (max-width: 359px) {   /* 320px: the chips give up a little padding and gap, so Coming up stays on one line */
   .brain-week-chips { gap: var(--size-4-1); }
@@ -1259,6 +1276,8 @@ p.brain-meta {
           <button class="brain-week-chip" data-week="44" aria-label="Week 44, 1 planned or due">Week 44<span>1</span></button>
           <button class="brain-week-chip brain-is-empty" data-week="45" aria-label="Week 45, nothing planned or due">Week 45<span>0</span></button>
         </div>
+        <!-- Collapse all folds every story card on the board behind its chevron; once all are folded it reads Expand all, with the detailed-list icon. Not drawn when the board has no stories -->
+        <button class="brain-quiet brain-fold-all" aria-label="Collapse all stories" title="Collapse all stories" data-key="fold-all"><svg class="brain-fold-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h.01M6 3.5h8.5M2.5 8h.01M6 8h8.5M2.5 12.5h.01M6 12.5h8.5"/></svg></button>
       </nav>
 
       <div class="brain-board brain-board-week" data-waiting="column">
@@ -1317,8 +1336,9 @@ p.brain-meta {
                 <p class="brain-meta"><a href="#" class="brain-link" draggable="false">Home</a><span data-when="plan">This week</span></p>
               </div>
             </li>
-            <li class="brain-tile brain-card brain-draggable" data-state="todo" tabindex="0" data-points="5">
+            <li class="brain-tile brain-card brain-draggable brain-foldable" data-state="todo" tabindex="0" data-points="5">
               <header class="brain-card-head">
+                <button class="brain-peek" aria-expanded="true" aria-label="Hide the lines of Order cabinets"><svg class="brain-peek-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"/></svg></button>
                 <div>
                   <h4 class="brain-card-title"><a href="#" class="brain-link brain-stretch" tabindex="-1" draggable="false">Order cabinets</a></h4>
                   <p class="brain-meta"><a href="#" class="brain-link" draggable="false">Renovate the kitchen</a><span data-when="plan">This week</span></p>
@@ -1328,7 +1348,7 @@ p.brain-meta {
                   <span class="brain-pts">5 pts</span>
                 </div>
               </header>
-              <ul class="brain-tasks">
+              <ul class="brain-tasks brain-story-lines">
                 <li class="brain-task" data-state="todo" tabindex="0">
                   <button class="brain-lead brain-check" role="checkbox" aria-checked="false" aria-label="Re-measure the corner under the sink"><svg class="brain-mark" viewBox="0 0 18 18" aria-hidden="true"><circle class="brain-mark-ring" cx="9" cy="9" r="8" pathLength="60"/><path class="brain-mark-half" d="M9 3a6 6 0 0 0 0 12z"/><path class="brain-mark-tick" d="M5 9.25l2.5 2.5L13 6.25"/><path class="brain-mark-dash" d="M5.5 9h7"/></svg></button>
                   <div class="brain-task-body"><a href="#" class="brain-task-text brain-link brain-stretch" tabindex="-1" draggable="false">Re-measure the corner under the sink</a></div>
@@ -1339,8 +1359,9 @@ p.brain-meta {
                 </li>
               </ul>
             </li>
-            <li class="brain-tile brain-card brain-draggable" data-state="todo" tabindex="0" data-points="1">
+            <li class="brain-tile brain-card brain-draggable brain-foldable" data-state="todo" tabindex="0" data-points="1">
               <header class="brain-card-head">
+                <button class="brain-peek" aria-expanded="true" aria-label="Hide the lines of Pick the sink tap"><svg class="brain-peek-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"/></svg></button>
                 <div>
                   <h4 class="brain-card-title"><a href="#" class="brain-link brain-stretch" tabindex="-1" draggable="false">Pick the sink tap</a></h4>
                   <p class="brain-meta"><a href="#" class="brain-link" draggable="false">Renovate the kitchen</a><span data-when="plan">This week</span></p>
@@ -1364,8 +1385,9 @@ p.brain-meta {
                 <p class="brain-meta"><a href="#" class="brain-link" draggable="false">Website for Sam</a><span data-when="plan">Planned today</span></p>
               </div>
             </li>
-            <li class="brain-tile brain-card brain-draggable" data-state="doing" tabindex="0" data-points="3">
+            <li class="brain-tile brain-card brain-draggable brain-foldable" data-state="doing" tabindex="0" data-points="3">
               <header class="brain-card-head">
+                <button class="brain-peek" aria-expanded="true" aria-label="Hide the lines of Choose hosting for Sam's site"><svg class="brain-peek-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"/></svg></button>
                 <div>
                   <h4 class="brain-card-title"><a href="#" class="brain-link brain-stretch" tabindex="-1" draggable="false">Choose hosting for Sam's site</a></h4>
                   <p class="brain-meta"><a href="#" class="brain-link" draggable="false">Website for Sam</a><span data-when="due">Due 20 Oct</span></p>
@@ -1375,7 +1397,7 @@ p.brain-meta {
                   <span class="brain-pts">3 pts</span>
                 </div>
               </header>
-              <ul class="brain-tasks">
+              <ul class="brain-tasks brain-story-lines">
                 <li class="brain-task" data-state="done" tabindex="0">
                   <button class="brain-lead brain-check" role="checkbox" aria-checked="true" aria-label="List three hosting options"><svg class="brain-mark" viewBox="0 0 18 18" aria-hidden="true"><circle class="brain-mark-ring" cx="9" cy="9" r="8" pathLength="60"/><path class="brain-mark-half" d="M9 3a6 6 0 0 0 0 12z"/><path class="brain-mark-tick" d="M5 9.25l2.5 2.5L13 6.25"/><path class="brain-mark-dash" d="M5.5 9h7"/></svg></button>
                   <div class="brain-task-body"><a href="#" class="brain-task-text brain-link brain-stretch" tabindex="-1" draggable="false">List three hosting options</a></div>
@@ -1421,8 +1443,9 @@ p.brain-meta {
         <section class="brain-col" data-states="done">
           <div class="brain-label-row"><h3 class="brain-label">Done</h3><span class="brain-count">3</span></div>
           <ul class="brain-col-items">
-            <li class="brain-tile brain-card brain-draggable" data-state="done" tabindex="0" data-points="3">
+            <li class="brain-tile brain-card brain-draggable brain-foldable" data-state="done" tabindex="0" data-points="3">
               <header class="brain-card-head">
+                <button class="brain-peek" aria-expanded="true" aria-label="Hide the lines of Measure the window frames"><svg class="brain-peek-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"/></svg></button>
                 <div>
                   <h4 class="brain-card-title"><a href="#" class="brain-link brain-stretch" tabindex="-1" draggable="false">Measure the window frames</a></h4>
                   <p class="brain-meta"><a href="#" class="brain-link" draggable="false">Renovate the kitchen</a><span>Done yesterday</span></p>
@@ -3070,6 +3093,25 @@ p.brain-meta {
       if (lines) lines.hidden = open;
     });
   }
+  // A story card's lines open or fold behind its chevron; a card with no lines has nothing to hide
+  function foldCard(card, open) {
+    const peek = $('.brain-peek', card), lines = $('.brain-story-lines', card);
+    peek.setAttribute('aria-expanded', open);
+    peek.setAttribute('aria-label', `${open ? 'Hide' : 'Show'} the lines of ${titleOf(card)}`);
+    if (lines) lines.hidden = !open;
+  }
+  // Collapse all reads Expand all, with the detailed-list icon, once every story card on the week's board is folded
+  const FOLD_ALL = {
+    collapse: ['Collapse all stories', '<path d="M2.5 3.5h.01M6 3.5h8.5M2.5 8h.01M6 8h8.5M2.5 12.5h.01M6 12.5h8.5"/>'],
+    expand: ['Expand all stories', '<rect x="1.75" y="1.75" width="4.5" height="4.5" rx="1"/><rect x="1.75" y="9.75" width="4.5" height="4.5" rx="1"/><path d="M9 2.5h5.5M9 5.5h5.5M9 10.5h5.5M9 13.5h5.5"/>'],
+  };
+  function syncFoldAll(from) {
+    const page = from.closest('.mock-week'), button = page?.querySelector('.brain-fold-all');   // a chevron in the list modal has no week page
+    if (!button) return;
+    const [label, shapes] = FOLD_ALL[$$('.brain-board .brain-foldable .brain-peek', page).every((p) => p.getAttribute('aria-expanded') === 'false') ? 'expand' : 'collapse'];
+    button.setAttribute('aria-label', label); button.title = label;
+    $('svg', button).innerHTML = shapes;
+  }
   const closePlanning = () => $$('.mock-week').forEach((page) => setPlanning(page, false));
   closePlanning();   // every week opens as a preview: its story cards whole
 
@@ -3324,6 +3366,7 @@ p.brain-meta {
       const card = lines.closest('.brain-card'), peek = $('.brain-peek', card);
       return { title: titleOf(card), hidden: lines.hidden, peek: peek && [peek.getAttribute('aria-expanded'), peek.getAttribute('aria-label')] };
     }),
+    boardFolds: $$('.brain-board .brain-foldable', page).filter((c) => $('.brain-peek', c)).map((c) => [titleOf(c), $('.brain-peek', c).getAttribute('aria-expanded') === 'true']),   // every board card, also one with no lines
     folds: $$('.brain-fold-toggle', page).map((b) => [b.getAttribute('aria-controls'), b.getAttribute('aria-expanded') === 'true']),
     scrolls: $$('.brain-scroll', page).map((s) => ({ whole: s.classList.contains('brain-is-whole'), top: s.scrollTop })),
   });
@@ -3337,6 +3380,9 @@ p.brain-meta {
       lines.hidden = s.hidden;
       if (peek && s.peek) { peek.setAttribute('aria-expanded', s.peek[0]); peek.setAttribute('aria-label', s.peek[1]); }
     });
+    const folded = new Map(v.boardFolds);   // the board's cards keep their fold; the Collapse all button follows
+    $$('.brain-board .brain-foldable', page).forEach((card) => { if (folded.has(titleOf(card)) && $('.brain-peek', card)) foldCard(card, folded.get(titleOf(card))); });
+    $$('.brain-fold-all', page).forEach(syncFoldAll);
     v.folds.forEach(([id, open]) => {
       const b = $(`.brain-fold-toggle[aria-controls="${id}"]`, page), region = document.getElementById(id);
       if (!b || !region) return;
@@ -3534,13 +3580,19 @@ p.brain-meta {
       document.getElementById(fold.getAttribute('aria-controls')).hidden = !open;
       $('.brain-fold-hint', fold).textContent = open ? 'Hide' : 'Show';
     }
-    // A story card's chevron folds its lines open in place (To plan's No date and the list modal)
+    // A story card's chevron folds its lines open in place (To plan's No date and the list modal, and the Week board's cards)
     const peek = e.target.closest('button.brain-peek');
     if (peek) {
-      const card = peek.closest('.brain-card'), open = peek.getAttribute('aria-expanded') !== 'true';
-      peek.setAttribute('aria-expanded', open);
-      $('.brain-story-lines', card).hidden = !open;
-      peek.setAttribute('aria-label', `${open ? 'Hide' : 'Show'} the lines of ${titleOf(card)}`);
+      const card = peek.closest('.brain-card');
+      foldCard(card, peek.getAttribute('aria-expanded') !== 'true');
+      syncFoldAll(card);
+    }
+    // The Week board's Collapse all / Expand all: every story card on this week's board folds, or opens
+    const foldAll = e.target.closest('button.brain-fold-all');
+    if (foldAll) {
+      const expand = foldAll.getAttribute('aria-label') === 'Expand all stories';
+      $$('.brain-board .brain-foldable', foldAll.closest('.mock-week')).forEach((card) => foldCard(card, expand));
+      syncFoldAll(foldAll);
     }
     // Waiting's switch: the board's view changes; Waiting stays its own column
     const waitingSwitch = e.target.closest('button.brain-switch');
@@ -3801,6 +3853,9 @@ p.brain-meta {
   // Keyboard focus in Waiting shows its switch at once, as the plugin marks it (src/ui/focus.ts)
   document.addEventListener('focusin', (e) => { const col = e.target.closest?.('[data-states~="waiting"]'); if (col) col.classList.toggle('brain-keyboard-focus', e.target.matches(':focus-visible')); });
   document.addEventListener('focusout', (e) => e.target.closest?.('[data-states~="waiting"]')?.classList.remove('brain-keyboard-focus'));
+  // The same for a Week board story card: keyboard focus in it shows its chevron
+  document.addEventListener('focusin', (e) => { const card = e.target.closest?.('.brain-foldable'); if (card) card.classList.toggle('brain-keyboard-focus', e.target.matches(':focus-visible')); });
+  document.addEventListener('focusout', (e) => e.target.closest?.('.brain-foldable')?.classList.remove('brain-keyboard-focus'));
   stage.addEventListener('keydown', (e) => {
     const item = e.target;
     if (!item.matches('[data-state][tabindex]')) return;

@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 17 October 2026 (Ninja Board v1.0.2)
+> Last updated: 18 October 2026 (Ninja Board v1.0.4)
 
 ## Overview
 
@@ -52,7 +52,7 @@ flowchart TB
     Acts --> Edits
     Acts --> Tasks
     Acts -->|vault and frontmatter writes| Cache
-    View -->|config.set: arrange, schedule| Bases
+    View -->|config.set: arrange, schedule, waiting, collapsed| Bases
     Preview --> Build
     Preview --> Render
     Preview --> Edits
@@ -99,7 +99,7 @@ sequenceDiagram
     Vault-->>UI: metadata cache changed, so the view redraws
 ```
 
-Arrangements and the Schedule's form are not written by `Actions` to the note directly. They go through the view's config, and Bases writes the dashboard note's base block.
+Arrangements, the Schedule's form, Waiting's view and the folded stories are not written by `Actions` to the note directly. They go through the view's config, and Bases writes the dashboard note's base block. A fold is not an undo step.
 
 Every write is also a step in the undo history. The pure history, `src/model/history.ts`, keeps the steps and their groups. `src/obsidian/undo.ts` binds it to the vault: each write records its before and after, and Undo restores a step through the same writers, only where the note or the view still holds what Ninja Board wrote.
 
@@ -142,22 +142,22 @@ A browser page that runs the same model and UI on `preview/sample.json`, generat
 ### Reading
 
 1. **Bases selects the notes.** The dashboard note's `base` block sets the filter, for example "not in `10 Archive`". Bases hands the view the selected files. Ninja Board ignores Bases' grouping and sorting and keeps its own order ([`README.md`](../README.md), Dashboard notes).
-2. **The snapshot is built.** [`snapshotFromFiles`](../src/obsidian/snapshot.ts) drops anything under `10 Archive/`, sorts by path, takes frontmatter from the metadata cache, and reads the file only when the cache lists a task in it. [`buildSnapshot`](../src/model/snapshot.ts) (line 11) parses the lines into `TaskLine`s, using Tasks' Dataview format ([`taskLine.ts`](../src/model/taskLine.ts)).
-3. **Extra reads, only where needed.** A past week reads its plan note, `08 Weeks/<year>/<YYYY-Www>.md`, for its record ([`readWeekPlan`](../src/obsidian/snapshot.ts)). The Guide reads no notes. It reads the Tasks plugin's saved settings for its setup check ([`readTasksSetup`](../src/obsidian/edits.ts), line 129).
-4. **The model builds a view model.** `DRAW` ([`view.ts`](../src/obsidian/view.ts), line 42) calls the builder for the view's type. It passes the snapshot, `today` and `now` (both from [`writes.ts`](../src/obsidian/writes.ts)), the `arrange:` lists, and the Schedule's form. The model never reads the clock.
-5. **The UI renders it.** The renderer builds the DOM from the view model and the `Actions` object. The view restores keyboard focus and the pager's focus after the redraw ([`focus.ts`](../src/ui/focus.ts)). Only the newest render draws, so a slow read cannot overwrite a newer one ([`view.ts`](../src/obsidian/view.ts), `render`, line 214).
+2. **The snapshot is built.** [`snapshotFromFiles`](../src/obsidian/snapshot.ts) drops anything under `10 Archive/`, sorts by path, takes frontmatter from the metadata cache, and reads the file only when the cache lists a task in it. [`buildSnapshot`](../src/model/snapshot.ts) (line 13) parses the lines into `TaskLine`s, using Tasks' Dataview format ([`taskLine.ts`](../src/model/taskLine.ts)).
+3. **Extra reads, only where needed.** A past week reads its plan note, `08 Weeks/<year>/<YYYY-Www>.md`, for its record ([`readWeekPlan`](../src/obsidian/snapshot.ts)). The Guide reads no notes. It reads the Tasks plugin's saved settings for its setup check ([`readTasksSetup`](../src/obsidian/edits.ts), line 151).
+4. **The model builds a view model.** `DRAW` ([`view.ts`](../src/obsidian/view.ts), line 48) calls the builder for the view's type. It passes the snapshot, `today` and `now` (both from [`writes.ts`](../src/obsidian/writes.ts)), the `arrange:` lists, the Schedule's form, Waiting's view and the folded stories (`collapsed:`). The model never reads the clock.
+5. **The UI renders it.** The renderer builds the DOM from the view model and the `Actions` object. The view restores keyboard focus and the pager's focus after the redraw ([`focus.ts`](../src/ui/focus.ts)). Only the newest render draws, so a slow read cannot overwrite a newer one ([`view.ts`](../src/obsidian/view.ts), `render`, line 312).
 
 ### Changing
 
 6. **An interaction calls one `Actions` method.** For example, `plan(target, to)` for a planner pick, or `setState` for a state pick.
-7. **The write is one small edit.** [`obsidianActions`](../src/obsidian/actions.ts) (line 15) calls [`writes.ts`](../src/obsidian/writes.ts).
-   - Task lines: `vault.process` replaces the line only if it still reads as it did when drawn ([`replaceLineIfUnchanged`](../src/obsidian/edits.ts), line 42). Otherwise the write is refused and a Notice says the task changed. Ticking done goes through Tasks' toggle ([`toggleViaTasks`](../src/obsidian/writes.ts), line 26).
+7. **The write is one small edit.** [`obsidianActions`](../src/obsidian/actions.ts) (line 22) calls [`writes.ts`](../src/obsidian/writes.ts).
+   - Task lines: `vault.process` replaces the line only if it still reads as it did when drawn ([`replaceLineIfUnchanged`](../src/obsidian/edits.ts), line 48). Otherwise the write is refused and a Notice says the task changed. Ticking done goes through Tasks' toggle ([`toggleViaTasks`](../src/obsidian/writes.ts), line 33).
    - Task notes and projects: `fileManager.processFrontMatter`, with the pure rules from [`src/model/plan.ts`](../src/model/plan.ts) and [`edits.ts`](../src/obsidian/edits.ts).
    - Story points: `points` writes only a story. [`isStoryFile`](../src/obsidian/snapshot.ts) decides it from the note and the folders above it, reading frontmatter from the metadata cache. It never lists the vault's files.
-   - Arrangements and the Schedule's form: the view's config, which Bases writes into the dashboard note.
-8. **The vault reports back.** A metadata cache change to a shown note, or Bases' data update, calls `rerender`. That runs 150 ms after the last call ([`view.ts`](../src/obsidian/view.ts), line 74). The view also redraws at midnight, when a Week strip changes, and every minute to move the now-line ([`view.ts`](../src/obsidian/view.ts), lines 164 to 175).
+   - Arrangements, the Schedule's form, Waiting's view and the folded stories: the view's config, which Bases writes into the dashboard note.
+8. **The vault reports back.** A metadata cache change to a shown note, or Bases' data update, calls `rerender`. That runs 150 ms after the last call ([`view.ts`](../src/obsidian/view.ts), line 95). The view also redraws at midnight, when a Week strip changes, and every minute to move the now-line ([`view.ts`](../src/obsidian/view.ts), lines 263 to 268).
 
-Session state lives in memory and ends when the view closes: the week shown, the Schedule's form when the config could not hold it, and the day of the last render ([`view.ts`](../src/obsidian/view.ts), lines 61 to 72). A view always opens on this week.
+Session state lives in memory and ends when the view closes: the week shown, the Schedule's form, Waiting's view and the folded stories where the config could not hold them, and the day of the last render ([`view.ts`](../src/obsidian/view.ts), lines 77 to 90). A view always opens on this week.
 
 ## Modules by layer
 
@@ -174,7 +174,7 @@ Session state lives in memory and ends when the view closes: the week shown, the
 | `src/model/week.ts`, `upcoming.ts`, `src/model/past.ts`, `record.ts` | The Week view: this week, the upcoming weeks (Coming up, To plan), and past weeks from the record or the notes. `weekPlanPath` names the plan note. |
 | `src/model/projects.ts`, `src/model/backlog.ts` | The Projects board, and Backlog & Waiting. |
 | `src/model/plan.ts` | Planning and deadline rules: `planDropsDue`, `applyNotePlan`, `applyNoteDue`, and the planner card's day and week logic (`pickDay`, `pickWeek`, `pickNoDate`). |
-| `arrange.ts` | Reads and merges `arrange:`, builds item keys (`lineKey`), and orders items (`arrange`, `placeItem`). Reads `schedule:`. |
+| `arrange.ts` | Reads and merges `arrange:`, builds item keys (`lineKey`), and orders items (`arrange`, `placeItem`). Reads `schedule:`, `waiting:` and `collapsed:` (`readCollapsed`), and changes the folded list (`setFolded`). |
 | `src/model/guide.ts` | The Guide's setup check, from the Tasks settings Ninja Board could read. |
 | `src/model/history.ts`, `undoLabel.ts` | The undo history, with no Obsidian in it: the steps, their groups and the queue, and the names a step is shown by. |
 | `src/model/points.ts` | Story points: the values, the week's target (`targetOf`), a story's points edit (`applyNotePoints`) and a week's points (`pointsOfWeek`). |
@@ -187,7 +187,7 @@ Session state lives in memory and ends when the view closes: the week shown, the
 | `src/ui/actions.ts` | The `Actions` interface, and the `ListSpec` and `DaySpec` shapes. |
 | `src/ui/today.ts`, `src/ui/week.ts`, `src/ui/projects.ts`, `src/ui/backlog.ts`, `src/ui/guide.ts` | One renderer per view. |
 | `strip.ts`, `schedule.ts`, `day.ts` | The Week strip, Today's Schedule (Large and Compact, with `tickNow`), and a day's full timeline. |
-| `task.ts`, `card.ts`, `marks.ts` | Task rows and their item menu, story and project cards, and the marks and rings. |
+| `task.ts`, `card.ts`, `marks.ts` | Task rows and their item menu, story and project cards (a story card's chevron folds its lines), and the marks, rings and the Collapse all icons (`foldAllIcon`). |
 | `popover.ts` | The cards: planner, states, story and project (`openCard`, `closeCard`). |
 | `src/ui/plan.ts` | The To plan and Planned or due lists on an upcoming week, and their drops. |
 | `src/ui/past.ts` | The read-only board of a past week. |
@@ -200,7 +200,7 @@ Session state lives in memory and ends when the view closes: the week shown, the
 
 | Module | Role |
 |---|---|
-| `view.ts` | `BrainView`, a `BasesView`. One class serves all five view types. It draws, re-renders, and owns the view config (`arrange`, `schedule`). |
+| `view.ts` | `BrainView`, a `BasesView`. One class serves all five view types. It draws, re-renders, and owns the view config (`arrange`, `schedule`, `waiting`, `collapsed`). |
 | `src/obsidian/snapshot.ts` | Reads the selected notes, and a past week's plan note. `isStoryFile` is the story check: it reads one note's folders, not the vault. |
 | `src/obsidian/actions.ts` | `obsidianActions`: the `Actions` the views call. A failed write becomes a Notice, never an unhandled error. |
 | `writes.ts` | `today()` and `now()`, the line and frontmatter writes, and the Tasks toggle. |
@@ -222,6 +222,7 @@ Session state lives in memory and ends when the view closes: the week shown, the
 | Ticking a task goes through the Tasks plugin's toggle. | "One completion engine, wherever you tick from" ([plugin design, section 2](design/2026-10-13-brain-plugin-design.md)). For dropped, Ninja Board writes the cancelled date itself. | Not recorded. |
 | The plugin and the agent make the same edits, with the same result. | "Anything you can do in the plugin, the agent can do with the same result" ([implementation spec, section 1](https://alexsendula.github.io/second-brain/implementation/)). Both sides are pinned by `test/edit-cases.json`. | Not recorded. |
 | Arrangement is saved in the dashboard note's base block, as `arrange:`. Nothing is written to task notes. | Layout only: "a position means just arrangement, not priority" ([round 2, section 1](design/2026-10-14-brain-plugin-round-2-design.md)). | Writing the position into task notes, which round 2 ruled out ([round 2, section 3](design/2026-10-14-brain-plugin-round-2-design.md)). |
+| Folds are saved in the dashboard note's base block, as `collapsed:`, and are not undo steps. | A fold is layout, saved as an arrangement is, and it changes what the board shows, not any note. Folds are not steps of the undo history ([plugin design, section 8](design/2026-10-13-brain-plugin-design.md#8-folding-stories-on-the-week-board-decided-2026-10-18)). | Not recorded. |
 | The order of an arrangement has no meaning beyond layout. | Only the board reads it. Today, Projects' Next and the agent do not ([round 2, section 3](design/2026-10-14-brain-plugin-round-2-design.md)). | A priority order, which the author did not ask for. |
 | Today and the time of day are passed in. The model never reads the clock. | Keeps the model and the UI pure and testable. The preview fixes the clock. The code says so at [`clock.ts`](../src/ui/clock.ts) and [`view.ts`](../src/obsidian/view.ts) (line 32). | Not recorded. |
 | Ninja Board does little date math: filtering and words, plus the one next-date step a repeating task note takes when an occurrence is completed. Carry-over and other repeats belong elsewhere. | The [plugin README](../README.md) section "Ninja Board does little date math": its one step is a repeating task note's next due date, when an occurrence is completed. | Ninja Board computing other dates, such as carry-over or task-line repeats, which the README rules out. |

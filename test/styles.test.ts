@@ -202,3 +202,31 @@ test('the Undo button is never taken out of the layout: styles.css hides it by v
   for (const rule of rules) assert.doesNotMatch(rule, /display\s*:\s*none/, rule);
   assert.match(STYLES, /\.brain-view button\.brain-undo:disabled \{ visibility: hidden; \}/);
 });
+
+test('the story chevron shows on hover or keyboard focus on the Week board\'s story cards only, always on touch, and keeps its place', () => {
+  // Every rule that sets its opacity is scoped by .brain-foldable, the class only the board's story cards carry: the planner's and Backlog's chevrons are untouched.
+  const rules = STYLES.match(/[^{}]*brain-peek[^{}]*\{[^{}]*opacity[^{}]*\}/g) ?? [];
+  assert.ok(rules.length >= 4, `only ${rules.length} rules set the chevron's opacity`);
+  for (const rule of rules) {
+    assert.match(rule, /\.brain-foldable/, rule);
+    assert.doesNotMatch(rule, /display\s*:|visibility\s*:/, rule);   // opacity, so its place stays and nothing shifts when it shows
+  }
+  assert.match(STYLES, /@media \(hover: hover\) \{\n  \.brain-view \.brain-foldable > \.brain-card-head > button\.brain-peek \{ opacity: 0; \}\n  \.brain-view \.brain-foldable:hover > \.brain-card-head > button\.brain-peek,\n  \.brain-view \.brain-foldable\.brain-keyboard-focus > \.brain-card-head > button\.brain-peek \{ opacity: 1; \}\n\}/);
+  assert.match(STYLES, /@media \(hover: none\) \{\n  \.brain-view \.brain-foldable > \.brain-card-head > button\.brain-peek \{ opacity: 1; \}\n\}/);
+  // The mockup has the same rules (the first test compares the whole block).
+  assert.match(MOCKUP, /\.brain-foldable:hover > \.brain-card-head > button\.brain-peek,\n  \.brain-foldable\.brain-keyboard-focus > \.brain-card-head > button\.brain-peek \{ opacity: 1; \}/);
+});
+
+test('each foldable card is its own stacking context, so its open lines never stack above a dragged item', () => {
+  // Without it the lines (z-index 3) join the view's context and draw over a lifted or floating row (z-index 2) dragged across an open card.
+  assert.match(STYLES, /\.brain-view \.brain-foldable \{ z-index: 0; \}/);
+  assert.match(MOCKUP, /\n\.brain-foldable \{ z-index: 0; \}/);
+});
+
+test('the Collapse all icons take the shared icon stroke and size, and the button is a quiet one that sits at the end of Coming up', () => {
+  assert.match(STYLES, /\.brain-view :is\([^)]*\.brain-fold-icon\) > \* \{\s*fill: none; stroke: currentColor;/);
+  assert.match(STYLES, /\.brain-view \.brain-plan-icon, \.brain-view \.brain-switch-icon, \.brain-view \.brain-fold-icon \{ flex: none; width: var\(--size-4-4\); height: var\(--size-4-4\);/);
+  assert.match(STYLES, /\.brain-view \.brain-week-line > button\.brain-fold-all \{[^}]*flex: none;/);
+  // Below 560px the button shares the label's line, so the chips keep a line to themselves: Coming up stays three chips wide at 320px.
+  assert.match(STYLES, /@container brain \(max-width: 559px\) \{[^}]*\.brain-week-line > \.brain-label \{ flex: 1 1 auto; \}\s*\.brain-view \.brain-week-chips \{ order: 1; flex-basis: 100%; \}/);
+});

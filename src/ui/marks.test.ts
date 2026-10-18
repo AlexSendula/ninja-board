@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import '../../test/ui.ts';
 import { h } from './dom.ts';
-import { checkMark, planIcon, progress, projectIcon, repeatMark, ring, stepIcon } from './marks.ts';
+import { checkMark, foldAllIcon, planIcon, progress, projectIcon, repeatMark, ring, stepIcon } from './marks.ts';
 
 test('h builds an element with classes, attributes and children, and skips null', () => {
   const li = h('li', 'brain-task brain-draggable', { 'data-state': 'todo', tabindex: '0' }, ['Clean the gutters', null, h('span')]);
@@ -123,4 +123,18 @@ test('projectIcon: one shape per status, in the 18px box, hidden from screen rea
   });
   assert.deepEqual(shapes, [1, 2, 1, 2, 2]);
   assert.equal(projectIcon('someday').children[0].getAttribute('transform'), 'translate(0 .6) scale(.75)');
+});
+
+test('foldAllIcon: Collapse all is a compact list (a dot and a short line, three times); Expand all is a detailed list (two squares, two lines each)', () => {
+  const shapes = (name: 'collapse' | 'expand') => {
+    const icon = foldAllIcon(name);
+    assert.deepEqual([icon.getAttribute('class'), icon.getAttribute('viewBox'), icon.getAttribute('aria-hidden')], ['brain-fold-icon', '0 0 16 16', 'true']);
+    return [...icon.children].map((part) => part.localName);
+  };
+  assert.deepEqual(shapes('collapse'), ['path']);
+  const dotsAndLines = foldAllIcon('collapse').querySelector('path')?.getAttribute('d')?.match(/M[\d. ]+h[\d.]+/g);
+  assert.deepEqual(dotsAndLines?.map((part) => part.split('h')[1]), ['.01', '8.5', '.01', '8.5', '.01', '8.5']);
+  assert.deepEqual(shapes('expand'), ['rect', 'rect', 'path']);
+  const lines = foldAllIcon('expand').querySelector('path')?.getAttribute('d')?.match(/M[\d. ]+h[\d.]+/g);
+  assert.equal(lines?.length, 4);
 });

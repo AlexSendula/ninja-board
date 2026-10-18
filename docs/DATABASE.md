@@ -1,12 +1,12 @@
 # Database
 
-> Last updated: 16 October 2026
+> Last updated: 18 October 2026
 
 ## Overview
 
 Ninja Board has no database. The vault's notes are the data. Ninja Board reads each note's frontmatter from Obsidian's metadata cache, and the text of its task lines, draws the views from them, and keeps nothing between draws. Every change it makes is one small edit to one note or one line.
 
-The only state Ninja Board saves is layout: a board's order and the Schedule's form. Both live in the dashboard note's `base` block (see [Dashboard notes](#dashboard-notes)).
+The only state Ninja Board saves is layout: a board's order, the Schedule's form, Waiting's view and the stories folded on the Week board. All of them live in the dashboard note's `base` block (see [Dashboard notes](#dashboard-notes)).
 
 The note format is set by the implementation spec. Its [reference format](https://alexsendula.github.io/second-brain/implementation/) (section 2) defines the fields, the value formats and the task-line format. The **Edits** table in the same section defines every change Ninja Board may make. This page says what Ninja Board reads and writes as built in v0.2.0.
 
@@ -19,7 +19,7 @@ flowchart LR
     views -->|tick, state, plan, deadline| edit[One edit]
     edit -->|vault.process: one task line| notes
     edit -->|processFrontMatter: one note| notes
-    views -->|arrange, schedule, waiting| base[(Dashboard base block)]
+    views -->|arrange, schedule, waiting, collapsed| base[(Dashboard base block)]
 ```
 
 The snapshot is built per draw from the notes Bases selected ([obsidian/snapshot.ts](../src/obsidian/snapshot.ts)). Notes under `10 Archive/` are dropped there and again in [model/snapshot.ts](../src/model/snapshot.ts).
@@ -167,10 +167,11 @@ The record is specified in the [round-2 design, section 5](design/2026-10-14-bra
 | `views[].type` | Each view | `ninja-board-today`, `ninja-board-week`, `ninja-board-projects`, `ninja-board-backlog` or `ninja-board-guide` | Bases, and Ninja Board's registration ([main.ts](../src/main.ts), `VIEWS`) |
 | `views[].name` | Each view | The name in the view picker | Bases |
 | `views[].arrange` | The Week and Projects notes | A map from column to a list of item keys. Week: `todo`, `doing`, `waiting`. Projects: `active`, `paused`, `someday`. | [arrange.ts](../src/model/arrange.ts), `readArrangement` |
+| `views[].collapsed` | The Week note | A list of story names: the stories folded on this week's board, each by its note's name, listed once. Absent, or anything that is not a list, means none. A name stays listed after its story leaves the week. | [arrange.ts](../src/model/arrange.ts), `readCollapsed` |
 | `views[].schedule` | The Today note | `compact`. Absent, or any other value, means large. | [arrange.ts](../src/model/arrange.ts), `readScheduleView` |
 | `views[].waiting` | The Week note | `group`. Absent, or any other value, means the column view. | [arrange.ts](../src/model/arrange.ts), `waitingViewOf` |
 
-An example from the README, for the Week board:
+An example for the Week board:
 
 ```yaml
 views:
@@ -178,6 +179,7 @@ views:
     name: Week
     arrange:
       todo: [Order cabinets, "Home › Clean the gutters"]
+    collapsed: [Order cabinets]
 ```
 
 - **Item keys.** A card, or a row that is a task note, is keyed by its note's name. A line is keyed `<note name> › <text as shown>`, where the separator is U+203A with a space either side ([arrange.ts](../src/model/arrange.ts), `ARRANGE_SEPARATOR`, `lineKey`). The text has its fields, link brackets and tags removed.

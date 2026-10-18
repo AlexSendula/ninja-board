@@ -75,6 +75,7 @@ export function recorder() {
     arrange(lists) { calls.push(['arrange', lists]); },
     scheduleView(view) { calls.push(['scheduleView', view]); },
     waitingView(view) { calls.push(['waitingView', view]); },
+    foldStories(names, folded) { calls.push(['foldStories', names, folded]); },
     showWeek(start) { calls.push(['showWeek', start]); },
     showDay(spec) { calls.push(['showDay', spec.title, spec.events.map((e) => e.title), spec.now]); },
     // A group is one undo step in the plugin; here its writes are the calls they were, so it records nothing of its own.

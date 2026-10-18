@@ -1,6 +1,6 @@
 # Plugin API reference
 
-> Last updated: 17 October 2026 (Ninja Board v1.0.1)
+> Last updated: 18 October 2026 (Ninja Board v1.0.4)
 
 Ninja Board has no network API. Its public surface is:
 
@@ -66,6 +66,7 @@ Ninja Board reads these from the view's entry in the `base` block (`this.config.
 | `arrange` | `ninja-board-week`, `ninja-board-projects` | A map from column to a list of keys. Week: `todo`, `doing`, `waiting`. Projects: `active`, `paused`, `someday`. | None: the normal order | A card's key, or a task-note row's, is its note's name. A task-line row's key is `<note name> › <text as shown>`, with U+203A and a space either side ([`lineKey`](../src/model/arrange.ts)). Listed items come first, in that order. Unknown keys are ignored. Done is never arranged. Anything broken reads as no arrangement ([`readArrangement`](../src/model/arrange.ts)). |
 | `schedule` | `ninja-board-today` | `compact`, or anything else for large | `large` | Set by the Schedule's switch. Other values read as large ([`readScheduleView`](../src/model/arrange.ts)). |
 | `waiting` | `ninja-board-week` | `group`, or anything else for the column view | `column` | Set by the Waiting switch. Other values read as the column ([`waitingViewOf`](../src/model/arrange.ts)). |
+| `collapsed` | `ninja-board-week` | A list of story names: the stories folded on this week's board, each by its note's name. Anything that is not a list reads as none. | None: no story is folded | Set by a story's chevron, and by Collapse all or Expand all, through `foldStories`. Within the list, a number reads as text, anything else is dropped, and a name is listed once ([`readCollapsed`](../src/model/arrange.ts)). Never pruned: a name stays after its story leaves the week, so the story is still folded when it comes back. Where the config can't be written (an embed, a hover or a canvas), the fold lasts for the session, and a Notice says so. |
 
 ```yaml
 views:
@@ -74,6 +75,7 @@ views:
     arrange:
       todo: [Order cabinets, "Home › Clean the gutters"]
       doing: ["Choose hosting for Sam's site"]
+    collapsed: [Order cabinets]
 ```
 
 ```yaml
@@ -91,7 +93,7 @@ Ninja Board reads the vault's config note, `99 System/config.md`, for one value:
 
 Source: [`src/ui/actions.ts`](../src/ui/actions.ts). The views call these and nothing else in the outside world.
 
-- In Obsidian, [`obsidianActions`](../src/obsidian/actions.ts) implements them. `showWeek`, `arrange`, `scheduleView`, `waitingView` and `showDay` come from the view.
+- In Obsidian, [`obsidianActions`](../src/obsidian/actions.ts) implements them. `showWeek`, `arrange`, `scheduleView`, `waitingView`, `foldStories` and `showDay` come from the view.
 - In the browser preview, [`memoryWrites.ts`](../preview/memoryWrites.ts) implements the write methods in memory.
 
 | Method | Arguments | Returns | What it does |
@@ -105,6 +107,7 @@ Source: [`src/ui/actions.ts`](../src/ui/actions.ts). The views call these and no
 | `arrange` | `lists: Arrangement` | `void` | Saves the given columns' lists in the view's `arrange:`. Other columns are kept. |
 | `scheduleView` | `view: ScheduleView` | `void` | Saves `schedule:` on the Today view. |
 | `waitingView` | `view: WaitingView` | `void` | Saves `waiting:` on the Week view. |
+| `foldStories` | `names: string[]`, `folded: boolean` | `void` | Folds (`true`) or opens (`false`) the lines of these stories on the Week board, by note name. Saved in the view's `collapsed:`, and not an undo step. Where the config can't hold it, the fold lasts for the session. |
 | `showWeek` | `start: string` | `void` | Week view: shows the week starting on this Monday. Session only; the view opens on this week again. |
 | `showDay` | `spec: DaySpec` | `void` | Opens the day modal: one day's full timeline. |
 | `showAll` | `spec: ListSpec` | `ListHandle` | Opens the list modal, for Show all. |
@@ -113,7 +116,7 @@ Source: [`src/ui/actions.ts`](../src/ui/actions.ts). The views call these and no
 | `undo` | none | `void` | Undoes the newest Ninja Board step. Cmd/Ctrl+Z in a Ninja Board view does the same. |
 | `undoLabel` | none | `string \| undefined` | What the newest step is called, as the Undo button names it; `undefined` when there is nothing to undo. |
 
-A `Promise` resolves to the target as it now stands. It resolves to `null` when no target stands for the task: the vault refused the write, or Tasks answered a recurrence with two lines, so no single line is the task any more ([`ui/actions.ts`](../src/ui/actions.ts), lines 6 to 10).
+A `Promise` resolves to the target as it now stands. It resolves to `null` when no target stands for the task: the vault refused the write, or Tasks answered a recurrence with two lines, so no single line is the task any more ([`ui/actions.ts`](../src/ui/actions.ts), lines 9 to 13).
 
 ### Repeating task notes
 
@@ -139,7 +142,7 @@ The repeats Ninja Board reads are `every <n> day`, `week`, `month` or `year` (wi
 
 ## Failure behaviour
 
-A failed write never rejects. Each async action catches its own error, shows a Notice, and resolves to `null`, or to nothing for the `void` ones ([`saved`](../src/obsidian/actions.ts), line 66).
+A failed write never rejects. Each async action catches its own error, shows a Notice, and resolves to `null`, or to nothing for the `void` ones ([`saved`](../src/obsidian/actions.ts), line 90).
 
 | Situation | Notice |
 |---|---|
@@ -152,6 +155,8 @@ A failed write never rejects. Each async action catches its own error, shows a N
 | A repeating note's completion is refused | "Can't complete this repeating note: its repeat or its due date isn't one this plugin knows". Nothing is written, and `setState` resolves to `null`. |
 | An arrangement, in an embed, a hover or a canvas | "Open the dashboard note itself to arrange this board". Nothing is saved. |
 | The Schedule's form, in an embed, a hover or a canvas | "Open the dashboard note itself to keep the Schedule view". The choice lasts for the session. |
+| A fold, in an embed, a hover or a canvas | "Open the dashboard note itself to keep stories folded". The fold lasts for the session. Shown once per view. |
+| A fold's save throws | "Couldn't save the folded stories". The fold lasts for the session. Shown once per view. |
 | Opening a note throws | "Ninja Board couldn't open that note" |
 
 ## Edit contract shared with the agent

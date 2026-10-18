@@ -101,6 +101,23 @@ export function peekIcon(): SVGSVGElement {
   return svg('svg', { class: 'brain-peek-icon', viewBox: '0 0 16 16', 'aria-hidden': 'true' }, [svg('path', { d: 'M6 3.5l4.5 4.5L6 12.5' })]);
 }
 
+/**
+ * Collapse all's and Expand all's icon, 16px. Collapse all is a compact list: three short lines, each with a dot before it. Expand
+ * all is a detailed list: two small squares, each with two lines beside it. The dots are zero-length strokes with round caps.
+ * The button carries the label.
+ */
+export function foldAllIcon(name: 'collapse' | 'expand'): SVGSVGElement {
+  const shapes: Record<'collapse' | 'expand', SVGElement[]> = {
+    collapse: [svg('path', { d: 'M2.5 3.5h.01M6 3.5h8.5M2.5 8h.01M6 8h8.5M2.5 12.5h.01M6 12.5h8.5' })],
+    expand: [
+      svg('rect', { x: '1.75', y: '1.75', width: '4.5', height: '4.5', rx: '1' }),
+      svg('rect', { x: '1.75', y: '9.75', width: '4.5', height: '4.5', rx: '1' }),
+      svg('path', { d: 'M9 2.5h5.5M9 5.5h5.5M9 10.5h5.5M9 13.5h5.5' }),
+    ],
+  };
+  return svg('svg', { class: 'brain-fold-icon', viewBox: '0 0 16 16', 'aria-hidden': 'true' }, shapes[name]);
+}
+
 /** A checklist, 16px. Beside the tasks figure it is an image with its words; in the planning header its count carries them. */
 export function tallyIcon(label?: string): SVGSVGElement {
   const words: Record<string, string> = label === undefined ? { 'aria-hidden': 'true' } : { role: 'img', 'aria-label': label };
