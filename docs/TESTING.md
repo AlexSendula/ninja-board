@@ -1,12 +1,12 @@
 # Testing
 
-> Last updated: 17 October 2026 (Ninja Board v1.0.2)
+> Last updated: 19 October 2026 (Ninja Board v1.1.0)
 
 ## Overview
 
-From the repository root, `npm test` runs 1158 tests from 90 test files. All 1158 pass. That is the count on 17 October 2026, with Node v24.14.0, in a few seconds. The number changes as tests are added, so run `npm test` for the current count. To run one file, pass its path: `node --test src/model/plan.test.ts` (69 tests at the time of writing). A file that imports `obsidian` needs the hook the script loads first: `node --import ./test/obsidian-hook.mjs --test src/obsidian/writes.test.ts`.
+From the repository root, `npm test` runs 1268 tests from 97 test files. All 1268 pass. That is the count on 19 October 2026, with Node v24.14.0, in a few seconds. The number changes as tests are added, so run `npm test` for the current count. To run one file, pass its path: `node --test src/model/plan.test.ts` (69 tests at the time of writing). A file that imports `obsidian` needs the hook the script loads first: `node --import ./test/obsidian-hook.mjs --test src/obsidian/writes.test.ts`.
 
-`npm run typecheck` is separate, and it also covers the tests. It passed on 17 October 2026 too.
+`npm run typecheck` is separate, and it also covers the tests. It passed on 19 October 2026 too.
 
 ## The runner
 
@@ -35,7 +35,7 @@ From the repository root, `npm test` runs 1158 tests from 90 test files. All 115
 | [`test/sandbox.test.ts`](../test/sandbox.test.ts) | [`scripts/sandbox.mjs`](../scripts/sandbox.mjs), in temporary folders only. | Runs the script with a temporary HOME and vault. It also runs `npm run build`, which rewrites `main.js`. |
 | [`test/smoke.test.ts`](../test/smoke.test.ts) | That the `.ts` sources load under type stripping. | Node. |
 
-**What is not tested automatically.** The files in `src/obsidian/` that import values from `obsidian` load under Node through [`test/obsidian-stub.ts`](../test/obsidian-stub.ts), which [`test/obsidian-hook.mjs`](../test/obsidian-hook.mjs) puts in place of the package. The stub holds only what the tested code uses at run time (`Notice`, `Modal`, `MarkdownView`, `Platform`, `BasesView`, `debounce`, `normalizePath`, `TFile`, `TFolder`). `writes.ts` and `view.ts` have tests. `src/obsidian/actions.ts` has tests too. The `ListModal` and `DayModal` classes, `main.ts` and `src/obsidian/guide.ts` have none. Their logic runs through the pure parts they call, and through `preview/memoryWrites.ts` in the preview tests. Obsidian's own behaviour (Bases, Tasks' completion, the metadata cache) is checked by hand in the sandbox vault. The commits record this as "author's hand check". The browser preview and `checkView()` are checked by hand too. The agent's `brain` commands are not in this repository (see [Architecture](./ARCHITECTURE.md)).
+**What is not tested automatically.** The files in `src/obsidian/`, and `src/main.ts`, that import values from `obsidian` load under Node through [`test/obsidian-stub.ts`](../test/obsidian-stub.ts), which [`test/obsidian-hook.mjs`](../test/obsidian-hook.mjs) puts in place of the package. The stub holds only what the tested code uses at run time (`Notice`, `Modal`, `MarkdownView`, `Platform`, `Plugin`, `BasesView`, `debounce`, `normalizePath`, `parseYaml`, `stringifyYaml`, `TAbstractFile`, `TFile`, `TFolder`). `writes.ts` and `view.ts` have tests. `src/obsidian/actions.ts` has tests too. `main.ts` has a test of its registrations, in `src/main.test.ts`. The `ListModal` and `DayModal` classes and `src/obsidian/guide.ts` have none. Their logic runs through the pure parts they call, and through `preview/memoryWrites.ts` in the preview tests. Obsidian's own behaviour (Bases, Tasks' completion, the metadata cache) is checked by hand in the sandbox vault. The commits record this as "author's hand check". The browser preview and `checkView()` are checked by hand too. The agent's `brain` commands are not in this repository (see [Architecture](./ARCHITECTURE.md)).
 
 ## The sample vault is the test data
 
@@ -53,12 +53,13 @@ This file is the shared examples for every edit Ninja Board makes. The agent's `
 | Group | Cases | The edit under test | Function |
 |---|---|---|---|
 | `lines` | 12 | A state change on a task line | `lineWithState` |
-| `notes` | 10 | A status in a note's frontmatter | `applyNoteStatus` |
+| `notes` | 11 | A status in a note's frontmatter | `applyNoteStatus` |
 | `plans` | 43 | Planning a task line: on a day, for a week, or no date yet | `lineWithPlan` |
 | `notePlans` | 37 | Planning a task note | `applyNotePlan` |
 | `dues` | 9 | A deadline on a task line | `lineWithDue` |
 | `noteDues` | 4 | A deadline on a task note | `applyNoteDue` |
 | `notePoints` | 9 | Setting or removing a story's points | `applyNotePoints` |
+| `noteCompletes` | 14 | Completing a repeating task note: its next due date and its Log line, or a refusal | `applyNoteComplete` |
 
 - The top-level `today` is 14 October 2026. Cases that depend on the day read it. A case in `plans` may carry its own `today`.
 - A case has a `name`, its input (`raw` for a line, `before` for a note's frontmatter), then `to` or `date`, then `expect`. `to` is a state for `lines` and `notes`, and a plan for `plans` and `notePlans`: `{ "day": … }`, `{ "week": … }`, or `null` for no date yet. `date` is for the deadline groups, and `null` removes the deadline.
@@ -119,7 +120,7 @@ It works like this ([`preview/preview.ts`](../preview/preview.ts), [`preview/tok
 
 ## Counts
 
-- **Tests:** 1158, from 90 files, all passing (17 October 2026).
+- **Tests:** 1268, from 97 files, all passing (19 October 2026).
 - **Typecheck:** passes.
 - **Sample notes:** 46. [`test/sample.test.ts`](../test/sample.test.ts) asserts this number, so adding a note means changing the test too.
-- **Edit cases:** 124 across seven groups. The Tasks line case is read back, not computed.
+- **Edit cases:** 139 across eight groups. The Tasks line case is read back, not computed.

@@ -1,6 +1,6 @@
 # Environment
 
-> Last updated: 17 October 2026 (Ninja Board v1.0.2)
+> Last updated: 19 October 2026 (Ninja Board v1.1.0)
 
 ## Overview
 
@@ -46,13 +46,14 @@ Task statuses in Tasks' own terms: `[ ]` is TODO, `[/]` IN_PROGRESS, `[w]` ON_HO
 
 | File | What it holds |
 |---|---|
-| [manifest.json](../manifest.json) | `id` `ninja-board`, `name`, `version` `1.0.2`, `minAppVersion` `1.10.2`, `description`, `author`, and `isDesktopOnly` `false`. The `id` is the folder name Obsidian uses under `.obsidian/plugins/`. |
-| [versions.json](../versions.json) | Each plugin version mapped to the minimum Obsidian version it needs: `"0.1.0": "1.10.2"`, `"0.2.0": "1.10.2"`, `"1.0.0": "1.10.2"`, `"1.0.1": "1.10.2"` and `"1.0.2": "1.10.2"`. |
-| [package.json](../package.json) | Name `ninja-board`, version `1.0.2`, `"private": true` (npm won't publish it), `"type": "module"`, `engines`, and the scripts. |
-| [esbuild.config.mjs](../esbuild.config.mjs) | Bundles `src/main.ts` to `main.js` (CommonJS, ES2022). Obsidian, Electron and the CodeMirror packages stay external. Source maps are inline in development and off in production. It also bundles the preview to `preview/dist/preview.js`. |
+| [manifest.json](../manifest.json) | `id` `ninja-board`, `name`, `version` `1.1.0`, `minAppVersion` `1.10.2`, `description`, `author`, and `isDesktopOnly` `false`. The `id` is the folder name Obsidian uses under `.obsidian/plugins/`. |
+| [versions.json](../versions.json) | Each plugin version mapped to the minimum Obsidian version it needs: `"0.1.0": "1.10.2"`, `"0.2.0": "1.10.2"`, `"1.0.0": "1.10.2"`, `"1.0.1": "1.10.2"`, `"1.0.2": "1.10.2"`, `"1.0.3": "1.10.2"`, `"1.0.4": "1.10.2"` and `"1.1.0": "1.10.2"`. |
+| [package.json](../package.json) | Name `ninja-board`, version `1.1.0`, `author` `AlexSendula`, `license` `MIT`, `"private": true` (npm won't publish it), `"type": "module"`, `engines`, and the scripts. |
+| [esbuild.config.mjs](../esbuild.config.mjs) | Bundles `src/main.ts` to `main.js` (CommonJS, ES2022). Obsidian, Electron and the CodeMirror and Lezer packages stay external. Source maps are inline in development and off in production. It also bundles the preview to `preview/dist/preview.js`. |
 | [tsconfig.json](../tsconfig.json) | Strict TypeScript, no emit. Covers `src`, `test` and `preview`. |
 | [styles.css](../styles.css) | The plugin's styles. It uses Obsidian's CSS variables, so Ninja Board follows the user's theme. |
-| [.gitignore](../.gitignore) | Leaves out `node_modules/`, `main.js`, `preview/dist/` and `preview/sample.json`. |
+| [eslint.config.mjs](../eslint.config.mjs) | The lint rules: Obsidian's recommended review rules, with no options of ours. `npm run lint` runs them over `src` and `preview`. |
+| [.gitignore](../.gitignore) | Leaves out `node_modules/`, `main.js`, `preview/dist/`, `preview/sample.json` and `.DS_Store`. |
 
 Development dependencies, all in [package.json](../package.json):
 
@@ -64,6 +65,10 @@ Development dependencies, all in [package.json](../package.json):
 | linkedom | 0.18.13 | A DOM for the UI tests |
 | yaml | 2.9.1 | Reads the sample vault's frontmatter in the tests and the preview |
 | @types/node | 24.19.2 | Node types for the scripts and tests |
+| @eslint/js | 9.39.5 | ESLint's JavaScript rules, kept at ESLint's version |
+| eslint | 9.39.5 | `npm run lint` |
+| eslint-plugin-obsidianmd | 0.4.2 | Obsidian's review rules, for `npm run lint` |
+| typescript-eslint | 8.71.2 | TypeScript support for ESLint |
 
 ## Where it runs
 

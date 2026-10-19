@@ -1,10 +1,10 @@
 # Deployment
 
-> Last updated: 17 October 2026 (Ninja Board v1.0.2)
+> Last updated: 19 October 2026 (Ninja Board v1.1.0)
 
 ## Overview
 
-Ninja Board is not in a store. [package.json](../package.json) is marked `"private": true`. A release is built and attested by the release workflow when a version tag is pushed ([Release](#release)). To use Ninja Board by hand, you build `main.js` and copy three files into a vault's `.obsidian/plugins/ninja-board/` folder. You do that by hand, or with `npm run sandbox`. Then you reload Obsidian.
+Ninja Board is listed in Obsidian's community plugins. [package.json](../package.json) is marked `"private": true`. A release is built and attested by the release workflow when a version tag is pushed ([Release](#release)). To use Ninja Board by hand, you build `main.js` and copy three files into a vault's `.obsidian/plugins/ninja-board/` folder. You do that by hand, or with `npm run sandbox`. Then you reload Obsidian.
 
 ## Targets
 
@@ -64,14 +64,14 @@ The reset never deletes. It renames each item into `~/.Trash/brain-sandbox-<date
 
 ## Versioning
 
-- **Versions so far:** v0.1.0 (round 1, built 14 October 2026) v0.2.0 (round 2, built 15 October 2026), v1.0.0 (16 October 2026), v1.0.1 (17 October 2026) and v1.0.2 (17 October 2026). The status line of the [plugin design](design/2026-10-13-brain-plugin-design.md) records the first two.
+- **Versions so far:** v0.1.0 (round 1, built 14 October 2026), v0.2.0 (round 2, built 15 October 2026), v1.0.0 (16 October 2026), v1.0.1 (17 October 2026), v1.0.2 (17 October 2026), v1.0.3 (18 October 2026), v1.0.4 (18 October 2026) and v1.1.0 (19 October 2026). The status line of the [plugin design](design/2026-10-13-brain-plugin-design.md) records the first two.
 - **Where the version lives.** Change all four in the same commit:
   1. [manifest.json](../manifest.json): `version`.
   2. [package.json](../package.json): `version`.
   3. [package-lock.json](../package-lock.json): two places, the top-level `version` and the `version` under the `""` package.
   4. [versions.json](../versions.json): a new entry, the version mapped to the minimum Obsidian version it needs.
 - **`minAppVersion`** changes only when the code needs a newer Obsidian. Then it changes in `manifest.json`, and `versions.json` gets an entry for the new version.
-- **Tags.** The release workflow needs a tag equal to the manifest's version, with no `v` (`1.0.2`, not `v1.0.2`). No Ninja Board version tag exists yet.
+- **Tags.** The release workflow needs a tag equal to the manifest's version, with no `v` (`1.1.0`, not `v1.1.0`). The version tags are `1.0.0`, `1.0.1`, `1.0.2`, `1.0.3`, `1.0.4` and `1.1.0`.
 
 ## Before a build goes into a vault
 
@@ -93,7 +93,7 @@ Then the checks the design asks for:
 
 The release workflow, [`.github/workflows/release.yml`](../.github/workflows/release.yml), runs when a tag is pushed:
 
-1. It checks that the tag equals `manifest.json`'s `version`, so the tag is `1.0.2`, not `v1.0.2`.
+1. It checks that the tag equals `manifest.json`'s `version`, so the tag is `1.1.0`, not `v1.1.0`.
 2. On macOS with Node 24, it runs `npm ci`, `npm run lint`, `npm test` and `npm run build`.
 3. It attests `main.js`, `manifest.json` and `styles.css` with `actions/attest-build-provenance`, so `gh attestation verify` can check each file against this workflow run.
 4. It creates the GitHub release with those three files. The notes are the CHANGELOG section for the version, read from `docs/CHANGELOG.md`. If the version has no section there, the notes are the default line `Ninja Board <tag>.`.

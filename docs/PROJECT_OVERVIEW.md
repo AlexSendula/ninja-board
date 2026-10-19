@@ -1,6 +1,6 @@
 # Project Overview
 
-> Last updated: 17 October 2026
+> Last updated: 19 October 2026
 
 ## What is Ninja Board?
 
@@ -69,7 +69,7 @@ Anything you can do in Ninja Board, the agent can do with the same result. Every
 | Rule | What it means | Where it lives |
 |---|---|---|
 | Ninja Board keeps no data of its own | Each view is drawn from the notes, and every change is one small edit to one note | [Plugin README](../README.md) |
-| Almost no date math | Ninja Board puts dates into words such as "Due Thu" and "3 days overdue". Its one step of its own is a repeating note's next due date, when an occurrence completes. Carry-over and other repeats belong to the agent. | [Plugin README, "Ninja Board does little date math"](../README.md#ninja-board-does-little-date-math) |
+| Almost no date math | Ninja Board puts dates into words such as "Due Thu" and "3 days overdue". Its one step of its own is a repeating note's next due date, when an occurrence completes. Carry-over and other repeats belong to the agent. | [Plugin README](../README.md) |
 | Tasks completes task lines | A tick calls Tasks' own toggle command, so there is one completion engine | [`writes.ts`](../src/obsidian/writes.ts) |
 | The archive is skipped | Notes under `10 Archive/` are left out of the snapshot | [`src/model/snapshot.ts`](../src/model/snapshot.ts) |
 | A new plan replaces the old one | A day plan clears `start`, a week plan clears `scheduled`, and no date yet clears both | [`applyNotePlan`](../src/model/plan.ts) |
@@ -80,18 +80,18 @@ Anything you can do in Ninja Board, the agent can do with the same result. Every
 
 | Service | Purpose | Documentation |
 |---|---|---|
-| Obsidian 1.10.2 or newer | The host app. Ninja Board uses the Bases view API (`registerBasesView`). It runs on desktop and in the phone app. | [Plugin README, Requirements](../README.md#requirements) |
+| Obsidian 1.10.2 or newer | The host app. Ninja Board uses the Bases view API (`registerBasesView`). It is tested on desktop. It is not marked desktop-only, but the phone app has not been tried. | [Plugin README, Requirements](../README.md#requirements) |
 | Bases core plugin | Selects the notes that each view draws | [Plugin README, Requirements](../README.md#requirements) |
 | Tasks community plugin | Task line format (Dataview), the completion engine, and a custom `w` status for Waiting (ON_HOLD). The Guide's Setup check reads its saved settings. | [Plugin README, Requirements](../README.md#requirements) |
-| Node.js 24 or newer | Development only: the tests, the typecheck and the esbuild build | [Plugin README, Install for development](../README.md#install-for-development) |
+| Node.js 24 or newer | Development only: the tests, the typecheck and the esbuild build | [Plugin README, Developing](../README.md#developing) |
 
 ## Status
 
 - **Started:** 13 October 2026, when the design was written. The first code was committed on 14 October 2026.
-- **Version:** 1.0.2 in `manifest.json`, `package.json` and `versions.json`. v0.1.0 was built on 14 October 2026, v0.2.0 on 15 October 2026, v1.0.0 on 16 October 2026, v1.0.1 on 17 October 2026, and v1.0.2 on 17 October 2026.
-- **Stage:** Ninja Board 1.0.2 is the current release. Its changes are listed under 1.0.2 in the [changelog](CHANGELOG.md), dated 17 October 2026.
+- **Version:** 1.1.0 in `manifest.json`, `package.json` and `versions.json`. v0.1.0 was built on 14 October 2026, v0.2.0 on 15 October 2026, v1.0.0 on 16 October 2026, v1.0.1 on 17 October 2026, v1.0.2 on 17 October 2026, v1.0.3 on 18 October 2026, v1.0.4 on 18 October 2026, and v1.1.0 on 19 October 2026.
+- **Stage:** Ninja Board 1.1.0 is the current release. Its changes are listed under 1.1.0 in the [changelog](CHANGELOG.md), dated 19 October 2026.
 - **Not built yet:** the agent's `brain` commands. The implementation spec defines them, and the shared edit examples pin the edits they must make, but this repository holds no `brain` code.
-- **Release:** the first public release is still to be made.
+- **Release:** Ninja Board 1.1.0 is the latest release, tagged `1.1.0`. From 1.0.1 on, the release workflow builds, attests and publishes each release.
 
 ## Related documentation
 

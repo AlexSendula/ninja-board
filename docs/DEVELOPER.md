@@ -1,6 +1,6 @@
 # Developer guide
 
-> Last updated: 17 October 2026 (Ninja Board v1.0.2)
+> Last updated: 19 October 2026 (Ninja Board v1.1.0)
 
 This guide covers working on Ninja Board, the Obsidian plugin in this repository: setup, the commands, where the code lives, the preview and the sandbox, commits, and the spec rules. For how the parts fit together, read [Architecture](./ARCHITECTURE.md). For tests, read [Testing](./TESTING.md). For code style, read [Style guide](./STYLE_GUIDE.md). Users read the [plugin README](../README.md).
 
@@ -8,7 +8,7 @@ This guide covers working on Ninja Board, the Obsidian plugin in this repository
 
 You need:
 
-- **Node 24 or newer.** The tests and scripts run the `.ts` sources directly, with Node's type stripping. `engines` in `package.json` is `>=24`. The test run for this guide, on 17 October 2026, used Node v24.14.0.
+- **Node 24 or newer.** The tests and scripts run the `.ts` sources directly, with Node's type stripping. `engines` in `package.json` is `>=24`. The test run for this guide, on 19 October 2026, used Node v24.14.0.
 - **Obsidian 1.10.2 or newer** to try the plugin. The Bases core plugin must be on, and the Tasks community plugin installed. The [README's requirements](../README.md#requirements) say how to set Tasks up.
 
 From the repository root:
@@ -18,7 +18,7 @@ npm install   # once; reads package-lock.json
 npm test
 ```
 
-The dev dependencies are TypeScript 5.9.3, esbuild 0.28.2, linkedom 0.18.13 (the DOM for the UI tests), yaml 2.9.1, `@types/node` 24.19.2 `obsidian` 1.14.4, ESLint 9.39.5 with `eslint-plugin-obsidianmd` 0.4.2 and `typescript-eslint` 8.71.2 (for `npm run lint`). The `obsidian` package ships types only. esbuild leaves `obsidian` out of the bundle, and Obsidian supplies it when the plugin runs.
+The dev dependencies are TypeScript 5.9.3, esbuild 0.28.2, linkedom 0.18.13 (the DOM for the UI tests), yaml 2.9.1, `@types/node` 24.19.2, `obsidian` 1.14.4, and ESLint 9.39.5 with `@eslint/js` 9.39.5, `eslint-plugin-obsidianmd` 0.4.2 and `typescript-eslint` 8.71.2 (for `npm run lint`). The `obsidian` package ships types only. esbuild leaves `obsidian` out of the bundle, and Obsidian supplies it when the plugin runs.
 
 ## Commands
 
@@ -38,7 +38,7 @@ Run them from the repository root.
 
 `npm test` runs `sandbox.test.ts` too, and that test runs `npm run build`, so a test run rewrites `main.js`. The build outputs are gitignored: `main.js`, `preview/dist/` and `preview/sample.json` (see [`.gitignore`](../.gitignore)).
 
-The plugin is three files: `main.js`, `manifest.json` and `styles.css`. [`manifest.json`](../manifest.json) gives version 1.0.2, `minAppVersion` 1.10.2 and `isDesktopOnly: false`. [`versions.json`](../versions.json) maps each version to its minimum Obsidian version.
+The plugin is three files: `main.js`, `manifest.json` and `styles.css`. [`manifest.json`](../manifest.json) gives version 1.1.0, `minAppVersion` 1.10.2 and `isDesktopOnly: false`. [`versions.json`](../versions.json) maps each version to its minimum Obsidian version.
 
 ## Where the code lives
 
@@ -58,7 +58,7 @@ flowchart LR
 | [`src/model/`](../src/model/) | Pure code: task lines, dates and ISO weeks, the snapshot, each view's model (the `build*` functions), the planning rules, arrangements and the week record. | Model files only. |
 | [`src/ui/`](../src/ui/) | Plain DOM: the `render*` functions, the cards, drag and focus, and the `Actions` interface in [`src/ui/actions.ts`](../src/ui/actions.ts). | Model and UI files. Nothing from Obsidian. |
 | [`src/obsidian/`](../src/obsidian/) | The Obsidian side: [`view.ts`](../src/obsidian/view.ts) (BrainView, the Bases view), [`src/obsidian/actions.ts`](../src/obsidian/actions.ts) and [`writes.ts`](../src/obsidian/writes.ts) (the real writes), the modals and the Guide's note. [`edits.ts`](../src/obsidian/edits.ts) holds the pure edit rules. | Anything. |
-| [`src/main.ts`](../src/main.ts) | The plugin class. Registers the five view types and the two commands. | |
+| [`src/main.ts`](../src/main.ts) | The plugin class. Registers the five view types and the three commands. | |
 | [`preview/`](../preview/) | The browser preview. [`preview.ts`](../preview/preview.ts) draws the real views from `sample.json`; [`memoryWrites.ts`](../preview/memoryWrites.ts) makes the writes in memory; `modal.ts` holds the modals; `tokens.ts` supports `checkView()`. | Model and UI files, and `obsidian/edits.ts`: the in-memory writes share the same edit rules as the vault. |
 | [`test/`](../test/) | Shared test helpers ([`sample.ts`](../test/sample.ts), [`ui.ts`](../test/ui.ts)), the edit examples ([`edit-cases.json`](../test/edit-cases.json)), and the tests that cross layers. | |
 | [`scripts/`](../scripts/) | [`sample-json.mjs`](../scripts/sample-json.mjs) writes `preview/sample.json`. [`sandbox.mjs`](../scripts/sandbox.mjs) installs into the sandbox vault. | |
@@ -70,7 +70,7 @@ Four rules decide where code goes:
 
 - **The model reads no clock and no DOM.** The caller passes `today` as `YYYY-MM-DD` and the time of day as `HH:MM`. See [`dates.ts`](../src/model/dates.ts) and [`clock.ts`](../src/ui/clock.ts).
 - **The UI never imports from `src/obsidian/`.** Its only route to a write is the `Actions` interface. The Obsidian layer and the preview each implement it.
-- **Only `src/obsidian/` and `src/main.ts` import `obsidian`.** Under Node, `test/obsidian-hook.mjs` resolves that import to `test/obsidian-stub.ts`, a stand-in with only what the tested code uses. Files that import it load in the tests, and the modal classes and `main.ts` have no tests of their own (see [Testing](./TESTING.md)).
+- **Only `src/obsidian/` and `src/main.ts` import `obsidian`.** Under Node, `test/obsidian-hook.mjs` resolves that import to `test/obsidian-stub.ts`, a stand-in with only what the tested code uses. Files that import it load in the tests. The modal classes have no tests of their own, and `main.ts` has a test of its registrations (see [Testing](./TESTING.md)).
 - **Ninja Board keeps no data of its own.** A write is one small edit to one note: a line, or the frontmatter. An arrangement, and the Schedule's view, are saved in the dashboard note's `base` block. The agent's `brain` commands make the same edits. [Architecture](./ARCHITECTURE.md) has the read and write paths.
 
 ## Changing Ninja Board
@@ -128,7 +128,7 @@ The plugin's design specs are in [`docs/design/`](design/). The system design an
 - **"Bases is off. Turn it on, then reload this plugin."** (a Notice at start). Turn on Bases, then reload Ninja Board. The message is in `src/main.ts`.
 - **"Tasks must be on to tick a task".** Tasks is off or not installed. The views still draw, but a tick shows this Notice and writes nothing ([`writes.ts`](../src/obsidian/writes.ts)).
 - **"Tasks gave an answer this plugin can't use".** Ninja Board checks Tasks' answer before it writes. When the answer is not usable, Ninja Board writes nothing and shows this Notice.
-- **The preview says `sample.json: HTTP <status>`.** The file is missing. Run `npm run preview`, which writes it.
+- **The preview build cannot resolve `./sample.json`, or the browser console shows `preview/sample.json is not a list of notes`.** The file is missing or is not a list of notes. Run `npm run preview`, which writes it and builds the preview.
 - **A change does not show in Obsidian.** Reload Obsidian with Cmd+R after the build. The sandbox run does this for the plugin files it copies.
 - **A change does not show in the preview.** Rebuild the preview bundle with `node esbuild.config.mjs preview`, then reload.
 - **An arrangement, or the Schedule's view, does not stick.** Bases saves a base block only in the note itself (Reading view or Live Preview) or in a `.base` file. In an embed, a hover preview or a canvas, Ninja Board shows a Notice and does not save. Open the dashboard note itself (`01 Dashboard/01 Today.md`, `02 Week.md` or `03 Projects.md`) to arrange or switch there.
