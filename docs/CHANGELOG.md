@@ -102,9 +102,8 @@ Ninja Board 1.0.0, released on 16 October 2026, is the first release under the n
 - **The `brain` tools' line numbers and state words (decided 2026-10-15).** In `state`, `plan` and `due`, `<line>` is 1-based, as editors show it, and the tools convert it for Ninja Board's 0-based index. `state` takes Ninja Board's words for a task line: `todo`, `doing`, `waiting`, `done` or `dropped`. A task note keeps its status values. The `brain` tools live in each vault and are not in this repository yet; the implementation spec is what they follow.
 - **Dragging scrolls the view.** A lifted card or row near the top or bottom of its view scrolls the view, a frame at a time, and the drag follows the content. A lifted item also stays under the pointer when the view scrolls by a wheel or trackpad.
 - **Right-click a day to set the deadline.** In the planner card, a right-click on a day sets the deadline there and keeps the do day. On the red day it removes the deadline, and on the do day it makes the plan the deadline, as a second click does. Left clicks keep their do, due, do cycle, and the Guide's Planning tile lists the step.
-- **Waiting is one column in both views, and Group view is its layout.** From 720px Group view puts Waiting under Doing in three columns; below 720px the board is Column view and the switch is hidden. The nested group is gone from the markup and the plugin, and `npm test` runs 849 tests.
-- **Tests.** The suite has 849 tests. An Obsidian stub lets the write path and the view run under Node, and a guard fails any assertion that compares a DOM node.
-- **Tests.** `npm test` runs 1074 tests, all passing, up from 1005.
+- **Waiting is one column in both views, and Group view is its layout.** From 720px Group view puts Waiting under Doing in three columns; below 720px the board is Column view and the switch is hidden. The nested group is gone from the markup and the plugin.
+- **Tests.** `npm test` runs 1074 tests, all passing, up from 1005. An Obsidian stub lets the write path and the view run under Node, and a guard fails any assertion that compares a DOM node.
 - **The manifest names the author.** `manifest.json` names AlexSendula as its author, with an `authorUrl`.
 
 ### Fixed

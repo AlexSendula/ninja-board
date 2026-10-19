@@ -23,7 +23,7 @@ Registered in [`src/main.ts`](../src/main.ts) (`VIEWS`, line 10). If the Bases c
 | `ninja-board-backlog` | Ninja Board · Backlog & Waiting | `inbox` | `01 Dashboard/04 Backlog.md` | The inbox, undated tasks, someday projects, and waiting tasks by person. |
 | `ninja-board-guide` | Ninja Board · Guide | `book-open` | `01 Dashboard/05 Guide.md` | The marks, how to work in Ninja Board, and a live check of the Tasks setup. |
 
-The user-facing description of each view is in the [plugin README](../README.md#the-views).
+The user-facing description of each view is in the [user guide](USER_GUIDE.md#the-views).
 
 ## Commands
 
