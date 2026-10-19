@@ -203,18 +203,41 @@ test('the Undo button is never taken out of the layout: styles.css hides it by v
   assert.match(STYLES, /\.brain-view button\.brain-undo:disabled \{ visibility: hidden; \}/);
 });
 
-test('the story chevron shows on hover or keyboard focus on the Week board\'s story cards only, always on touch, and keeps its place', () => {
-  // Every rule that sets its opacity is scoped by .brain-foldable, the class only the board's story cards carry: the planner's and Backlog's chevrons are untouched.
+test('the story chevron shows on hover or keyboard focus on the Week view\'s story cards only, always on touch, and keeps its place', () => {
+  // Every rule that sets its opacity is scoped by .brain-foldable, the class only the Week view's story cards carry (every week's, and the list modal's): Backlog's planner chevrons are untouched.
   const rules = STYLES.match(/[^{}]*brain-peek[^{}]*\{[^{}]*opacity[^{}]*\}/g) ?? [];
   assert.ok(rules.length >= 4, `only ${rules.length} rules set the chevron's opacity`);
   for (const rule of rules) {
     assert.match(rule, /\.brain-foldable/, rule);
     assert.doesNotMatch(rule, /display\s*:|visibility\s*:/, rule);   // opacity, so its place stays and nothing shifts when it shows
   }
-  assert.match(STYLES, /@media \(hover: hover\) \{\n  \.brain-view \.brain-foldable > \.brain-card-head > button\.brain-peek \{ opacity: 0; \}\n  \.brain-view \.brain-foldable:hover > \.brain-card-head > button\.brain-peek,\n  \.brain-view \.brain-foldable\.brain-keyboard-focus > \.brain-card-head > button\.brain-peek \{ opacity: 1; \}\n\}/);
+  assert.match(STYLES, /@media \(hover: hover\) \{\n  \.brain-view \.brain-foldable > \.brain-card-head > button\.brain-peek \{ opacity: 0; \}\n  \.brain-view \.brain-foldable:hover > \.brain-card-head > button\.brain-peek,\n  \.brain-view \.brain-foldable\.brain-keyboard-focus > \.brain-card-head > button\.brain-peek \{ opacity: 1; \}\n  \.brain-view \.brain-foldable\.brain-hover-kept > \.brain-card-head > button\.brain-peek \{ opacity: 1; \}[^\n]*\n\}/);
   assert.match(STYLES, /@media \(hover: none\) \{\n  \.brain-view \.brain-foldable > \.brain-card-head > button\.brain-peek \{ opacity: 1; \}\n\}/);
   // The mockup has the same rules (the first test compares the whole block).
   assert.match(MOCKUP, /\.brain-foldable:hover > \.brain-card-head > button\.brain-peek,\n  \.brain-foldable\.brain-keyboard-focus > \.brain-card-head > button\.brain-peek \{ opacity: 1; \}/);
+});
+
+test('a redraw keeps the chevron shown on the card the pointer was on: brain-hover-kept sets its opacity to 1 in the (hover: hover) block, so it never fades in again', () => {
+  const rule = String.raw`\.brain-foldable\.brain-hover-kept > \.brain-card-head > button\.brain-peek \{ opacity: 1; \}`;
+  const inHover = (scope: string) => new RegExp(String.raw`@media \(hover: hover\) \{\n(?:  [^\n]*\n)*?  ${scope}${rule}[^\n]*\n(?:  [^\n]*\n)*?\}`);
+  assert.match(STYLES, inHover(String.raw`\.brain-view `));
+  assert.match(MOCKUP, inHover(''));
+  // The existing 0.15s fade stays for a real hover in and out: the transition rule is not touched.
+  assert.match(STYLES, /\.brain-view \.brain-foldable > \.brain-card-head > button\.brain-peek \{ transition: opacity 0\.15s var\(--brain-ease\); \}/);
+});
+
+test('a redraw keeps what the pointer was on looking hovered: the card\'s shadow, the chevron\'s and the quiet button\'s hover look, each right after its :hover rule in the (hover: hover) block', () => {
+  // Each element the pointer is on gets brain-hover-kept across a redraw. Without these rules the new element starts from its resting look and fades into the hover look.
+  const looks = [
+    [String.raw`\.brain-card\.brain-draggable`, String.raw`box-shadow: var\(--shadow-s\);`],
+    [String.raw`button\.brain-peek`, String.raw`color: var\(--text-normal\); background-color: var\(--background-modifier-hover\);`],
+    [String.raw`button\.brain-quiet`, String.raw`color: var\(--text-normal\);`],
+  ];
+  for (const [selector, look] of looks) {
+    const pair = (scope: string) => new RegExp(String.raw`@media \(hover: hover\) \{\n(?:  [^\n]*\n)*?  ${scope}${selector}:hover \{ ${look} \}[^\n]*\n  ${scope}${selector}\.brain-hover-kept \{ ${look} \}[^\n]*\n(?:  [^\n]*\n)*?\}`);
+    assert.match(STYLES, pair(String.raw`\.brain-view `), selector);
+    assert.match(MOCKUP, pair(String.raw`(?:\.brain-view )?`), selector);
+  }
 });
 
 test('each foldable card is its own stacking context, so its open lines never stack above a dragged item', () => {
@@ -229,4 +252,17 @@ test('the Collapse all icons take the shared icon stroke and size, and the butto
   assert.match(STYLES, /\.brain-view \.brain-week-line > button\.brain-fold-all \{[^}]*flex: none;/);
   // Below 560px the button shares the label's line, so the chips keep a line to themselves: Coming up stays three chips wide at 320px.
   assert.match(STYLES, /@container brain \(max-width: 559px\) \{[^}]*\.brain-week-line > \.brain-label \{ flex: 1 1 auto; \}\s*\.brain-view \.brain-week-chips \{ order: 1; flex-basis: 100%; \}/);
+});
+
+test('the Collapse all button ends the Planned or due heading row and a past week\'s source line, and a foldable list card\'s chevron takes the card\'s left edge', () => {
+  // In a label row it sits as Show all N does: the text's edge on the column's, the row keeping a label's height, centred on the icon.
+  assert.match(STYLES, /\.brain-view \.brain-label-row > :is\(\.brain-more, \.brain-fold-all\) \{ margin-inline: auto calc\(var\(--size-4-2\) \* -1\);/);
+  assert.match(STYLES, /\.brain-view \.brain-label-row > \.brain-fold-all \{ align-self: center; \}/);
+  // On a source line with no chips to fill the row, the button's auto start margin puts it at the right end.
+  assert.match(STYLES, /\.brain-view \.brain-week-line > button\.brain-fold-all \{[^}]*margin-inline: auto calc\(var\(--size-4-2\) \* -1\);/);
+  // A foldable list card's head is not positioned, so the chevron's hit area is the card's left edge, as on a board card; Backlog's cards keep theirs.
+  assert.match(STYLES, /\.brain-view \.brain-card\[data-story\]\.brain-foldable > \.brain-card-head \{ position: static; \}/);
+  assert.match(STYLES, /\.brain-view \.brain-card\[data-story\] > \.brain-card-head \{ position: relative; \}/);
+  assert.match(MOCKUP, /\n\.brain-label-row > :is\(\.brain-more, \.brain-fold-all\) \{/);
+  assert.match(MOCKUP, /\n\.brain-card\[data-story\]\.brain-foldable > \.brain-card-head \{ position: static; \}/);
 });

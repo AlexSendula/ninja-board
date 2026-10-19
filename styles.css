@@ -448,10 +448,12 @@
 }
 @media (hover: hover) {
   .brain-view button.brain-peek:hover { color: var(--text-normal); background-color: var(--background-modifier-hover); }
+  .brain-view button.brain-peek.brain-hover-kept { color: var(--text-normal); background-color: var(--background-modifier-hover); }   /* a redraw replaced what the pointer was on: the new one starts in its hover look (the class is on before the first paint), so it does not fade into it */
 }
 .brain-view .brain-peek-icon { width: var(--size-4-4); height: var(--size-4-4); overflow: visible; transition: rotate 0.2s var(--brain-ease); }
 .brain-view .brain-peek[aria-expanded="true"] > .brain-peek-icon { rotate: 90deg; }
 .brain-view .brain-card[data-story] > .brain-card-head { position: relative; }
+.brain-view .brain-card[data-story].brain-foldable > .brain-card-head { position: static; }   /* a foldable list card's chevron takes the card's left edge as its hit area, as a board card's does */
 .brain-view .brain-card-head > button.brain-peek { position: static; }   /* so its hit area below spans the head, not the chevron */
 .brain-view .brain-peek::after {   /* the left 15% of a story card's head, its padding too, folds it open or shut: not just the chevron */
   content: ""; position: absolute; z-index: 2; cursor: pointer;
@@ -467,6 +469,7 @@
   .brain-view .brain-foldable > .brain-card-head > button.brain-peek { opacity: 0; }
   .brain-view .brain-foldable:hover > .brain-card-head > button.brain-peek,
   .brain-view .brain-foldable.brain-keyboard-focus > .brain-card-head > button.brain-peek { opacity: 1; }
+  .brain-view .brain-foldable.brain-hover-kept > .brain-card-head > button.brain-peek { opacity: 1; }   /* a redraw replaced the hovered card: its chevron starts shown (the class is on before the first paint), so it does not fade in again */
 }
 @media (hover: none) {
   .brain-view .brain-foldable > .brain-card-head > button.brain-peek { opacity: 1; }
@@ -480,6 +483,7 @@
 @media (hover: hover) {
   .brain-view .brain-task.brain-draggable:hover { background-color: var(--background-modifier-hover); }
   .brain-view .brain-card.brain-draggable:hover { box-shadow: var(--shadow-s); }
+  .brain-view .brain-card.brain-draggable.brain-hover-kept { box-shadow: var(--shadow-s); }   /* a redraw replaced what the pointer was on: the new one starts in its hover look (the class is on before the first paint), so it does not fade into it */
 }
 .brain-view .brain-draggable.brain-is-lifted {
   position: relative; z-index: 2; cursor: grabbing;
@@ -585,9 +589,11 @@
   font: inherit; font-size: var(--font-ui-smaller); line-height: 1.333; font-weight: 500;
   white-space: nowrap; cursor: pointer; transition: color 0.15s var(--brain-ease);
 }
-.brain-view .brain-label-row > .brain-more { margin-inline: auto calc(var(--size-4-2) * -1); margin-block: calc((var(--brain-hit) - var(--font-ui-smaller) * 1.333) / -2); }
+.brain-view .brain-label-row > :is(.brain-more, .brain-fold-all) { margin-inline: auto calc(var(--size-4-2) * -1); margin-block: calc((var(--brain-hit) - var(--font-ui-smaller) * 1.333) / -2); }   /* Show all N, and Collapse all / Expand all in Planned or due's heading row */
+.brain-view .brain-label-row > .brain-fold-all { align-self: center; }   /* an icon has no text baseline to sit on */
 @media (hover: hover) {
   .brain-view button.brain-quiet:hover { color: var(--text-normal); }
+  .brain-view button.brain-quiet.brain-hover-kept { color: var(--text-normal); }   /* a redraw replaced what the pointer was on: the new one starts in its hover look (the class is on before the first paint), so it does not fade into it */
 }
 
 /* Waiting's switch: a quiet icon at the end of its label row, in both views. It fades in once the pointer has rested anywhere in its section for 1.5s,
@@ -651,7 +657,7 @@
 .brain-view .brain-week-line > .brain-label { margin-inline-end: var(--size-4-2); }
 .brain-view .brain-week-chips { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--size-4-2); min-width: 0; }
 .brain-view .brain-week-line > button.brain-fold-all {   /* Collapse all / Expand all: a quiet icon button at the right end, its icon on the board's edge as Show all's text is; the row keeps a label's height */
-  flex: none; margin-inline-end: calc(var(--size-4-2) * -1); margin-block: calc((var(--brain-hit) - var(--font-ui-smaller) * 1.333) / -2);
+  flex: none; margin-inline: auto calc(var(--size-4-2) * -1); margin-block: calc((var(--brain-hit) - var(--font-ui-smaller) * 1.333) / -2);   /* auto at the start: a past week's line has no chips to fill the row */
 }
 .brain-view button.brain-week-chip,
 .brain-view button.brain-week-chip:is(:hover, :active, :focus, :focus-visible) {

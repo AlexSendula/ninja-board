@@ -1,5 +1,7 @@
 import type { Actions, ListEntry, ListHandle, ListKey, ListSpec } from './actions.ts';
-import { listItem, projectCard } from './card.ts';
+import type { RowVM } from '../model/types.ts';
+import type { Fold } from './card.ts';
+import { foldIn, listItem, projectCard } from './card.ts';
 import { enableDrag } from './drag.ts';
 import { h, link } from './dom.ts';
 import { taskRow } from './task.ts';
@@ -39,15 +41,20 @@ export function renderListBody(
   const grid = h('ul', 'brain-modal-grid');
   const none = h('li', 'brain-empty');
   none.hidden = true;
-  // A title in the modal closes the modal first, then opens the note.
+  let current = spec;
+  // A title in the modal closes the modal first, then opens the note. A story folded in the modal goes into the page's set of folds,
+  // so the modal opened again draws it folded (the page behind it folds by the chevron itself).
   const inModal: Actions = {
     ...actions,
     open: (path, line) => {
       host.close();
       actions.open(path, line);
     },
+    foldStories: (names, folded) => {
+      if (current.collapsed) foldIn(current.collapsed, names, folded);
+      actions.foldStories(names, folded);
+    },
   };
-  let current = spec;
   const applyQuery = (): void => {
     const query = search.value.trim();
     const any = filterTiles(grid, query.toLowerCase());
@@ -82,6 +89,8 @@ export function renderListBody(
 }
 
 function entryTile(entry: ListEntry, spec: ListSpec, actions: Actions): HTMLElement {
+  // The Week view's lists fold their story cards by the view's list, and the page behind the modal folds with them.
+  const foldOf = (row: RowVM): Fold | undefined => spec.collapsed && { name: row.title, folded: spec.collapsed.has(row.title), behind: spec.zones };
   if (entry.kind === 'card') {
     const card = projectCard(entry.card, actions);
     if (!spec.drag) card.classList.remove('brain-draggable');
@@ -91,13 +100,13 @@ function entryTile(entry: ListEntry, spec: ListSpec, actions: Actions): HTMLElem
     return h('li', 'brain-tile', {}, [
       h('div', 'brain-group', {}, [
         link(entry.group.name, 'brain-group-name brain-link', () => actions.open(entry.group.path)),
-        h('ul', 'brain-tasks', {}, entry.group.rows.map((row) => listItem(row, actions, true))),
+        h('ul', 'brain-tasks', {}, entry.group.rows.map((row) => listItem(row, actions, true, foldOf(row)))),
       ]),
     ]);
   }
   // A story is a card, in a group like its No date neighbours, so the card gets the group's space between cards.
   if (entry.row.progress) {
-    return h('li', 'brain-tile', {}, [h('div', 'brain-group', {}, [h('ul', 'brain-tasks', {}, [listItem(entry.row, actions, true)])])]);
+    return h('li', 'brain-tile', {}, [h('div', 'brain-group', {}, [h('ul', 'brain-tasks', {}, [listItem(entry.row, actions, true, foldOf(entry.row))])])]);
   }
   return h('li', 'brain-tile', {}, [h('ul', 'brain-tasks', {}, [taskRow(entry.row, actions)])]);
 }

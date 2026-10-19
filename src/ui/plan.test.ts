@@ -96,7 +96,7 @@ test('week 43: Planned or due holds 5, Any day first, then each day, with its la
 test('week 43: a story in Planned or due is a card, with its ring and count in its card side, and no check', () => {
   const plan = planParts(w43, fresh(), recorder().actions, false);
   const hosting = keyed(plan, rowOf("Choose hosting for Sam's site").key);
-  assert.equal(hosting.className, 'brain-tile brain-card');
+  assert.equal(hosting.className, 'brain-tile brain-card brain-foldable');   // it folds by the view's list, as the board's cards do
   assert.deepEqual([hosting.getAttribute('data-state'), hosting.hasAttribute('data-story')], ['doing', true]);
   assert.equal(hosting.querySelector(':scope > .brain-card-head > .brain-card-side .brain-ring')?.getAttribute('aria-label'), '1 of 3 done');
   assert.equal(hosting.querySelector(':scope > .brain-card-head > .brain-card-side > .brain-progress > span[aria-hidden="true"]')?.textContent, '1/3');

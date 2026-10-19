@@ -130,9 +130,9 @@ function start(): void {
     waiting = choice;
     render();
   };
+  // The click folded the page in place: the list is kept for the next draw, and this one is not drawn again (the chevron would flicker).
   const foldNow = (names: string[], folded: boolean): void => {
     collapsed = setFolded(collapsed, names, folded);
-    render();
   };
 
   const actions: Actions = {

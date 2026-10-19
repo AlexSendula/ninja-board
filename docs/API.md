@@ -1,6 +1,6 @@
 # Plugin API reference
 
-> Last updated: 18 October 2026 (Ninja Board v1.0.4)
+> Last updated: 19 October 2026 (Ninja Board v1.1.0)
 
 Ninja Board has no network API. Its public surface is:
 
@@ -13,7 +13,7 @@ Architecture: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Registered views
 
-Registered in [`src/main.ts`](../src/main.ts) (`VIEWS`, line 7). If the Bases core plugin is off, Ninja Board shows the Notice "Bases is off. Turn it on, then reload this plugin."
+Registered in [`src/main.ts`](../src/main.ts) (`VIEWS`, line 10). If the Bases core plugin is off, Ninja Board shows the Notice "Bases is off. Turn it on, then reload this plugin."
 
 | View type | Name in the Bases view picker | Icon | Dashboard note (sample) | Shows |
 |---|---|---|---|---|
@@ -66,7 +66,7 @@ Ninja Board reads these from the view's entry in the `base` block (`this.config.
 | `arrange` | `ninja-board-week`, `ninja-board-projects` | A map from column to a list of keys. Week: `todo`, `doing`, `waiting`. Projects: `active`, `paused`, `someday`. | None: the normal order | A card's key, or a task-note row's, is its note's name. A task-line row's key is `<note name> › <text as shown>`, with U+203A and a space either side ([`lineKey`](../src/model/arrange.ts)). Listed items come first, in that order. Unknown keys are ignored. Done is never arranged. Anything broken reads as no arrangement ([`readArrangement`](../src/model/arrange.ts)). |
 | `schedule` | `ninja-board-today` | `compact`, or anything else for large | `large` | Set by the Schedule's switch. Other values read as large ([`readScheduleView`](../src/model/arrange.ts)). |
 | `waiting` | `ninja-board-week` | `group`, or anything else for the column view | `column` | Set by the Waiting switch. Other values read as the column ([`waitingViewOf`](../src/model/arrange.ts)). |
-| `collapsed` | `ninja-board-week` | A list of story names: the stories folded on this week's board, each by its note's name. Anything that is not a list reads as none. | None: no story is folded | Set by a story's chevron, and by Collapse all or Expand all, through `foldStories`. Within the list, a number reads as text, anything else is dropped, and a name is listed once ([`readCollapsed`](../src/model/arrange.ts)). Never pruned: a name stays after its story leaves the week, so the story is still folded when it comes back. Where the config can't be written (an embed, a hover or a canvas), the fold lasts for the session, and a Notice says so. |
+| `collapsed` | `ninja-board-week` | A list of story names: the stories folded in the Week view, on every week, each by its note's name. Anything that is not a list reads as none. | None: no story is folded | Set by a story's chevron, and by Collapse all or Expand all, through `foldStories`. Within the list, a number reads as text, anything else is dropped, and a name is listed once ([`readCollapsed`](../src/model/arrange.ts)). Never pruned: a name stays after its story leaves the week, so the story is still folded when it comes back. Where the config can't be written (an embed, a hover or a canvas), the fold lasts for the session, and a Notice says so. |
 
 ```yaml
 views:
@@ -107,7 +107,7 @@ Source: [`src/ui/actions.ts`](../src/ui/actions.ts). The views call these and no
 | `arrange` | `lists: Arrangement` | `void` | Saves the given columns' lists in the view's `arrange:`. Other columns are kept. |
 | `scheduleView` | `view: ScheduleView` | `void` | Saves `schedule:` on the Today view. |
 | `waitingView` | `view: WaitingView` | `void` | Saves `waiting:` on the Week view. |
-| `foldStories` | `names: string[]`, `folded: boolean` | `void` | Folds (`true`) or opens (`false`) the lines of these stories on the Week board, by note name. Saved in the view's `collapsed:`, and not an undo step. Where the config can't hold it, the fold lasts for the session. |
+| `foldStories` | `names: string[]`, `folded: boolean` | `void` | Folds (`true`) or opens (`false`) the lines of these stories in the Week view, on every week, by note name. Saved in the view's `collapsed:`, and not an undo step. Where the config can't hold it, the fold lasts for the session. |
 | `showWeek` | `start: string` | `void` | Week view: shows the week starting on this Monday. Session only; the view opens on this week again. |
 | `showDay` | `spec: DaySpec` | `void` | Opens the day modal: one day's full timeline. |
 | `showAll` | `spec: ListSpec` | `ListHandle` | Opens the list modal, for Show all. |
@@ -137,7 +137,7 @@ The repeats Ninja Board reads are `every <n> day`, `week`, `month` or `year` (wi
 - **`Points`** ([`points.ts`](../src/model/points.ts)): `1`, `2`, `3`, `5` or `8`. Only these are points; anything else reads as none.
 - **`Arrangement`**: `Partial<Record<'todo' | 'doing' | 'active' | 'paused' | 'someday', string[]>>`.
 - **`ScheduleView`**: `'large'` or `'compact'`.
-- **`ListSpec`**: `key` (`'done'`, `'someday'`, `'open'`, `'dueSoon'` or `'noDate'`), `title`, `noun`, `count`, `entries`, `drag`, `zones`, and optional `onDrop` and `opener` (the Show all button, which takes the focus back when the modal closes).
+- **`ListSpec`**: `key` (`'done'`, `'someday'`, `'open'`, `'dueSoon'` or `'noDate'`), `title`, `noun`, `count`, `entries`, `drag`, `zones`, and optional `onDrop`, `collapsed` and `opener` (the Show all button, which takes the focus back when the modal closes). `collapsed` is the Week view's folded story names, as a set: the list's story cards fold by it on every week, and a fold made in the list also folds the page behind it. Lists without it (Backlog's) fold their story cards behind an always-shown chevron, closed by default, opened for the session only and never saved.
 - **`DaySpec`**: `title`, `events`, an optional `now` (`"HH:MM"`, today only), and the `opener` element that takes the focus back.
 
 ## Failure behaviour
@@ -167,7 +167,7 @@ Ninja Board and the agent are meant to make the same edits, so the same action g
 
 Planning and deadlines are Tasks' own fields, `[scheduled::]`, `[start::]` and `[due::]`. A task note uses the frontmatter keys `scheduled`, `start` and `due`. Dates are `YYYY-MM-DD`.
 
-- **Plan on a day** (`{ day }`): sets `scheduled` and removes `start`. A line keeps its other fields, and a round-bracket field stays round-bracketed ([`lineWithPlan`](../src/obsidian/edits.ts), line 94).
+- **Plan on a day** (`{ day }`): sets `scheduled` and removes `start`. A line keeps its other fields, and a round-bracket field stays round-bracketed ([`lineWithPlan`](../src/obsidian/edits.ts), line 116).
 - **Plan for a week** (`{ week }`, the Monday): sets `start` and removes `scheduled`.
 - **No date yet** (`null`): removes `scheduled` and `start`.
 - **A deadline the plan leaves behind goes too**, by [`planDropsDue`](../src/model/plan.ts) (line 12):
@@ -176,12 +176,12 @@ Planning and deadlines are Tasks' own fields, `[scheduled::]`, `[start::]` and `
   - no date yet removes a `due` on or before this week's Sunday. A deadline further out stays.
   - A repeating task note keeps its `due` whatever the plan. This is in `edit-cases.json` (`notePlans`) and in the Edits table of the implementation spec.
 - **Set a deadline** (a date): sets `[due::]` (or `due:`), replacing any `due`. A `scheduled` on that same date is removed.
-- **Remove a deadline** (`null`): removes `due`. A repeating task note's `due` is never removed this way ([`applyNoteDue`](../src/model/plan.ts), line 46).
+- **Remove a deadline** (`null`): removes `due`. A repeating task note's `due` is never removed this way ([`applyNoteDue`](../src/model/plan.ts), line 51).
 
 Other rules that the edits share:
 
-- **States of a line.** The checkbox changes. Reopening removes the completion and cancelled dates. Dropping adds `[cancelled:: <today>]`. Done is written by Tasks, which adds `[completion::]` ([`lineWithState`](../src/obsidian/edits.ts), line 60).
-- **Status of a note or project.** `status` is set. `done` is stamped with today when the status is `done` or `dropped`, and kept if it is already there. Any other status removes `done` ([`applyNoteStatus`](../src/obsidian/edits.ts), line 69).
+- **States of a line.** The checkbox changes. Reopening removes the completion and cancelled dates. Dropping adds `[cancelled:: <today>]`. Done is written by Tasks, which adds `[completion::]` ([`lineWithState`](../src/obsidian/edits.ts), line 83).
+- **Status of a note or project.** `status` is set. `done` is stamped with today when the status is `done` or `dropped`, and kept if it is already there. Any other status removes `done` ([`applyNoteStatus`](../src/obsidian/edits.ts), line 92).
 - **Dates.** Ninja Board writes only dates it was given, plus today's date when an edit needs one (a completion, a cancelled date, or a `done`).
 
 ### Story points

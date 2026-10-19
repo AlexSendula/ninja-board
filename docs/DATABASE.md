@@ -1,14 +1,14 @@
 # Database
 
-> Last updated: 18 October 2026
+> Last updated: 19 October 2026
 
 ## Overview
 
 Ninja Board has no database. The vault's notes are the data. Ninja Board reads each note's frontmatter from Obsidian's metadata cache, and the text of its task lines, draws the views from them, and keeps nothing between draws. Every change it makes is one small edit to one note or one line.
 
-The only state Ninja Board saves is layout: a board's order, the Schedule's form, Waiting's view and the stories folded on the Week board. All of them live in the dashboard note's `base` block (see [Dashboard notes](#dashboard-notes)).
+The only state Ninja Board saves is layout: a board's order, the Schedule's form, Waiting's view and the stories folded in the Week view, on every week. All of them live in the dashboard note's `base` block (see [Dashboard notes](#dashboard-notes)).
 
-The note format is set by the implementation spec. Its [reference format](https://alexsendula.github.io/second-brain/implementation/) (section 2) defines the fields, the value formats and the task-line format. The **Edits** table in the same section defines every change Ninja Board may make. This page says what Ninja Board reads and writes as built in v0.2.0.
+The note format is set by the implementation spec. Its [reference format](https://alexsendula.github.io/second-brain/implementation/) (section 2) defines the fields, the value formats and the task-line format. The **Edits** table in the same section defines every change Ninja Board may make. This page says what Ninja Board reads and writes as built in v1.1.0.
 
 ## Data flow
 
@@ -98,7 +98,7 @@ A line starts with `-`, `*` or `+`, any indentation, then a checkbox and its tex
 
 An unknown checkbox symbol reads as to do.
 
-Fields are in square brackets, or in parentheses, and Ninja Board reads these five ([taskLine.ts](../src/model/taskLine.ts), `FIELD_RE`, line 14):
+Fields are in square brackets, or in parentheses, and Ninja Board reads these five ([taskLine.ts](../src/model/taskLine.ts), `FIELD_RE`, line 16):
 
 | Field | Meaning |
 |---|---|
@@ -146,14 +146,14 @@ The repeats Ninja Board reads are `every <n> day`, `week`, `month` or `year` (wi
 
 ## Week plans and records
 
-A week plan is `08 Weeks/<year>/<YYYY-Www>.md`. The year is the ISO week's year ([record.ts](../src/model/record.ts), `weekPlanPath`, line 46).
+A week plan is `08 Weeks/<year>/<YYYY-Www>.md`. The year is the ISO week's year ([record.ts](../src/model/record.ts), `weekPlanPath`, line 51).
 
 - Ninja Board reads a week plan only when a past week is shown. It never writes one. The current and upcoming weeks come from the notes.
-- A record is five `### ` sections, in this order: `Appointments`, `Done`, `In progress`, `Not done` and `Backlog`. All five must be there, or the week falls back to what the notes say now ([record.ts](../src/model/record.ts), `parseWeekRecord`, line 32).
+- A record is five `### ` sections, in this order: `Appointments`, `Done`, `In progress`, `Not done` and `Backlog`. All five must be there, or the week falls back to what the notes say now ([record.ts](../src/model/record.ts), `parseWeekRecord`, line 33).
 - An item is a plain list item, never a checkbox: `- <title> · <context>`. Its fields come after, in square brackets, where they apply: `[day:: date]`, `[time:: HH:MM]` or `HH:MM-HH:MM`, `[due:: date]`, `[moved:: date]` and `[dropped:: date]`. The title is what comes before the last ` · `.
 - The plan's `frozen` and `updated` dates are shown above the record, as "Record · frozen Mon 12 Oct".
 - Its frontmatter may hold `points_planned` and `points_done`, the week's planned and done story points. Ninja Board reads them only when both are numbers, for a past week, read-only and marked as the record. Without them the week shows no points figure.
-- On a past week, `Appointments` feed the strip as they were that week. `Done` is the Done column. `Not done`, `In progress` and `Backlog` are columns, with Backlog folded under its count. A Backlog item whose context is `Inbox` shows as an inbox item, with a dot ([src/model/past.ts](../src/model/past.ts), `recordWeek`).
+- On a past week, `Appointments` feed the strip as they were that week. The board's columns are `Not done`, `In progress` and `Done`. `Backlog` is a tile under them, folded under its count. A line whose context names a story (a task note in a project, or another item the record lists) is grouped under that story as a card, in the column of the story's own row, else of its first line, with its lines as read-only rows under its title. A Backlog item whose context is `Inbox` shows as an inbox item, with a dot ([src/model/past.ts](../src/model/past.ts), `recordWeek`).
 
 The record is specified in the [round-2 design, section 5](design/2026-10-14-brain-plugin-round-2-design.md). A sample is `sample-vault/08 Weeks/2026/2026-W41.md`.
 
@@ -167,7 +167,7 @@ The record is specified in the [round-2 design, section 5](design/2026-10-14-bra
 | `views[].type` | Each view | `ninja-board-today`, `ninja-board-week`, `ninja-board-projects`, `ninja-board-backlog` or `ninja-board-guide` | Bases, and Ninja Board's registration ([main.ts](../src/main.ts), `VIEWS`) |
 | `views[].name` | Each view | The name in the view picker | Bases |
 | `views[].arrange` | The Week and Projects notes | A map from column to a list of item keys. Week: `todo`, `doing`, `waiting`. Projects: `active`, `paused`, `someday`. | [arrange.ts](../src/model/arrange.ts), `readArrangement` |
-| `views[].collapsed` | The Week note | A list of story names: the stories folded on this week's board, each by its note's name, listed once. Absent, or anything that is not a list, means none. A name stays listed after its story leaves the week. | [arrange.ts](../src/model/arrange.ts), `readCollapsed` |
+| `views[].collapsed` | The Week note | A list of story names: the stories folded in the Week view, on every week, each by its note's name, listed once. Absent, or anything that is not a list, means none. A name stays listed after its story leaves the week. | [arrange.ts](../src/model/arrange.ts), `readCollapsed` |
 | `views[].schedule` | The Today note | `compact`. Absent, or any other value, means large. | [arrange.ts](../src/model/arrange.ts), `readScheduleView` |
 | `views[].waiting` | The Week note | `group`. Absent, or any other value, means the column view. | [arrange.ts](../src/model/arrange.ts), `waitingViewOf` |
 

@@ -27,8 +27,8 @@ export interface Actions {
   /** Saves which view Waiting takes on the Week board in the view's `waiting:`. Where the config can't be saved the choice lasts for the session. */
   waitingView(view: WaitingView): void;
   /**
-   * Folds (true) or opens (false) the lines of these stories on the Week board, by note name. Saved in the view's `collapsed:`; it is
-   * not an undo step. Where the config can't be saved the fold lasts for the session.
+   * Folds (true) or opens (false) the lines of these stories in the Week view, on every week, by note name. Saved in the view's
+   * `collapsed:`; it is not an undo step. Where the config can't be saved the fold lasts for the session.
    */
   foldStories(names: string[], folded: boolean): void;
   /** Week view: show the week starting on this Monday. */
@@ -63,6 +63,12 @@ export interface ListSpec {
   drag: boolean;           // press and hold carries an item out onto the view
   zones: HTMLElement;      // the view's root: where a carried item may land, and where it is carried
   onDrop?: (item: HTMLElement, target: DropTarget) => void;
+  /**
+   * The Week view's list: set, the list's story cards fold as the view's story cards do, by these names (its `collapsed:` list), with the
+   * chevron on hover. Absent (Backlog's), they fold behind an always-shown chevron, closed by default. It is the page's own set, kept
+   * up to date as stories fold (on the page, or in the modal), so the modal draws the folds as they are now, each time it is opened.
+   */
+  collapsed?: Set<string>;
   opener?: HTMLElement;    // the Show all button that opened it, which takes the focus back when it closes
 }
 export interface ListHandle { update(spec: ListSpec): void; close(): void; isOpen(): boolean }

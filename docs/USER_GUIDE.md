@@ -108,13 +108,20 @@ On this week, Coming up always lists the next three weeks, each with its count: 
 
 ### Folding stories
 
-On this week's board, a story card can fold its task lines away. A folded card keeps its title, its details, its ring and count, and its points. New stories start open.
+In the Week view, a story card can fold its task lines away, on every week. A folded card keeps its head: its title and details and, where the card shows them, its ring, count and points. New stories start open.
 
 - **Fold one story.** Hover the story card and click the arrow at its start, or click the card's left edge. The arrow also shows when the keyboard's focus is in the card, and on a touch screen it is always there. Click it again to open the lines.
-- **Fold or open them all.** The **Coming up** row ends with an icon button. **Collapse all stories** (a compact list) folds every story on the board. When every story is folded, it becomes **Expand all stories** (a detailed list), which opens them all. With no story on the board there is no button.
-- **Remembered.** Folded stories are saved in `02 Week.md`, as a `collapsed:` list of story names under the Week view, so they stay folded after a restart. A name stays in the list after its story leaves the week, so the story is still folded when it comes back. Folding is not an undo step.
+- **On every week.**
+  - **This week:** the story cards of the board.
+  - **An upcoming week:** the story cards of **Planned or due**, and, while you plan, of **To plan** and its **Show all** list. Opening or closing **Plan this week** folds and opens nothing by itself: every card stays as it was.
+  - **A past week:** each story the week lists with task lines is a read-only card, in the column of the story's own row (else of its first line), with its lines under it as read-only rows. A line of a project or an area stays a row. Each column counts its cards and rows, and the week's figures are the record's own. The card has no ring, and nothing on it can be ticked, dragged or planned.
+- **Fold or open them all.** An icon button folds every story that shows on the page. **Collapse all stories** (a compact list) folds them. When every story is folded, it becomes **Expand all stories** (a detailed list), which opens them all. With no story on the page there is no button. It sits:
+  - on this week, at the end of the **Coming up** row;
+  - on an upcoming week, at the end of the **Planned or due** heading (while To plan is open it covers the cards of both lists; while it is closed, those of Planned or due only);
+  - on a past week, at the end of the "Record · frozen …" or **From your notes** line.
+- **One list, by story name.** Folded stories are saved in `02 Week.md`, as a `collapsed:` list of story names under the Week view, so they stay folded after a restart. The one list serves every week: a story folded on one week is folded on every week it appears, and in the Show all list, and two stories with the same note name fold together. A name stays in the list after its story leaves the week, so the story is still folded when it comes back. Folding is not an undo step, and it works on a past week too, although the week is read-only.
 - **Only in the note itself.** As with [arranging](#arranging), Bases can save only when the base is shown in its own note or in a `.base` file. In an embed, a hover preview or a canvas, a fold lasts for the session, and a Notice says "Open the dashboard note itself to keep stories folded". If a save fails, the Notice says "Couldn't save the folded stories" and the fold lasts for the session.
-- **Only this week.** Upcoming weeks, To plan and Backlog keep their own folding, and a past week's record doesn't fold.
+- **Backlog keeps its own folding.** Its story cards stay folded behind an arrow that is always shown, and opening one lasts for the session only. Today never draws a story's lines, so it has nothing to fold.
 
 ### An upcoming week
 
@@ -150,7 +157,7 @@ Planned or due's plannable rows can be dragged only while To plan is open. Plann
 
 A past week is read-only. Nothing on it can be ticked, dragged or planned, and titles open their note where it still exists.
 
-- When its week plan, `08 Weeks/<year>/<YYYY-Www>.md`, holds a record (written by the agent), Ninja Board shows the week as it was at its turn: **Not done** (an item that left the week reads "moved → Thu 22 Oct"), **In progress** and **Done**, with **Backlog** folded under its count. A line above the board says, for example, "Record · frozen Mon 12 Oct" (or "Record · updated …" before the freeze). A record needs all five of its sections.
+- When its week plan, `08 Weeks/<year>/<YYYY-Www>.md`, holds a record (written by the agent), Ninja Board shows the week as it was at its turn: **Not done** (an item that left the week reads "moved → Thu 22 Oct"), **In progress** and **Done**, with **Backlog** folded under its count. A story whose lines the week lists is a card that folds them (see [Folding stories](#folding-stories)). A line above the board says, for example, "Record · frozen Mon 12 Oct" (or "Record · updated …" before the freeze). A record needs all five of its sections.
 - Without a record, Ninja Board shows **From your notes**: what was finished that week, and what was due or planned then and is still open.
 
 ## Busy days

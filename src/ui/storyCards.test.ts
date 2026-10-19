@@ -1,5 +1,5 @@
-// Stories in lists are cards: To plan's No date, the list modal, Backlog's No date and Planned or due. A card folds
-// behind its chevron while planning, and its planner card offers the plan picks.
+// Stories in lists are cards: To plan's No date, the list modal, Backlog's No date and Planned or due. The Week view's cards fold by
+// the view's list; Backlog's fold behind an always-shown chevron, closed. A story's planner card offers the plan picks.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fire, recorder } from '../../test/ui.ts';   // first: it installs the DOM
@@ -36,7 +36,7 @@ function cardOf(within: Element, title: string): HTMLElement {
 
 const lineTitles = (card: Element) => [...card.querySelectorAll(':scope > .brain-story-lines > li .brain-task-text')].map((t) => t.textContent);
 
-test('To plan: a story in No date is a card, under its group before the group\'s tasks, folded behind its chevron', () => {
+test('To plan: a story in No date is a card, under its group before the group\'s tasks, open until the view\'s list folds it', () => {
   const plan = planParts(w43, fresh(), recorder().actions, true);
   const group = [...plan.querySelectorAll<HTMLElement>('.brain-group')].find((g) => g.querySelector('.brain-group-name')?.textContent === 'Renovate the kitchen');
   assert.ok(group);
@@ -44,49 +44,49 @@ test('To plan: a story in No date is a card, under its group before the group\'s
   assert.deepEqual(items, ['story', 'task']);
   const cabinets = cardOf(group, 'Order cabinets');
   assert.deepEqual([cabinets.tagName, cabinets.getAttribute('data-state'), cabinets.classList.contains('brain-card')], ['LI', 'todo', true]);
-  assert.equal(cabinets.querySelector(':scope > .brain-card-head > .brain-peek')?.getAttribute('aria-expanded'), 'false');
-  assert.equal(cabinets.querySelector(':scope > .brain-card-head > .brain-peek')?.getAttribute('aria-label'), 'Show the lines of Order cabinets');
+  assert.equal(cabinets.querySelector(':scope > .brain-card-head > .brain-peek')?.getAttribute('aria-expanded'), 'true');
+  assert.equal(cabinets.querySelector(':scope > .brain-card-head > .brain-peek')?.getAttribute('aria-label'), 'Hide the lines of Order cabinets');
   assert.equal(cabinets.querySelector(':scope > .brain-card-head .brain-card-title')?.textContent, 'Order cabinets');
   assert.equal(cabinets.querySelector(':scope > .brain-card-head .brain-meta')?.textContent, 'No date');
   assert.equal(cabinets.querySelector('.brain-progress > span[aria-hidden="true"]')?.textContent, '0/2');
   assert.equal(cabinets.querySelector('.brain-progress .brain-ring')?.getAttribute('aria-label'), '0 of 2 done');
   const lines = cabinets.querySelector(':scope > .brain-story-lines');
-  assert.equal(lines?.hasAttribute('hidden'), true);
+  assert.equal(lines?.hasAttribute('hidden'), false);
   assert.deepEqual(lineTitles(cabinets), ['Re-measure the corner under the sink', 'Pick the cabinet colour and handles']);
 });
 
-test('Planned or due: a story card is whole with its lines and no chevron while To plan is closed, and folded while it is open', () => {
-  const closed = planParts(w43, fresh(), recorder().actions, false);
-  const hostingClosed = cardOf(closed, "Choose hosting for Sam's site");
-  assert.equal(hostingClosed.querySelector(':scope > .brain-card-head > .brain-peek')?.hasAttribute('hidden'), true);
-  assert.equal(hostingClosed.querySelector(':scope > .brain-story-lines')?.hasAttribute('hidden'), false);
-  assert.equal(hostingClosed.classList.contains('brain-draggable'), false);
-
-  const open = planParts(w43, fresh(), recorder().actions, true);
-  const hostingOpen = cardOf(open, "Choose hosting for Sam's site");
-  assert.equal(hostingOpen.querySelector(':scope > .brain-card-head > .brain-peek')?.hasAttribute('hidden'), false);
-  assert.equal(hostingOpen.querySelector(':scope > .brain-story-lines')?.hasAttribute('hidden'), true);
-  assert.equal(hostingOpen.classList.contains('brain-draggable'), true);
-  assert.equal(hostingOpen.hasAttribute('data-plannable'), true);
+test('Planned or due: a story card looks the same with To plan closed or open, with its chevron; opening To plan only makes it drag', () => {
+  for (const open of [false, true]) {
+    const plan = planParts(w43, fresh(), recorder().actions, open);
+    const hosting = cardOf(plan, "Choose hosting for Sam's site");
+    assert.equal(hosting.classList.contains('brain-foldable'), true);
+    assert.equal(hosting.querySelector(':scope > .brain-card-head > .brain-peek')?.hasAttribute('hidden'), false);
+    assert.equal(hosting.querySelector(':scope > .brain-card-head > .brain-peek')?.getAttribute('aria-expanded'), 'true');
+    assert.equal(hosting.querySelector(':scope > .brain-story-lines')?.hasAttribute('hidden'), false);
+    assert.equal(hosting.classList.contains('brain-draggable'), open);
+    assert.equal(hosting.hasAttribute('data-plannable'), true);
+  }
 });
 
-test('Planned or due: the chevron opens and folds the story\'s lines in place, and the toggle folds every card', () => {
+test('Planned or due: the chevron folds and opens the story\'s lines in place, and the To plan toggle folds nothing', () => {
+  const { actions, calls } = recorder();
   const root = fresh();
-  renderWeek(root, w43, recorder().actions);
+  renderWeek(root, w43, actions);
   const toggle = root.querySelector<HTMLElement>('.brain-plan-toggle');
   assert.ok(toggle);
-  fire(toggle, 'click');   // To plan opens: the story cards fold
+  fire(toggle, 'click');   // To plan opens: every card is as it was
   const card = cardOf(root, "Choose hosting for Sam's site");
-  assert.equal(card.querySelector(':scope > .brain-story-lines')?.hasAttribute('hidden'), true);
-  fire(card.querySelector('.brain-peek')!, 'click');
   assert.equal(card.querySelector(':scope > .brain-story-lines')?.hasAttribute('hidden'), false);
-  assert.equal(card.querySelector('.brain-peek')?.getAttribute('aria-expanded'), 'true');
-  assert.equal(card.querySelector('.brain-peek')?.getAttribute('aria-label'), 'Hide the lines of Choose hosting for Sam\'s site');
   fire(card.querySelector('.brain-peek')!, 'click');
   assert.equal(card.querySelector(':scope > .brain-story-lines')?.hasAttribute('hidden'), true);
-  fire(toggle, 'click');   // Done planning: whole again, no chevron
-  assert.equal(card.querySelector(':scope > .brain-card-head > .brain-peek')?.hasAttribute('hidden'), true);
+  assert.equal(card.querySelector('.brain-peek')?.getAttribute('aria-expanded'), 'false');
+  assert.equal(card.querySelector('.brain-peek')?.getAttribute('aria-label'), 'Show the lines of Choose hosting for Sam\'s site');
+  fire(card.querySelector('.brain-peek')!, 'click');
   assert.equal(card.querySelector(':scope > .brain-story-lines')?.hasAttribute('hidden'), false);
+  fire(toggle, 'click');   // Done planning: as it was too
+  assert.equal(card.querySelector(':scope > .brain-card-head > .brain-peek')?.hasAttribute('hidden'), false);
+  assert.equal(card.querySelector(':scope > .brain-story-lines')?.hasAttribute('hidden'), false);
+  assert.deepEqual(calls, [['foldStories', ["Choose hosting for Sam's site"], true], ['foldStories', ["Choose hosting for Sam's site"], false]]);   // the chevron's, none from planning
 });
 
 test('the list modal draws a story as the same card, and its search finds the card by its title', () => {
@@ -97,7 +97,7 @@ test('the list modal draws a story as the same card, and its search finds the ca
   const content = fresh();
   renderListBody(content, spec, recorder().actions, { close() {}, carry() {} });
   const card = cardOf(content, 'Order cabinets');
-  assert.equal(card.querySelector(':scope > .brain-card-head > .brain-peek')?.getAttribute('aria-expanded'), 'false');
+  assert.equal(card.querySelector(':scope > .brain-card-head > .brain-peek')?.getAttribute('aria-expanded'), 'true');
   assert.equal(content.querySelector('.brain-modal-grid')?.contains(card), true);
 });
 

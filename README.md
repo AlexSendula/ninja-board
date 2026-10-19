@@ -72,7 +72,7 @@ The others use `ninja-board-week`, `ninja-board-projects`, `ninja-board-backlog`
 - **Plan, set a deadline or change a state:** right-click a row or card (long-press on touch, or Shift+F10) to open its card.
 - **Move** a task or project: drag it to another column, or onto a day of the Week strip to plan it.
 - **Arrange** a board: drag a card within its column, or press Alt+↑ and Alt+↓.
-- **Fold** a story on the Week board: hover it and click the arrow at its start. The icon at the end of the Coming up row folds or opens them all.
+- **Fold** a story, on every week of the Week view: hover it and click the arrow at its start. The icon on each week's page (the end of the Coming up row on this week) folds or opens them all.
 - **Open** the note: click the title, or press Enter.
 - **Undo:** Cmd/Ctrl+Z in a view, or the command **Undo the last change**.
 

@@ -7,11 +7,21 @@ import { displayText } from './taskLine.ts';
 import { noteRow, occurrenceKey } from './rows.ts';
 import { compareText } from './order.ts';
 import { openItems } from './upcoming.ts';
-import { weekDay, within } from './week.ts';
+import { isStory, weekDay, within } from './week.ts';
 
 type Week = { start: string; end: string };
+
+/** The story a line belongs to: `id` tells lines of one story apart; the rest is what its card shows when the story is not listed itself. */
+interface Owner { id: string; title: string; path?: string; key: string }
+
+/**
+ * An item of a past week's board before its stories are nested (see nest): its row, the meta it has as a line of a card (without
+ * the story's name), the story it is a line of, and the id it has as the story's own row.
+ */
+interface Item { row: RecordRowVM; inCard: MetaPart[]; owner?: Owner; self?: string }
+
 /** A row with the date it is shown on, and its place in the file, for sorting and the day counts. */
-interface Dated { iso: string; path: string; line: number; row: RecordRowVM }
+interface Dated extends Item { iso: string; path: string; line: number }
 
 const HOLDERS = new Set(['project', 'area', 'task']);
 
@@ -23,6 +33,7 @@ export function notesWeek(s: VaultSnapshot, today: string, head: Omit<WeekHeadVM
   const w = { start: head.start, end: addDays(head.start, 6) };
   const done = byDate(doneRows(s, w));
   const open = byDate(notDoneRows(s, today, w));
+  const [notDone, finished] = nest([open, done], ['todo', 'done']);
   return {
     kind: 'past',
     ...head,
@@ -31,8 +42,8 @@ export function notesWeek(s: VaultSnapshot, today: string, head: Omit<WeekHeadVM
     source: [{ text: 'From your notes' }],
     done: done.length,
     columns: [
-      { title: 'Not done', empty: 'Nothing left open', rows: open.map((d) => d.row) },
-      { title: 'Done', empty: 'Nothing done that week', rows: done.map((d) => d.row) },
+      { title: 'Not done', empty: 'Nothing left open', rows: notDone },
+      { title: 'Done', empty: 'Nothing done that week', rows: finished },
     ],
   };
 }
@@ -86,7 +97,14 @@ function dated(iso: string, n: NoteInfo, t: TaskLine | undefined, state: TaskSta
     meta,
     inbox: false,
   };
-  return { iso, path: n.path, line: t?.line ?? 0, row };
+  // A story note's lines are the lines of its card (their meta starts with the story's name, which the card says), and its own row is the story.
+  const story = n.type === 'task' && isStory(n);
+  return {
+    iso, path: n.path, line: t?.line ?? 0, row,
+    inCard: t && story ? meta.slice(1) : meta,
+    ...(t && story ? { owner: { id: n.path, title: n.name, path: n.path, key: n.path } } : {}),
+    ...(!t && story ? { self: n.path } : {}),
+  };
 }
 
 /** A task note's project or area, when it has one. */
@@ -108,6 +126,7 @@ const DATED_NAME = /^\d{4}-\d{2}-\d{2} (\d{4} )?/;
 /**
  * A past week as its week plan's record holds it, in the record's own words: read-only. The strip shows
  * the record's appointments and a done count per day. A title opens the note it names, while that exists.
+ * A story's lines are grouped under the story as a card (see nest); the week's figures count the record's items, not the cards.
  */
 export function recordWeek(s: VaultSnapshot, today: string, head: Omit<WeekHeadVM, 'days'>, record: WeekRecord): PastWeekVM {
   const word = (iso: string): string => weekWord(iso, head.start);
@@ -119,32 +138,87 @@ export function recordWeek(s: VaultSnapshot, today: string, head: Omit<WeekHeadV
     meta: [...(item.context ? [{ text: item.context }] : []), ...parts],
     inbox: false,
   });
-  const notDone = record.notDone.map((item, i) =>
-    row(`notDone#${i}`, item, item.dropped ? 'dropped' : 'todo', notDoneParts(item, word)));
-  const inProgress = record.inProgress.map((item, i) => row(`inProgress#${i}`, item, 'doing'));
-  const done = record.done.map((item, i) =>
-    row(`done#${i}`, item, 'done', item.day ? [{ text: 'Done ' + word(item.day) }] : []));
-  const backlog = record.backlog.map((item, i) => ({ ...row(`backlog#${i}`, item, 'todo'), inbox: item.context === 'Inbox' }));
+  // The story a line's context names: a task note inside a project, or another item the board lists.
+  const stories = new Set(s.notes.filter((n) => n.type === 'task' && isStory(n)).map((n) => n.name));
+  const listed = [...record.notDone, ...record.inProgress, ...record.done];
+  const ownerOf = (item: RecordItem): Owner | undefined => {
+    const name = item.context;
+    if (name === undefined || !(stories.has(name) || listed.some((other) => other !== item && other.title === name))) return undefined;
+    const note = s.notes.find((n) => n.name === name && n.type === 'task' && isStory(n)) ?? recordNote(s, { title: name });
+    return { id: name, title: name, path: note?.path, key: `story:${name}` };
+  };
+  const item = (key: string, it: RecordItem, state: TaskState, parts: MetaPart[] = []): Item => {
+    const owner = ownerOf(it);
+    return { row: row(key, it, state, parts), inCard: parts, ...(owner ? { owner } : {}), self: it.title };
+  };
+  const notDone = record.notDone.map((it, i) =>
+    item(`notDone#${i}`, it, it.dropped ? 'dropped' : 'todo', notDoneParts(it, word)));
+  const inProgress = record.inProgress.map((it, i) => item(`inProgress#${i}`, it, 'doing'));
+  const done = record.done.map((it, i) =>
+    item(`done#${i}`, it, 'done', it.day ? [{ text: 'Done ' + word(it.day) }] : []));
+  const backlog = record.backlog.map((it, i) => ({ ...row(`backlog#${i}`, it, 'todo'), inbox: it.context === 'Inbox' }));
+  const [notDoneRows, inProgressRows, doneRows] = nest([notDone, inProgress, done], ['todo', 'doing', 'done']);
   return {
     kind: 'past',
     ...head,
     days: Array.from({ length: 7 }, (_, i) => addDays(head.start, i)).map((iso) => ({
-      ...weekDay(s, iso, today, { planned: 0, due: 0, done: record.done.filter((item) => item.day === iso).length }),
+      ...weekDay(s, iso, today, { planned: 0, due: 0, done: record.done.filter((it) => it.day === iso).length }),
       // The record's appointments, as they were that week, not the notes' as they are now.
       events: record.appointments
-        .flatMap((item, n) => (item.day === iso ? [recordEvent(s, item, n)] : []))
+        .flatMap((it, n) => (it.day === iso ? [recordEvent(s, it, n)] : []))
         .sort((a, b) => compareText(a.start, b.start)),
     })),
     source: recordSource(record),
     done: done.length,
     total: done.length + inProgress.length + notDone.length,   // the Backlog was never the week's work
     columns: [
-      { title: 'Not done', empty: 'Nothing left open', rows: notDone },
-      { title: 'In progress', empty: 'Nothing in progress', rows: inProgress },
-      { title: 'Done', empty: 'Nothing done that week', rows: done },
+      { title: 'Not done', empty: 'Nothing left open', rows: notDoneRows },
+      { title: 'In progress', empty: 'Nothing in progress', rows: inProgressRows },
+      { title: 'Done', empty: 'Nothing done that week', rows: doneRows },
     ],
     backlog,
   };
+}
+
+/**
+ * The board's columns with each story's lines grouped under the story as a card: a row with `lines`. A line is an item with an
+ * `owner`; the story is the item with that id as its `self`, when it is listed.
+ * - The card is in the story's own row's column, else in the first column that holds one of its lines, and keeps its place there:
+ *   at its own row, else at its first line. A story that is not listed gets a card of its own, with no meta, in the state of its column.
+ * - The lines come in column order, and in their own order within a column, with the meta they have in a card.
+ * - A story is a card of one level: a listed story that has lines is never a line of another, and a story that is listed twice
+ *   takes its lines in the first row. A story with no line stays a plain row.
+ * `states` is the state a card of each column is drawn with when its story is not listed.
+ */
+function nest(columns: Item[][], states: TaskState[]): RecordRowVM[][] {
+  const owners = new Set(columns.flat().flatMap((item) => item.owner?.id ?? []));
+  const isLine = (item: Item): item is Item & { owner: Owner } => item.owner !== undefined && !(item.self !== undefined && owners.has(item.self));
+  const lines = new Map<string, Item[]>();
+  for (const item of columns.flat()) if (isLine(item)) lines.set(item.owner.id, [...lines.get(item.owner.id) ?? [], item]);
+  // The story's own row is the first row listed with its id, the lines apart.
+  const own = new Map<string, { column: number; item: Item }>();
+  columns.forEach((items, column) => items.forEach((item) => {
+    if (item.self !== undefined && lines.has(item.self) && !isLine(item) && !own.has(item.self)) own.set(item.self, { column, item });
+  }));
+  const home = new Map<string, number>();
+  for (const [id, { column }] of own) home.set(id, column);
+  columns.forEach((items, column) => items.forEach((item) => {
+    if (isLine(item) && !home.has(item.owner.id)) home.set(item.owner.id, column);
+  }));
+  const cardLines = (id: string): RecordRowVM[] => (lines.get(id) ?? []).map((line) => ({ ...line.row, meta: line.inCard }));
+  return columns.map((items, column) => {
+    const placed = new Set<string>();
+    return items.flatMap((item): RecordRowVM[] => {
+      if (isLine(item)) {
+        const { owner } = item;
+        if (own.has(owner.id) || home.get(owner.id) !== column || placed.has(owner.id)) return [];
+        placed.add(owner.id);
+        return [{ key: owner.key, title: owner.title, state: states[column], path: owner.path, meta: [], inbox: false, lines: cardLines(owner.id) }];
+      }
+      const card = item.self !== undefined && own.get(item.self)?.item === item;
+      return [card && item.self !== undefined ? { ...item.row, lines: cardLines(item.self) } : item.row];
+    });
+  });
 }
 
 /** Why it wasn't done: dropped, else moved out of the week, else due (a deadline, red), else its day. */

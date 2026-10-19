@@ -255,3 +255,11 @@ test('Today: the window of a replaced tile lets go of its observer', (t) => {
   assert.equal(log.disconnected, 1, 'the new tile is still watched');
   assert.equal(log.observed, 2);
 });
+
+test('Today never draws a story\'s lines as a card, so it has nothing to fold: its rows carry no progress or lines, and the page no card, chevron or fold button', () => {
+  // A story's doing line is a row of its own (its meta names the story), and a story's note is a plain note row: Today folds nothing (the Week view folds, in every week).
+  const rows = [...vm.now, ...vm.today, ...vm.doneRows];
+  assert.ok(rows.some((r) => r.meta.some((p) => p.text === "Choose hosting for Sam's site")), 'the sample has a line of a story on Today');
+  assert.deepEqual(rows.filter((r) => r.progress !== undefined || r.lines !== undefined), []);
+  assert.equal(rendered(vm).querySelectorAll('.brain-card, .brain-story-lines, .brain-peek, .brain-foldable, .brain-fold-all').length, 0);
+});

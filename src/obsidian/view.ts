@@ -19,6 +19,7 @@ import { focusedKey, pagerFocus, refocus, refocusPager } from '../ui/focus.ts';
 import { markHosts } from '../ui/host.ts';
 import { cancelDrags } from '../ui/drag.ts';
 import { closeCard } from '../ui/popover.ts';
+import { unfoldedKeys } from '../ui/card.ts';
 import { tickNow } from '../ui/schedule.ts';
 import { CONFIG_PATH, readPointsTarget, readWeekPlan, snapshotFromFiles } from './snapshot.ts';
 import { obsidianActions } from './actions.ts';
@@ -36,7 +37,7 @@ interface DrawContext {
   arrange: Arrangement;            // readArrangement(this.config.get('arrange'))
   schedule: ScheduleView;          // which form Today's Schedule takes: the saved `schedule:`, or this session's choice
   waiting: WaitingView;            // which view Waiting takes on the Week board: the saved `waiting:`, or this session's choice
-  collapsed: string[];             // the stories folded on the Week board: the saved `collapsed:`, or this session's list
+  collapsed: string[];             // the stories folded in the Week view, on every week: the saved `collapsed:`, or this session's list
   weekStart?: string;              // the Monday the Week view shows; undefined: this week
   target: number;                  // the week's points target: points_per_week in the config note, 8 when absent
   plan?: RawNote;                  // that week's plan note, read only for a past week
@@ -64,6 +65,12 @@ function waitingLabel(before: unknown): string {
   return `show Waiting ${waitingViewOf(before) === 'group' ? 'inside Doing' : 'as its own column'}`;
 }
 
+/** Whether two lists of folded stories hold the same names, in any order. */
+function sameNames(a: readonly string[], b: readonly string[]): boolean {
+  const names = new Set(b);
+  return new Set(a).size === names.size && a.every((name) => names.has(name));
+}
+
 /** A copy of a config value as JSON holds it, so a later change to the config's own object does not change the step. */
 function copyOf(value: unknown): unknown {
   return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
@@ -88,6 +95,9 @@ export class BrainView extends BasesView {
   // The folded stories where the config can't hold them, as for the Schedule: the whole list as this session has it.
   private collapsedChoice: string[] | undefined;
   private foldNoticed = false;         // the Notice about a fold the config can't hold is shown once
+  // What the page on screen was drawn from: the signature of every input but the folds (see render), and the folds. A draw from
+  // the same inputs would only replace the page with a copy, and blink what is under the pointer, so it is skipped.
+  private drawn: { sig: string; collapsed: string[] } | undefined;
   // The strip changes by itself when an appointment ends: one timer, set at each draw, for the next end today.
   private changeAt: string | undefined;
   private stopChange: (() => void) | undefined;
@@ -185,10 +195,12 @@ export class BrainView extends BasesView {
   }
 
   /**
-   * Folds (or opens) these stories on the Week board and saves the list in this view's `collapsed:`, the way scheduleView() saves
+   * Folds (or opens) these stories in the Week view, on every week, and saves the list in this view's `collapsed:`, the way scheduleView() saves
    * the Schedule's form: through the config, which Bases writes back into the dashboard note. It is not an undo step: it changes
    * what the board shows, not the board. Where the config can't hold it (an embed, a hover, a canvas) or the save fails, the list
-   * lasts for the session and a Notice says so, the first time.
+   * lasts for the session and a Notice says so, the first time. It does not draw: the cards (or the page) were folded in place by the
+   * click, and a draw would build the chevron again at opacity 0 and fade it in, a flicker. Any later draw is from this list; the
+   * one that echoes the save (Bases writes the block, then calls onDataUpdated) draws the page that is there, so `drawn` is told and skips it.
    */
   foldStories(names: string[], folded: boolean): void {
     const next = setFolded(this.collapsedNow(), names, folded);
@@ -205,10 +217,12 @@ export class BrainView extends BasesView {
       this.noticeFold('Open the dashboard note itself to keep stories folded');
       this.collapsedChoice = next;
     }
-    this.redraw();
+    // The page shows its own folds plus this change, not the saved list (an outside edit of it may not be drawn yet): that is what the
+    // record takes, so the draw that echoes the save is skipped, and one for a pending outside edit is made.
+    if (this.drawn) this.drawn.collapsed = setFolded(this.drawn.collapsed, names, folded);
   }
 
-  /** The folded stories as the board is drawn: this session's list where the config couldn't hold it, else the saved one. */
+  /** The folded stories as the Week view is drawn: this session's list where the config couldn't hold it, else the saved one. */
   private collapsedNow(): string[] {
     return this.collapsedChoice ?? readCollapsed(this.config.get('collapsed'));
   }
@@ -278,6 +292,7 @@ export class BrainView extends BasesView {
     cancelDrags(this.root);   // a drag still in progress in this view (a carry out of a modal included) ends with it, with its listeners
     this.rerender.cancel();
     this.renders++;   // an unfinished render must not draw into a removed view
+    this.drawn = undefined;
   }
 
   onDataUpdated(): void {
@@ -319,9 +334,6 @@ export class BrainView extends BasesView {
       const snapshot = await snapshotFromFiles(this.plugin.app, files);
       const extras = await this.extras();
       if (run !== this.renders) return;   // a newer render started while this one was reading
-      const key = focusedKey(this.root);
-      // A pager control (‹, ›, This week, a Coming up chip) is replaced by the draw too: keep the focus on it.
-      const pager = pagerFocus(this.root);
       this.day = today();
       this.root.dataset.today = this.day;
       // The Week view's upcoming week: its cards plan that week by default.
@@ -330,19 +342,40 @@ export class BrainView extends BasesView {
       } else {
         delete this.root.dataset.week;
       }
-      delete this.root.dataset.changeAt;   // the Week view sets it again if the strip will change
-      DRAW[this.type](this.root, {
+      const inputs: Omit<DrawContext, 'actions' | 'collapsed'> = {
         snapshot,
         today: this.day,
         now: now(),
-        actions: this.actions,
         arrange: readArrangement(this.config.get('arrange')),
         target: readPointsTarget(this.plugin.app),
         schedule: this.scheduleChoice ?? readScheduleView(this.config.get('schedule')),
         waiting: this.waitingChoice ?? waitingViewOf(this.config.get('waiting')),
-        collapsed: this.collapsedNow(),
         ...extras,
+      };
+      const collapsed = this.collapsedNow();
+      // Everything a draw reads that is not on the page already, but the folds: those are the page's own (a fold changes it in place,
+      // and `drawn` is told). What a draw reads off the page (an open Done today or To plan, the Schedule's scroll, the focus) is kept
+      // with the page, so it is no input. unfoldedKeys: the story cards opened on any page, a list card.ts keeps for the next draw; only
+      // Backlog's planner cards read it (the Week view's story cards fold by `collapsed:`), so only Backlog's draw has it as an input.
+      const sig = JSON.stringify({
+        view: this.type,
+        inputs,
+        week: this.root.dataset.week,
+        undo: this.actions.undoLabel(),
+        mac: this.actions.mac,
+        unfolded: this.type === 'ninja-board-backlog' ? unfoldedKeys() : [],
       });
+      if (this.drawn?.sig === sig && sameNames(this.drawn.collapsed, collapsed)) {
+        this.armChange(this.root.dataset.changeAt);   // the page and its changeAt are kept; the timer is set again, as a draw would
+        return;
+      }
+      const key = focusedKey(this.root);
+      // A pager control (‹, ›, This week, a Coming up chip) is replaced by the draw too: keep the focus on it.
+      const pager = pagerFocus(this.root);
+      delete this.root.dataset.changeAt;   // the Week view sets it again if the strip will change
+      this.drawn = undefined;   // a draw that fails midway leaves a page that no later render may take for the one drawn before
+      DRAW[this.type](this.root, { ...inputs, actions: this.actions, collapsed });
+      this.drawn = { sig, collapsed: [...collapsed] };
       this.armChange(this.root.dataset.changeAt);
       if (key !== undefined) refocus(this.root, key);
       refocusPager(this.root, pager);

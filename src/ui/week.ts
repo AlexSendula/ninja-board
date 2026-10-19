@@ -6,14 +6,14 @@ import { markKeyboardFocus } from './focus.ts';
 import { nextChange } from './clock.ts';
 import { weekStrip } from './strip.ts';
 import { taskRow } from './task.ts';
-import { storyCard } from './card.ts';
+import { foldAllButton, foldIn, storyCard, syncFoldAll } from './card.ts';
 import { refreshLists } from './listModal.ts';
 import { dropOnPlan, planParts, planToggle, planWasOpen, toPlanId, toPlanSpecs } from './plan.ts';
 import { dropLists, enableDrag } from './drag.ts';
 import type { DropTarget } from './drag.ts';
 import type { HeadOpts } from './header.ts';
 import { pastParts } from './past.ts';
-import { foldAllIcon, switchIcon } from './marks.ts';
+import { switchIcon } from './marks.ts';
 import { foldWasOpen, labelRow, mountPage } from './page.ts';
 
 type Column = keyof ThisWeekVM['columns'];
@@ -33,12 +33,17 @@ const NOTE_STATUS: Record<Column, string> = { todo: 'open', doing: 'doing', wait
  * ended. The root's data-change-at says when the picture next changes by itself, the next end today, so that the
  * view can draw again then; it is removed when nothing will (an upcoming week, a record, a day that is over).
  * `waiting` is the view the config gives Waiting on the board: Column (the default), or Group view's layout under Doing.
- * `collapsed` is the story names the config has folded: this week's story cards hide their lines, and no other week folds.
+ * `collapsed` is the story names the config has folded: every story card of every week hides its lines, by the story's name.
  */
 export function renderWeek(root: HTMLElement, vm: WeekVM, actions: Actions, opts: { now?: string; waiting?: WaitingView; collapsed?: readonly string[] } = {}): void {
   // Read before mountPage clears root: a re-render keeps a past week's Backlog open.
   const backlogOpen = foldWasOpen(root, 'backlog');
   const toPlanOpen = vm.kind === 'upcoming' && planWasOpen(root, vm.start);   // read before the redraw clears root
+  const hovered = hoveredKeys(root);   // likewise: what is under the pointer
+  // The page's folds. A fold changes the page in place and draws nothing, so a fold keeps this set up to date: a list modal opened
+  // later (it holds this set) draws the folds as they are now. The next draw reads the config's list again.
+  const folded = new Set(opts.collapsed);
+  const weekActions: Actions = { ...actions, foldStories: (names, fold) => { foldIn(folded, names, fold); actions.foldStories(names, fold); } };
   const page = mountPage(root, 'week');
   page.append(
     viewHead({
@@ -62,16 +67,61 @@ export function renderWeek(root: HTMLElement, vm: WeekVM, actions: Actions, opts
   // The drag goes on the page, so the strip's days count. Not on root: it outlives renders and would
   // collect listeners. A past week is read-only and has none.
   if (vm.kind === 'this') {
-    const folded = new Set(opts.collapsed);
-    page.append(comingUp(vm, actions, folded), board(vm, actions, opts.waiting ?? 'column', folded));
+    page.append(comingUp(vm, weekActions), board(vm, weekActions, opts.waiting ?? 'column', folded));
     enableDrag(page, dropOnWeek(vm, actions));
   } else if (vm.kind === 'upcoming') {
-    page.append(planParts(vm, root, actions, toPlanOpen));
+    page.append(planParts(vm, root, weekActions, toPlanOpen, folded));
     enableDrag(page, dropOnPlan(vm, actions));
   } else {
-    page.append(...pastParts(vm, actions, backlogOpen));
+    page.append(...pastParts(vm, weekActions, backlogOpen, folded));
   }
-  refreshLists(root, vm.kind === 'upcoming' ? toPlanSpecs(vm, root, actions) : []);
+  syncFoldAll(page);   // the Collapse all button reads from the cards that are drawn
+  refreshLists(root, vm.kind === 'upcoming' ? toPlanSpecs(vm, root, weekActions, folded) : []);
+  keepHover(page, hovered);
+}
+
+/**
+ * The keys of the elements under the pointer: a card, and the chevron or button on it that the pointer is on. With none under it, the
+ * elements that keep their hover look (see keepHover) stand in until the pointer leaves them: a second draw soon after the first comes
+ * before the browser has put :hover on the new ones. A kept element that the pointer is not on never wins over one it is on. A browser
+ * that can't say (no :hover) has none.
+ */
+function hoveredKeys(root: HTMLElement): string[] {
+  try {
+    const keyed = [...root.querySelectorAll<HTMLElement>('[data-key]')];
+    const keysOf = (on: (el: HTMLElement) => boolean) => keyed.filter(on).flatMap((el) => el.dataset.key ?? []);
+    const under = keysOf((el) => el.matches(':hover'));
+    return under.length > 0 ? under : keysOf((el) => el.classList.contains('brain-hover-kept'));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * The redraw replaced what is under the pointer, and the new elements start from their resting look: the card without its shadow, the
+ * chevron hidden (it shows on hover alone) and without its hover colours, a quiet button in its muted colour. Each fades or jumps into the
+ * hover look a moment later: a flicker. The elements with each hovered key keep the hover look (the class, before the first paint) until
+ * the pointer first leaves them. The browser puts :hover on the new elements within a frame, so two frames on, an element that the pointer
+ * is not on (a move or a layout shift took it elsewhere, and a pointerleave never comes for an element it never entered) loses the class.
+ */
+function keepHover(page: HTMLElement, keys: string[]): void {
+  if (keys.length === 0) return;
+  const keyed = [...page.querySelectorAll<HTMLElement>('[data-key]')];
+  // Every element with a hovered key: a story can be drawn twice on an upcoming week (Planned or due and To plan) with one key, and the
+  // pointer is on either. The two-frame check below takes the class off the copy it is not on.
+  const kept = new Set(keys.flatMap((key) => keyed.filter((el) => el.dataset.key === key)));
+  for (const el of kept) {
+    el.classList.add('brain-hover-kept');
+    el.addEventListener('pointerleave', () => el.classList.remove('brain-hover-kept'), { once: true });
+  }
+  const win = page.ownerDocument.defaultView;
+  win?.requestAnimationFrame(() => win.requestAnimationFrame(() => {
+    for (const el of kept) {
+      try {
+        if (!el.matches(':hover')) el.classList.remove('brain-hover-kept');
+      } catch { /* a browser that can't say (no :hover) leaves the class on until the pointer leaves */ }
+    }
+  }));
 }
 
 /** ‹ and › show the weeks before and after; This week, on any other week, goes back to now. */
@@ -109,7 +159,7 @@ let comingUps = 0;   // a unique id per Coming up heading, for aria-labelledby
  * Under this week's strip: the next three weeks, each with its count. A chip shows that week. The row ends with the button that
  * folds every story on the board or opens them all (none when there are no stories).
  */
-function comingUp(vm: ThisWeekVM, actions: Actions, folded: ReadonlySet<string>): HTMLElement {
+function comingUp(vm: ThisWeekVM, actions: Actions): HTMLElement {
   const id = `brain-coming-up-${++comingUps}`;
   const chips = vm.comingUp.map(({ start, week, count }) => {
     const chip = h('button', count > 0 ? 'brain-week-chip' : 'brain-week-chip brain-is-empty', {
@@ -118,30 +168,12 @@ function comingUp(vm: ThisWeekVM, actions: Actions, folded: ReadonlySet<string>)
     chip.addEventListener('click', () => actions.showWeek(start));
     return chip;
   });
-  const stories = storyNames(vm);
+  const stories = COLUMNS.some(({ key }) => vm.columns[key].some((item) => item.kind === 'card'));
   return h('nav', 'brain-week-line', { 'aria-labelledby': id }, [
     h('h3', 'brain-label', { id }, ['Coming up']),
     h('div', 'brain-week-chips', {}, chips),
-    stories.length > 0 ? foldAllButton(stories, folded, actions) : null,
+    stories ? foldAllButton(actions) : null,
   ]);
-}
-
-/** The note names of the stories on the board, each once, column by column: what Collapse all and Expand all act on. */
-function storyNames(vm: ThisWeekVM): string[] {
-  const names = COLUMNS.flatMap(({ key }) => vm.columns[key].flatMap((item) => (item.kind === 'card' ? [item.arrangeKey] : [])));
-  return [...new Set(names)];
-}
-
-/**
- * Collapse all, or Expand all once every story on the board is folded. It names what it does next, and keeps its key, so a
- * redraw gives the focus back to it. Expand all opens the board's stories only: names of stories that are not here stay folded.
- */
-function foldAllButton(stories: string[], folded: ReadonlySet<string>, actions: Actions): HTMLButtonElement {
-  const all = stories.every((name) => folded.has(name));
-  const label = all ? 'Expand all stories' : 'Collapse all stories';
-  const button = h('button', 'brain-quiet brain-fold-all', { 'aria-label': label, title: label, 'data-key': 'fold-all' }, [foldAllIcon(all ? 'expand' : 'collapse')]);
-  button.addEventListener('click', () => actions.foldStories(stories, !all));
-  return button;
 }
 
 /**

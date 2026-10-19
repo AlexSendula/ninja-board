@@ -54,25 +54,29 @@ test('Week 41: the head, the strip, the record line, three columns, then the Bac
   assert.equal(page.querySelector('.brain-figure > span')?.textContent, '5/10');   // the tasks figure: done out of all, then the icon
   const cols = columns(root);
   assert.deepEqual(cols.map((c) => c.querySelector(':scope > .brain-label-row > .brain-label')?.textContent), ['Not done', 'In progress', 'Done']);
-  assert.deepEqual(cols.map((c) => c.querySelector(':scope > .brain-label-row > .brain-count')?.textContent), ['3', '2', '5']);
-  assert.deepEqual(cols.map((c) => c.querySelectorAll(':scope > ul.brain-col-items > li.brain-task').length), [3, 2, 5]);
+  // The counts are the column's items: a story with lines is one card, whichever column its lines were in.
+  assert.deepEqual(cols.map((c) => c.querySelector(':scope > .brain-label-row > .brain-count')?.textContent), ['3', '2', '4']);
+  assert.deepEqual(cols.map((c) => c.querySelectorAll(':scope > ul.brain-col-items > li').length), [3, 2, 4]);
+  assert.deepEqual(cols.map((c) => c.querySelectorAll(':scope > ul.brain-col-items > li.brain-card').length), [0, 1, 1]);
   assert.deepEqual(cols.map((c) => c.hasAttribute('data-column')), [false, false, false]);
 });
 
-test('Week 41: nothing on the board is a control; each mark shows its state', () => {
+test('Week 41: nothing on the board is a control but the cards\' chevrons; each mark shows its state', () => {
   const root = rendered(record);
   const board = root.querySelector('.brain-board');
   assert.ok(board);
-  assert.equal(board.querySelectorAll('button, [tabindex], .brain-draggable, [data-key], [data-plannable]').length, 0);
+  assert.equal(board.querySelectorAll('[tabindex], .brain-draggable, [data-plannable]').length, 0);
+  assert.deepEqual([...board.querySelectorAll('button')].map((b) => b.className), ['brain-peek', 'brain-peek']);   // the story cards fold
+  assert.deepEqual([...board.querySelectorAll('[data-key]')].map((el) => el.localName + '.' + el.className.split(' ')[0]), ['li.brain-tile', 'button.brain-peek', 'a.brain-link', 'li.brain-task', 'li.brain-tile', 'button.brain-peek', 'a.brain-link', 'li.brain-task']);   // a card, its chevron, its title and each of its lines keep the focus across a redraw
   const leads = [...board.querySelectorAll('li.brain-task > .brain-lead')];
-  assert.equal(leads.length, 10);
+  assert.equal(leads.length, 9);   // 7 rows and the 2 lines in the cards
   assert.ok(leads.every((l) => l.tagName === 'SPAN' && l.className === 'brain-lead brain-check'
     && l.getAttribute('aria-hidden') === 'true' && l.querySelector(':scope > svg.brain-mark') !== null));
   const [notDone, inProgress, done] = columns(root);
   const states = (col: HTMLElement) => [...col.querySelectorAll<HTMLElement>('li.brain-task')].map((li) => li.dataset.state);
   assert.deepEqual(states(notDone), ['todo', 'todo', 'dropped']);
-  assert.deepEqual(states(inProgress), ['doing', 'doing']);
-  assert.deepEqual(states(done), ['done', 'done', 'done', 'done', 'done']);
+  assert.deepEqual(states(inProgress), ['done', 'doing']);   // the story's line List three hosting options (done), and a row
+  assert.deepEqual(states(done), ['done', 'done', 'done', 'done']);   // three rows, and the line Get three quotes
   assert.equal(row(root, 'Try a page builder').dataset.state, 'dropped');
   assert.deepEqual(meta(row(root, 'Try a page builder')), ['Website for Sam', 'dropped Sun']);
   assert.deepEqual(meta(row(root, 'Clean the gutters')), ['Home', 'moved → Thu 15 Oct']);

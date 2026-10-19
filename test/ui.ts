@@ -13,6 +13,14 @@ const win = parseHTML('<!doctype html><html><body></body></html>');
 Object.assign(globalThis, { document: win.document, activeDocument: win.document });   // activeDocument: Obsidian's global, as main.ts reads it
 installObsidianDom(win.document, win.HTMLElement as unknown as typeof HTMLElement, win.SVGElement as unknown as typeof SVGElement);
 
+// linkedom has no animation frames: the window queues them, and a test runs them with nextFrame().
+const frames: (() => void)[] = [];
+Object.assign(win, { requestAnimationFrame: (callback: () => void) => frames.push(callback) });
+/** Runs the animation frames asked for so far; a frame that one of them asks for waits for the next call. */
+export function nextFrame(): void {
+  frames.splice(0).forEach((callback) => callback());
+}
+
 /** A bubbling, cancelable event with extra fields (key, clientX, pointerType…). linkedom has no KeyboardEvent or PointerEvent. */
 export function fire(el: Element, type: string, fields: Record<string, unknown> = {}): Event {
   const e = Object.assign(new win.Event(type, { bubbles: true, cancelable: true }), fields);

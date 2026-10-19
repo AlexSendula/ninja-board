@@ -2,6 +2,25 @@
 
 All notable changes to Ninja Board are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and the project uses Semantic Versioning. Each release is tagged in git with its bare version number, such as `1.0.3`.
 
+## [1.1.0] - 2026-10-19
+
+Ninja Board 1.1.0 folds a story's task lines away on every week of the Week view. It also fixes a flicker when a story is folded or opened. Folded stories are still `collapsed:` in the Week view's config. `manifest.json`, `versions.json` and `package.json` say 1.1.0.
+
+### Added
+- **Folding on every week.** A story card on an upcoming week (Planned or due, To plan and its Show all list) and on a past week folds its lines away, as a story on this week's board does. One list of story names, `collapsed:`, serves every week and the list modal: a story folded on one week is folded on every week it appears.
+- **Past-week story cards.** A story on a past week is a read-only card: its title opens its note where one exists, its own words show when the week lists it, and its lines are read-only rows under it, in the story's column. Loose lines stay rows. Each column counts its cards and rows, and the week's figures are the record's own.
+- **Collapse all and Expand all in each week's place.** This week, the button is at the end of the Coming up row. On an upcoming week it is at the end of the Planned or due heading, and on a past week at the end of the Record or From your notes line. It folds every story that shows on its page, and reads Expand all once they are all folded.
+- **The Show all list keeps the folds.** Its stories are drawn folded as the page has them, and a fold made in the list also folds the page behind it.
+
+### Changed
+- **Planning no longer folds or opens cards by itself.** Opening or closing Plan this week still shows and hides To plan, and it leaves every story card as the list says. Backlog keeps its own planner folding.
+
+### Fixed
+- **Folding no longer flickers.** A story's chevron, Collapse all and Expand all change the story cards on the Week view in place instead of redrawing the page.
+- **A redraw that would show the same page is skipped.** When Obsidian saves a fold into the dashboard note, the board is not drawn again. A fold is recorded as the page shows it, not as the saved list.
+- **What is under the pointer keeps its hover look through a redraw.** A card, or the chevron or button on it, that the pointer is on starts in its hover look, with the class `brain-hover-kept`, instead of fading into it. Every copy of the story under the pointer keeps it. The class goes when the pointer leaves the element, or two frames after the redraw if the pointer is not on it.
+- **Two story cards with the same note name fold together.** The config holds one list of names, so a chevron folds or opens every card of that name on the Week view.
+
 ## [1.0.4] - 2026-10-18
 
 Ninja Board 1.0.4 lets you fold a story's task lines away on this week's board. `manifest.json`, `versions.json` and `package.json` say 1.0.4.

@@ -158,7 +158,7 @@ test('week 41 from its record: the head, the source line, the ring numbers and t
   assert.deepEqual(w41.columns.map((c) => [c.title, c.empty, c.rows.length]), [
     ['Not done', 'Nothing left open', 3],
     ['In progress', 'Nothing in progress', 2],
-    ['Done', 'Nothing done that week', 5],
+    ['Done', 'Nothing done that week', 4],   // 5 done: one is a line of the story listed In progress, which holds it as its card
   ]);
 });
 
@@ -194,19 +194,21 @@ test('week 41, In progress: a story opens itself, a line opens the note it sits 
   ]);
 });
 
-test('week 41, Done: the day each was done', () => {
+test('week 41, Done: the day each was done; the lines of a story are in its card', () => {
   const done = w41.columns[2];
   assert.deepEqual(shown(done.rows), [
     ['Hang the hallway mirror', 'Home', 'Done Tue'],
     ['Cancel the old gym membership', 'Health', 'Done Tue'],
     ['Pay the water bill', 'Money', 'Done Thu'],
-    ['Get three quotes', 'Choose a contractor', 'Done Fri'],
-    ['List three hosting options', "Choose hosting for Sam's site", 'Done Sun'],
+    ['Choose a contractor'],
   ]);
   assert.ok(done.rows.every((r) => r.state === 'done'));
   assert.deepEqual(done.rows.map((r) => r.path), [
-    pathOf('Home'), pathOf('Health'), pathOf('Money'), pathOf('Choose a contractor'), pathOf("Choose hosting for Sam's site"),
+    pathOf('Home'), pathOf('Health'), pathOf('Money'), pathOf('Choose a contractor'),
   ]);
+  // Get three quotes is Done Fri; the card has no meta of its own, its story is not listed
+  assert.deepEqual(shown(done.rows[3].lines ?? []), [['Get three quotes', 'Done Fri']]);
+  assert.deepEqual(shown(w41.columns[1].rows[0].lines ?? []), [['List three hosting options', 'Done Sun']]);
 });
 
 test('week 41, Backlog: the inbox item gets a dot and opens nothing; the rest open their note', () => {

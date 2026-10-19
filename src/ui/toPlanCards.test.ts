@@ -1,5 +1,5 @@
 // To plan's lists draw a story as a card, as the list modal does: Still open and Due soon as well as No date.
-// The story's chevron folds its lines while To plan is open.
+// The card folds as the Week board's cards do (open until the view's list has its name), whether To plan is open or not.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fire, recorder } from '../../test/ui.ts';   // first: it installs the DOM
@@ -32,17 +32,17 @@ function toPlanTile(vm: UpcomingWeekVM): HTMLElement {
   return tile;
 }
 
-test('To plan: a story in Still open is a folded card in its list, not a row', () => {
+test('To plan: a story in Still open is a card in its list, open until the view\'s list folds it, not a row', () => {
   // The story first, so it is among the five rows the list draws; the rest of Still open stays behind Show all.
   const first = { ...w43, toPlan: { ...w43.toPlan, open: [hostingRow(), ...w43.toPlan.open.slice(0, 4)] } };
   const list = toPlanTile(first).querySelector<HTMLElement>(':scope > ul.brain-tasks');
   assert.ok(list);
   const card = list.querySelector<HTMLElement>(':scope > li[data-story]');
   assert.ok(card);
-  assert.deepEqual([card.tagName, card.className, card.getAttribute('data-state')], ['LI', 'brain-tile brain-card brain-draggable', 'doing']);
-  assert.equal(card.querySelector(':scope > .brain-card-head > .brain-peek')?.getAttribute('aria-expanded'), 'false');
-  assert.equal(card.querySelector(':scope > .brain-card-head > .brain-peek')?.getAttribute('aria-label'), "Show the lines of Choose hosting for Sam's site");
-  assert.equal(card.querySelector(':scope > .brain-story-lines')?.hasAttribute('hidden'), true);
+  assert.deepEqual([card.tagName, card.className, card.getAttribute('data-state')], ['LI', 'brain-tile brain-card brain-draggable brain-foldable', 'doing']);
+  assert.equal(card.querySelector(':scope > .brain-card-head > .brain-peek')?.getAttribute('aria-expanded'), 'true');
+  assert.equal(card.querySelector(':scope > .brain-card-head > .brain-peek')?.getAttribute('aria-label'), "Hide the lines of Choose hosting for Sam's site");
+  assert.equal(card.querySelector(':scope > .brain-story-lines')?.hasAttribute('hidden'), false);
   assert.equal(card.querySelector(':scope > .brain-card-head .brain-card-title')?.textContent, "Choose hosting for Sam's site");
   // The other rows of the list stay rows.
   assert.equal(list.querySelectorAll(':scope > li.brain-task').length, 4);
@@ -55,7 +55,7 @@ test('To plan: a story in Due soon is a card too, as the list modal draws it', (
   const card = dueSoon.querySelector<HTMLElement>(':scope > li[data-story]');
   assert.ok(card);
   assert.equal(card.classList.contains('brain-card'), true);
-  assert.equal(card.querySelector(':scope > .brain-card-head > .brain-peek')?.getAttribute('aria-expanded'), 'false');
+  assert.equal(card.querySelector(':scope > .brain-card-head > .brain-peek')?.getAttribute('aria-expanded'), 'true');
 });
 
 test('the list modal and To plan draw Still open\'s story as the same card', () => {
@@ -67,7 +67,7 @@ test('the list modal and To plan draw Still open\'s story as the same card', () 
   const card = content.querySelector<HTMLElement>('li.brain-card[data-story]');
   assert.ok(card);
   assert.equal(card.querySelector('.brain-card-title')?.textContent, "Choose hosting for Sam's site");
-  assert.equal(card.querySelector('.brain-peek')?.getAttribute('aria-expanded'), 'false');
+  assert.equal(card.querySelector('.brain-peek')?.getAttribute('aria-expanded'), 'true');
   fire(card.querySelector('.brain-peek')!, 'click');
-  assert.equal(card.querySelector('.brain-story-lines')?.hasAttribute('hidden'), false);
+  assert.equal(card.querySelector('.brain-story-lines')?.hasAttribute('hidden'), true);
 });

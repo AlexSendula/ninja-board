@@ -23,8 +23,8 @@ export function readArrangement(v: unknown): Arrangement {
 }
 
 /**
- * The view's `collapsed:` value as Bases hands it over (`config.get('collapsed')`): the names of the stories folded on the
- * Week board. Text names stay and finite numbers read as text (a note named "2026" comes back from YAML as a number); anything
+ * The view's `collapsed:` value as Bases hands it over (`config.get('collapsed')`): the names of the stories folded in the
+ * Week view, on every week. Text names stay and finite numbers read as text (a note named "2026" comes back from YAML as a number); anything
  * else is dropped, and a name is listed once. Anything that is not a list is no folded story.
  */
 export function readCollapsed(v: unknown): string[] {

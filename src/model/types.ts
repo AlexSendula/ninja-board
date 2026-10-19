@@ -183,6 +183,7 @@ export interface RecordRowVM {
   path?: string;            // the note the title opens; undefined: plain text
   meta: MetaPart[];
   inbox: boolean;           // a record's inbox item: a dot, no mark
+  lines?: RecordRowVM[];    // a story's card: its lines, as the record or the notes list them (read-only rows, the story's name left out of their meta); a plain row has none
 }
 export interface PastColumnVM { title: string; empty: string; rows: RecordRowVM[] }
 

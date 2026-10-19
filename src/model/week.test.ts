@@ -420,7 +420,7 @@ test('a past week with a record in its plan shows the record', () => {
   assert.deepEqual(w.source, [{ text: 'Record' }, { text: 'frozen Mon 12 Oct' }]);
   assert.deepEqual([w.label, w.title, w.start, w.done, w.total], ['WEEK 41', '5–11 October', '2026-10-05', 5, 10]);
   assert.deepEqual(w.pager, { prev: '2026-09-28', next: '2026-10-12', thisWeek: '2026-10-12' });
-  assert.deepEqual(w.columns.map((c) => [c.title, c.rows.length]), [['Not done', 3], ['In progress', 2], ['Done', 5]]);
+  assert.deepEqual(w.columns.map((c) => [c.title, c.rows.length]), [['Not done', 3], ['In progress', 2], ['Done', 4]]);   // 5 done: one is a line of the story listed In progress, held by its card
   assert.equal(w.backlog?.length, 4);
 });
 
