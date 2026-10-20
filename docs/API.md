@@ -1,6 +1,6 @@
 # Plugin API reference
 
-> Last updated: 19 October 2026 (Ninja Board v1.1.0)
+> Last updated: 20 October 2026 (Ninja Board v1.1.1)
 
 Ninja Board has no network API. Its public surface is:
 
@@ -13,7 +13,7 @@ Architecture: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Registered views
 
-Registered in [`src/main.ts`](../src/main.ts) (`VIEWS`, line 10). If the Bases core plugin is off, Ninja Board shows the Notice "Bases is off. Turn it on, then reload this plugin."
+Registered in [`src/main.ts`](../src/main.ts) (`VIEWS`, line 11). If the Bases core plugin is off, Ninja Board shows the Notice "Bases is off. Turn it on, then reload this plugin."
 
 | View type | Name in the Bases view picker | Icon | Dashboard note (sample) | Shows |
 |---|---|---|---|---|
@@ -37,7 +37,7 @@ Registered in [`src/main.ts`](../src/main.ts).
 
 ## Dashboard note format
 
-Each view has one note in `01 Dashboard/`. The note's frontmatter is `type: note` (the sample notes also have `created`). Its body is one `base` block. This is the Today note:
+Each view has one note in `01 Dashboard/`. The note's frontmatter is `type: note`, and `cssclasses` holding `ninja-board`, which makes it a board page (see [Board pages](#board-pages)). The sample notes also have `created`. Its body is one `base` block. This is the Today note's block:
 
 ````markdown
 ```base
@@ -51,11 +51,17 @@ views:
 ```
 ````
 
-The other notes differ only in `type` and `name`.
+The other notes' blocks differ only in `type` and `name`.
 
 - **Filters** are Bases' own. They choose which notes the view receives. Ninja Board never shows notes under `10 Archive/`, whatever the filter says ([`snapshotFromFiles`](../src/obsidian/snapshot.ts)).
 - **Grouping and sorting** from Bases are ignored. Ninja Board keeps its own order.
 - **Saving.** Bases writes the whole `base` block each time it saves a view config value. Formatting and comments inside the block are normalised. A save works only when the note is open itself, in Reading view or Live Preview, or in a `.base` file. In an embed, a hover or a canvas, Ninja Board shows a Notice and does not save.
+
+### Board pages
+
+A dashboard note whose frontmatter `cssclasses` holds `ninja-board` is a board page. Obsidian puts the class on the note as it draws it, and [`styles.css`](../styles.css) hides the note's Properties and title for it. A board page that opens in source mode is switched to reading view, with no history entry. A plain note opened from a board page opens for editing, and a board page opened from one stays in reading view (`Actions.open`, below). A dashboard note without the class is a plain note.
+
+The class is matched as Obsidian reads it: the key in any case, a list or one string, each item trimmed ([`isBoardPage`](../src/model/isBoardPage.ts)). The switch is made by [`registerBoardPages`](../src/obsidian/boardPages.ts), from the frontmatter in Obsidian's metadata cache. No note text is read for it.
 
 ## View config keys
 
@@ -101,7 +107,7 @@ Source: [`src/ui/actions.ts`](../src/ui/actions.ts). The views call these and no
 | `toggle` | `target: RowTarget` | `Promise<void>` | Ticks or unticks a row. A line goes through Tasks. A note becomes `done`, or `open` if it was done. A repeating note's `done` completes its occurrence (see [Repeating task notes](#repeating-task-notes)). |
 | `setState` | `target`, `state: TaskState` | `Promise<RowTarget \| null>` | Sets a row's state. A line gets its checkbox; dropped also gets `[cancelled:: today]`; done goes through Tasks. A note's `status` is set (todo becomes `open`), except that a repeating note's `done` completes its occurrence (see [Repeating task notes](#repeating-task-notes)). |
 | `setNoteStatus` | `path`, `status` | `Promise<void>` | Sets a note's `status` (cards on the boards, and the states card). |
-| `open` | `path`, `line?` | `void` | Opens a note. With a line, puts the cursor there, in a Markdown view. |
+| `open` | `path`, `line?` | `void` | Opens a note. With a line, puts the cursor there, in a Markdown view. If the tab holds a board page that opened read-only, a plain note opens for editing and a board page stays in reading view (see [Board pages](#board-pages)). |
 | `plan` | `target`, `to: PlanTo` | `Promise<RowTarget \| null>` | Plans a row on a day, for a week, or to no date yet. A deadline the plan leaves behind goes too (see the [edit contract](#edit-contract-shared-with-the-agent)). |
 | `due` | `target`, `date: string \| null` | `Promise<RowTarget \| null>` | Sets a deadline to a date, or removes it with `null`. |
 | `arrange` | `lists: Arrangement` | `void` | Saves the given columns' lists in the view's `arrange:`. Other columns are kept. |
@@ -142,11 +148,11 @@ The repeats Ninja Board reads are `every <n> day`, `week`, `month` or `year` (wi
 
 ## Failure behaviour
 
-A failed write never rejects. Each async action catches its own error, shows a Notice, and resolves to `null`, or to nothing for the `void` ones ([`saved`](../src/obsidian/actions.ts), line 90).
+A failed write never rejects. Each async action catches its own error, shows a Notice, and resolves to `null`, or to nothing for the `void` ones ([`saved`](../src/obsidian/actions.ts), line 92).
 
 | Situation | Notice |
 |---|---|
-| The write threw | "Ninja Board couldn't save that change" |
+| The write threw | "Couldn't save that change" |
 | The line changed since it was drawn | "That task changed — refreshed". The write is refused, and the view redraws from the vault. |
 | Tasks is missing, so a tick cannot go through it | "Tasks must be on to tick a task" |
 | Tasks returned something Ninja Board can't use, or an answer that does not do what the tick was for | "Tasks gave an answer this plugin can't use". Nothing is written. |
@@ -154,7 +160,7 @@ A failed write never rejects. Each async action catches its own error, shows a N
 | The note is gone, for opening | Nothing happens. No Notice. |
 | A repeating note's completion is refused | "Can't complete this repeating note: its repeat or its due date isn't one this plugin knows". Nothing is written, and `setState` resolves to `null`. |
 | An arrangement, in an embed, a hover or a canvas | "Open the dashboard note itself to arrange this board". Nothing is saved. |
-| The Schedule's form, in an embed, a hover or a canvas | "Open the dashboard note itself to keep the Schedule view". The choice lasts for the session. |
+| The Schedule's form, in an embed, a hover or a canvas | "Open the dashboard note itself to keep the schedule view". The choice lasts for the session. |
 | A fold, in an embed, a hover or a canvas | "Open the dashboard note itself to keep stories folded". The fold lasts for the session. Shown once per view. |
 | A fold's save throws | "Couldn't save the folded stories". The fold lasts for the session. Shown once per view. |
 | Opening a note throws | "Ninja Board couldn't open that note" |
@@ -201,7 +207,7 @@ A story's `points` is one of 1, 2, 3, 5 or 8 in its frontmatter. Setting a value
 | `dues` | 9 | Line deadlines, through `lineWithDue`. |
 | `noteDues` | 4 | Note deadlines, through `applyNoteDue`. |
 | `notePoints` | 9 | Story points: set, replace and remove, through `applyNotePoints`. |
-| `noteCompletes` | 13 | Completing a repeating task note: the next due date, the frontmatter that goes, and the Log line, through `applyNoteComplete` and `withLogEntry`. A case with `refused` changes nothing. |
+| `noteCompletes` | 14 | Completing a repeating task note: the next due date, the frontmatter that goes, and the Log line, through `applyNoteComplete` and `withLogEntry`. A case with `refused` changes nothing. |
 
 The points cases stand for `brain points`, the planning cases for `brain plan` and `brain due`, and the `noteCompletes` cases for `brain complete`, which must make the same edits ([`edit-cases.test.ts`](../src/obsidian/edit-cases.test.ts), line 46).
 

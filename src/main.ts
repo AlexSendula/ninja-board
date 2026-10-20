@@ -1,4 +1,5 @@
 import { Notice, Plugin, normalizePath } from 'obsidian';
+import { registerBoardPages } from './obsidian/boardPages.ts';
 import { BrainView } from './obsidian/view.ts';
 import { openGuide } from './obsidian/guide.ts';
 import { undoLast } from './obsidian/undo.ts';
@@ -32,6 +33,8 @@ export default class BrainPlugin extends Plugin {
     if (!registerBrainViews(this)) {
       new Notice('Bases is off. Turn it on, then reload this plugin.');
     }
+    // A board page, a note marked cssclasses: ninja-board, opens in reading view, so the page shows only the board.
+    registerBoardPages(this);
     this.addCommand({ id: 'open-today', name: 'Open today', callback: () => this.openToday() });
     // Ninja Board: Open guide. openGuide shows a Notice when 01 Dashboard/05 Guide.md is missing.
     this.addCommand({ id: 'open-guide', name: 'Open guide', callback: () => void openGuide(this.app) });

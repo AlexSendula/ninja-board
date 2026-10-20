@@ -1,6 +1,8 @@
 ---
 type: note
 created: 2026-10-14
+cssclasses:
+  - ninja-board
 ---
 
 ```base

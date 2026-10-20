@@ -48,7 +48,15 @@ The Guide's **Setup** tile checks this for you. The [user guide](docs/USER_GUIDE
 
 ## Add the dashboards
 
-Each view lives in a dashboard note. Copy the five notes from [`sample-vault/01 Dashboard/`](sample-vault/01%20Dashboard/) into a `01 Dashboard/` folder in your vault. Each one holds a single `base` block, like Today's:
+Each view lives in a dashboard note. Copy the five notes from [`sample-vault/01 Dashboard/`](sample-vault/01%20Dashboard/) into a `01 Dashboard/` folder in your vault. Each one has `cssclasses: ninja-board` in its properties and a single `base` block, like Today's:
+
+````markdown
+---
+type: note
+created: 2026-10-01
+cssclasses:
+  - ninja-board
+---
 
 ```base
 filters:
@@ -59,6 +67,9 @@ views:
   - type: ninja-board-today
     name: Today
 ```
+````
+
+`cssclasses: ninja-board` makes the note a board page: it opens read-only and shows only the board, with no Properties and no title. Cmd/Ctrl+E edits its base block.
 
 The others use `ninja-board-week`, `ninja-board-projects`, `ninja-board-backlog` and `ninja-board-guide`. To open on Today, set it under Settings → Files and links → Default file to open.
 
@@ -99,6 +110,8 @@ The [user guide](docs/USER_GUIDE.md) covers each view, planning a week, the card
 ## Update
 
 Obsidian updates Ninja Board: Settings → Community plugins → **Check for updates**.
+
+Since 1.1.1, a dashboard note needs `cssclasses: ninja-board` in its frontmatter to be a board page. Add it to each dashboard note you keep, copies of the earlier sample notes included. Second Brain Setup 1.0.2's update adds it to a kit vault's dashboard notes that have no `cssclasses`; one that already has `cssclasses` needs `ninja-board` added by hand.
 
 ## Developing
 

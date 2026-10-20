@@ -1,9 +1,11 @@
 import { MarkdownView, Notice, Platform, normalizePath } from 'obsidian';
 import type { App } from 'obsidian';
+import { isBoardPage } from '../model/isBoardPage.ts';
 import type { TaskState } from '../model/types.ts';
 import type { Actions, ListHandle, ListSpec } from '../ui/actions.ts';
 import { parseTaskLine } from '../model/taskLine.ts';
 import { datesUndoLabel, lineTitle, noteTitle, pointsUndoLabel, stateUndoLabel, tickUndoLabel } from '../model/undoLabel.ts';
+import { leaveReadOnly } from './boardPages.ts';
 import { showList } from './listModal.ts';
 import { isStoryFile } from './snapshot.ts';
 import { history, undoLast, type Write } from './undo.ts';
@@ -129,7 +131,10 @@ async function openNote(app: App, path: string, line?: number): Promise<void> {
   const file = app.vault.getFileByPath(normalizePath(path));   // a path the views build, as the Guide's links do
   if (!file) return;
   const leaf = app.workspace.getLeaf(false);
-  await leaf.openFile(file, { active: true });
+  // From a board page that opened read-only, the note opens for editing at once: the leaf keeps its mode, and the cursor needs source.
+  // A board page opened from one stays in reading view (no mode): leaveReadOnly is called either way, and check re-adds the leaf.
+  const editing = leaveReadOnly(leaf) && !isBoardPage(app.metadataCache.getFileCache(file)?.frontmatter);
+  await leaf.openFile(file, editing ? { active: true, state: { mode: 'source' } } : { active: true });
   if (line === undefined || !(leaf.view instanceof MarkdownView)) return;
   const pos = { line, ch: 0 };
   leaf.view.editor.setCursor(pos);

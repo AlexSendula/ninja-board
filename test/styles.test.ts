@@ -103,16 +103,26 @@ test('every selector in styles.css is scoped under .brain-view, or is a modal fr
   assert.ok(all.length > 100, `only ${all.length} selectors found: the parser is off`);
   // A modal's frame is the element Obsidian opens around the view, so it is outside .brain-view: its own class scopes it.
   // The carry's class is set on that container too (src/obsidian/listModal.ts).
-  // A note or an embed that holds a view is marked by src/ui/host.ts, and its mark scopes the rule.
+  // A base block or embed that holds a view is marked by src/ui/host.ts, and its mark scopes the rule. A board page carries the
+  // class its own frontmatter names (cssclasses: ninja-board), which Obsidian sets on the note as it draws it.
   const frames = ['.brain-modal', '.brain-day-modal', '.brain-carrying'];
-  assert.deepEqual(all.filter((s) => !/\.brain-view(?![\w-])/.test(s) && !frames.includes(s) && !/\.brain-(note|embed)-host(?![\w-])/.test(s)), []);
+  const scoped = /\.brain-view(?![\w-])|\.brain-embed-host(?![\w-])|(?<![\w-])\.ninja-board(?![\w-])/;
+  assert.deepEqual(all.filter((s) => !scoped.test(s) && !frames.includes(s)), []);
 });
 
-test('the note and embed rules are keyed to the marks src/ui/host.ts sets', () => {
+test('the embed rule is keyed to the mark src/ui/host.ts sets', () => {
   const host = readFileSync(new URL('../src/ui/host.ts', import.meta.url), 'utf8');
-  for (const mark of ['brain-note-host', 'brain-embed-host']) {
-    assert.match(STYLES, new RegExp(`\\.${mark}\\b`));
-    assert.match(host, new RegExp(`'${mark}'`));
+  assert.match(STYLES, /\.brain-embed-host\b/);
+  assert.match(host, /'brain-embed-host'/);
+});
+
+test('the board-page rules are keyed to the class a board page carries: cssclasses ninja-board, which isBoardPage matches and the dashboard notes hold', () => {
+  const classes = (STYLES.match(/(?<![\w-])\.ninja-board(?![\w-])/g) ?? []).length;
+  assert.ok(classes >= 2, 'the variables rule and the title rule');
+  assert.match(readFileSync(new URL('../src/model/isBoardPage.ts', import.meta.url), 'utf8'), /BOARD_CLASS = 'ninja-board'/);
+  const dir = new URL('../sample-vault/01 Dashboard/', import.meta.url);
+  for (const name of readdirSync(dir).filter((f) => f.endsWith('.md'))) {
+    assert.match(readFileSync(new URL(name, dir), 'utf8'), /\ncssclasses:\n {2}- ninja-board\n---\n/, name);
   }
 });
 

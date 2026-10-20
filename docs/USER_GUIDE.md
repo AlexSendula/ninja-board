@@ -37,11 +37,22 @@ Ninja Board ticks task lines through Tasks, so done dates come from one engine (
 
 ## Dashboard notes
 
-`01 Dashboard/` holds one note per view, numbered so the file list shows them in order: `01 Today.md`, `02 Week.md`, `03 Projects.md`, `04 Backlog.md` and `05 Guide.md`. Each one is a `type: note` with a single `base` block. The [README](../README.md#add-the-dashboards) has the block and the view types.
+`01 Dashboard/` holds one note per view, numbered so the file list shows them in order: `01 Today.md`, `02 Week.md`, `03 Projects.md`, `04 Backlog.md` and `05 Guide.md`. Each one is a `type: note` with `cssclasses: ninja-board` in its properties and a single `base` block. The [README](../README.md#add-the-dashboards) has the note and the view types.
 
-- Bases' own toolbar stays above each view. Its filter chooses which notes Ninja Board shows. Ninja Board ignores Bases' grouping and sorting and uses its own order.
+- The block's `filters` choose which notes Ninja Board shows. Bases' own toolbar is hidden, and Ninja Board ignores Bases' grouping and sorting and uses its own order.
 - The command **Ninja Board: Open today** opens it from anywhere.
 - The command **Ninja Board: Open guide** opens `05 Guide.md`. When that note is missing, a Notice says so. The Guide is also in Bases' view picker as Ninja Board · Guide.
+
+### Board pages
+
+A dashboard note with `cssclasses: ninja-board` in its properties is a board page. It shows only the board: its Properties and its title are hidden, and in reading view there is no `</>` button or empty line above it either.
+
+- **It opens read-only.** When you open a board page, Ninja Board shows it in reading view. Ticking, dragging, folding and Undo work there as before.
+- **Edit its base block with Cmd/Ctrl+E.** That switches the page to editing, and it stays so until you open the page again.
+- **A note opened from the board opens for editing.** Click a title, or press Enter on a card or row, and the note opens in the same tab ready to type in. Any other note you open in that tab opens for editing too. A board page is the exception: the Guide's links to the dashboards, for one, open the next board page in reading view.
+- **Switching tabs is not opening.** Going back to a tab that holds a board page leaves it as it is.
+- **Reading is your default view?** If Settings → Editor → Default view for new tabs is Reading view, Ninja Board leaves a page that is already in reading view alone, and a note you open after it opens as your default says.
+- **No class, no board page.** A dashboard note without `cssclasses: ninja-board` opens as a plain note and shows its own Properties and title. A note of your own that only embeds a dashboard does too. A note you make for a view yourself needs the class to get the same page.
 
 ## The views
 

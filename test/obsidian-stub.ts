@@ -23,7 +23,26 @@ export class Modal {
   close(): void {}
 }
 
-export class MarkdownView {}
+/**
+ * Obsidian's note view: the tests set `file`, `leaf` and `mode`. getMode, getState and setState are the three it has for the mode
+ * (setState takes the mode it is given, and every call is in `setStates`).
+ */
+export class MarkdownView {
+  file: TFile | null = null;
+  leaf: unknown;
+  mode = 'source';
+  setStates: { state: { mode: string }; result: unknown }[] = [];
+  getMode(): string {
+    return this.mode;
+  }
+  getState(): { file?: string; mode: string; source: boolean } {
+    return { file: this.file?.path, mode: this.mode, source: false };
+  }
+  async setState(state: { mode: string }, result: unknown): Promise<void> {
+    this.setStates.push({ state, result });
+    this.mode = state.mode;
+  }
+}
 
 /** Obsidian's vault entries: a note is a TFile, a folder a TFolder with its children. The fakes build them with Object.assign. */
 export class TAbstractFile {

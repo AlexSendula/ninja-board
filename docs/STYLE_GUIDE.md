@@ -1,6 +1,6 @@
 # Style guide
 
-> Last updated: 17 October 2026 (Ninja Board v1.0.1)
+> Last updated: 20 October 2026 (Ninja Board v1.1.1)
 
 These are the conventions the Ninja Board code already follows. Match them when you add code.
 
@@ -77,9 +77,11 @@ These are the conventions the Ninja Board code already follows. Match them when 
 
 ## CSS
 
-- **Every rule is under `.brain-view`.** [`test/styles.test.ts`](../test/styles.test.ts) checks this. Three forms are allowed for elements that carry the class themselves or sit outside it:
+- **Every rule is under `.brain-view`.** [`test/styles.test.ts`](../test/styles.test.ts) checks this. Five forms are allowed for elements that carry the class themselves or sit outside it:
   - `.brain-view.brain-popover` and `.brain-view.brain-modal-body`, for the planner card and the list modal's content;
-  - `.brain-modal` and `.brain-day-modal`, for the modal frames, which carry their own classes (no `:has`, which Obsidian's review flags);
+  - `.brain-modal`, `.brain-day-modal` and `.brain-carrying`, for the modal frames and the carry, which carry their own classes (no `:has`, which Obsidian's review flags);
+  - `.ninja-board`, for a board page: the class its note's frontmatter `cssclasses` names, which Obsidian puts on the note as it draws it;
+  - `.brain-embed-host`, for a base block or embed that holds a view, marked by [`src/ui/host.ts`](../src/ui/host.ts);
   - the note-context reset at the top of the file, `.brain-view.brain-view :where(…)`, which doubles the class so it beats Obsidian's note styles.
 - **Colours come from Obsidian's variables only.** Use `var(--text-normal)`, `var(--text-muted)`, `var(--interactive-accent)`, `var(--background-primary)`, `var(--color-red)` and the like. No `#hex`, no `rgb()`, `hsl()` or other literal (tested).
 - **New colours are `--brain-*` tokens on `.brain-view`.** The file declares its own tokens there, as mixes of Obsidian's variables, for example `--brain-danger: color-mix(in srgb, var(--color-red) 75%, var(--text-normal));`. There are no `:root` tokens. Add a colour as a token, and use the token in the rule.

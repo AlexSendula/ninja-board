@@ -1,12 +1,12 @@
 # Security
 
-> Last updated: 19 October 2026
+> Last updated: 20 October 2026
 
 ## Overview
 
 Ninja Board is a local Obsidian plugin. It has no server, no account and no network code. It runs with Obsidian's access, and the implementation spec keeps third-party plugins to a minimum because a plugin can do anything on the computer ([implementation spec, section 1](https://alexsendula.github.io/second-brain/implementation/)). So the protection for the vault is in the code: what Ninja Board reads, the small set of writes it makes, and how it builds the screen.
 
-The rest of this page is what the code does, checked against the source (19 October 2026).
+The rest of this page is what the code does, checked against the source (20 October 2026).
 
 ## What Ninja Board can touch
 
@@ -15,6 +15,7 @@ Obsidian's API lets a plugin reach the whole vault. Ninja Board's code reaches m
 | Area | What the code does | Where |
 |---|---|---|
 | Notes Bases selects | Reads their frontmatter from the metadata cache. Reads their text only when they have task lines, or when they repeat (a repeating note's Log section is read as well). Undo reads the whole text of each note it puts back, to check it first | [obsidian/snapshot.ts](../src/obsidian/snapshot.ts), `snapshotFromFiles`, `rawNote` and `readKeptLines`; [obsidian/undo.ts](../src/obsidian/undo.ts), `restore`, line 72 |
+| Notes open in a Markdown view | Their frontmatter's `cssclasses`, from the metadata cache, to tell a board page. Their text is not read for this | [obsidian/boardPages.ts](../src/obsidian/boardPages.ts), `check`; [model/isBoardPage.ts](../src/model/isBoardPage.ts), `isBoardPage` |
 | The folders above a story | `isStoryFile`, the story check behind the points edit, reads the note and the folders above it, up to the nearest one that holds a project note. It takes their frontmatter from the metadata cache, reads no note text, and never lists the vault's files | [obsidian/snapshot.ts](../src/obsidian/snapshot.ts), `isStoryFile` and `projectsAbove` |
 | `10 Archive/` | Never read. Both snapshot builders drop it | [obsidian/snapshot.ts](../src/obsidian/snapshot.ts), lines 11 and 23; [model/snapshot.ts](../src/model/snapshot.ts), lines 7 and 14 |
 | A past week's plan | Read by its path, `08 Weeks/<year>/<YYYY-Www>.md`, only when that week is shown | [obsidian/snapshot.ts](../src/obsidian/snapshot.ts), `readWeekPlan` |
@@ -23,7 +24,7 @@ Obsidian's API lets a plugin reach the whole vault. Ninja Board's code reaches m
 | Tasks' saved settings | Read through Tasks' own `loadData()`, for the Guide's check. Only `taskFormat`, `setDoneDate` and the custom statuses are used, and they are not shown. Whether Tasks is on comes from Obsidian's list of plugins | [obsidian/edits.ts](../src/obsidian/edits.ts), `readTasksSetup`, line 151; [model/guide.ts](../src/model/guide.ts) |
 | Other files, settings and plugins' data | Not read | None |
 
-Ninja Board opens a note only when you click its title or press Enter on it, or run **Ninja Board: Open today** or **Ninja Board: Open guide**. Opening is in the current tab ([obsidian/actions.ts](../src/obsidian/actions.ts), `openNote`; [main.ts](../src/main.ts), `openToday`; [obsidian/guide.ts](../src/obsidian/guide.ts), `openGuide`).
+Ninja Board opens a note only when you click its title or press Enter on it, or run **Ninja Board: Open today** or **Ninja Board: Open guide**. Opening is in the current tab ([obsidian/actions.ts](../src/obsidian/actions.ts), `openNote`, line 137; [main.ts](../src/main.ts), `openToday`; [obsidian/guide.ts](../src/obsidian/guide.ts), `openGuide`). A board page, a note whose frontmatter `cssclasses` holds `ninja-board`, is switched to reading view when it opens in source mode (from the `file-open` handler, at layout ready, or when the metadata cache changes), with no history entry. A plain note opened from a board page opens for editing, a board page opened from one stays in reading view, and a non-board note that opens in a tab Ninja Board had switched goes back to editing. These are view-mode changes, not writes ([obsidian/boardPages.ts](../src/obsidian/boardPages.ts), `check` and `setMode`; [main.ts](../src/main.ts), `registerBoardPages`, line 37).
 
 ## Reading note text
 
@@ -33,7 +34,7 @@ Ninja Board opens a note only when you click its title or press Enter on it, or 
 
 ## Writes
 
-Ninja Board makes writes in four places, and nowhere else. Opening a note is listed too, because it's the one other thing that touches the vault.
+Ninja Board makes writes in four places, and nowhere else. Opening a note, and a board page's switch between reading view and editing, are listed too. Neither writes to the vault.
 
 | Write | How | Check before it writes |
 |---|---|---|
@@ -41,7 +42,7 @@ Ninja Board makes writes in four places, and nowhere else. Opening a note is lis
 | A task note's or project's frontmatter: status, done, scheduled, start, due, points, and a repeating note's waiting_on and chase | `fileManager.processFrontMatter`, in `setNoteState` and `editFrontmatter`, which `setNoteStatus`, `planNote`, `dueNote` and `pointsNote` use ([writes.ts](../src/obsidian/writes.ts), lines 91 and 135) | The note must still exist. There is no line check: the change is applied to the frontmatter as it is when Obsidian writes it. A points write is refused unless the note is a story (a non-repeating task note in a project); an area task note, a repeating note and a task line are refused before any write |
 | A repeating note's Log line | `vault.process` on the note, adding one line under its first `## Log` heading, or a new `## Log` section at the end of the note when it has none ([writes.ts](../src/obsidian/writes.ts), `logOccurrence`, line 110). It goes with the frontmatter write of a repeating note's done | The note must still exist. There is no line check: the line is added to the note as it is when Obsidian writes it. A done that Ninja Board can't work out (a `repeat` or `due` it doesn't know) writes neither the frontmatter nor the line, and the Notice "Can't complete this repeating note: its repeat or its due date isn't one this plugin knows" shows ([writes.ts](../src/obsidian/writes.ts), line 102) |
 | The layout: `arrange`, `schedule`, `waiting` and `collapsed` | Bases' `config.set`, which Bases writes into the dashboard note's `base` block ([view.ts](../src/obsidian/view.ts), lines 146, 162, 183 and 209; `schedule` and `waiting` take only fixed words, and `collapsed` takes only the names of stories) | Only where Bases can write the block back ([edits.ts](../src/obsidian/edits.ts), `arrangementPersists`, line 140). In an embed, a hover or a canvas, nothing is saved: an arrangement is refused with a Notice, and the Schedule's form, Waiting's view and the folded stories last for the session instead |
-| Opening a note | `openFile` | None. It writes nothing |
+| Opening a note, and a board page's switch between reading view and editing | `openFile`, with the mode `openNote` passes ([actions.ts](../src/obsidian/actions.ts), line 137). A board page's mode is set by `view.setState`, with no history entry ([boardPages.ts](../src/obsidian/boardPages.ts), `setMode`) | None. A change of view mode is not a write to the vault |
 
 **Undo** writes through the same places, and checks each restore again: a line only if it is still the text Ninja Board wrote, a Log line only if it is still the one Ninja Board added, a field only if it still holds the value Ninja Board wrote, and a saved layout only if the view still holds what Ninja Board saved. A step that fails a check is skipped with the Notice "Changed since: not undone", and nothing is written for it. Folding stories is not an undo step ([view.ts](../src/obsidian/view.ts), `foldStories`, line 205).
 

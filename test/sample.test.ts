@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { loadSample, readSample } from './sample.ts';
+import { isBoardPage } from '../src/model/isBoardPage.ts';
 import type { NoteInfo, RawNote } from '../src/model/types.ts';
 
 const snapshot = loadSample();
@@ -83,6 +84,21 @@ test('the Guide dashboard note holds a base block that shows ninja-board-guide',
   assert.equal(guide.frontmatter?.type, 'note');
   assert.ok(guide.lines.includes('```base'));
   assert.ok(guide.lines.includes('  - type: ninja-board-guide'));
+});
+
+test('each of the five dashboard notes is a board page: cssclasses holds ninja-board, after created, written as a list', () => {
+  const dashboards = raw.filter((n) => n.path.startsWith('01 Dashboard/'));
+  assert.equal(dashboards.length, 5);
+  for (const n of dashboards) {
+    assert.equal(isBoardPage(n.frontmatter), true, n.path);
+    assert.deepEqual(Object.keys(n.frontmatter ?? {}), ['type', 'created', 'cssclasses'], n.path);
+    const text = readFileSync(new URL(`../sample-vault/${n.path}`, import.meta.url), 'utf8');
+    assert.match(text, /^---\ntype: note\ncreated: \d{4}-\d{2}-\d{2}\ncssclasses:\n {2}- ninja-board\n---\n\n```base\n/, n.path);
+  }
+});
+
+test('no other note in the sample vault is a board page', () => {
+  assert.deepEqual(raw.filter((n) => !n.path.startsWith('01 Dashboard/') && isBoardPage(n.frontmatter)), []);
 });
 
 test('the week 41 plan holds a frozen record: five sections in order, and no task lines', () => {

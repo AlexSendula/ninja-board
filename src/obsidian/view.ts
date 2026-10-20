@@ -104,7 +104,7 @@ export class BrainView extends BasesView {
   // Task line edits change the note body, which Bases doesn't always report.
   private readonly rerender = debounce(() => void this.render(), 150, true);
   private stopHistory: (() => void) | undefined;   // the undo history's listener: this page redraws when a step is made or undone
-  private unmarkHosts: (() => void) | undefined;   // the marks on the notes and embeds this view is in (ui/host.ts)
+  private unmarkHosts: (() => void) | undefined;   // the marks on the base blocks and embeds this view is in (ui/host.ts)
 
   constructor(controller: QueryController, containerEl: HTMLElement, kind: BrainViewType, plugin: Plugin) {
     super(controller);

@@ -1,6 +1,6 @@
 # Architecture
 
-> Last updated: 19 October 2026 (Ninja Board v1.1.0)
+> Last updated: 20 October 2026 (Ninja Board v1.1.1)
 
 ## Overview
 
@@ -8,7 +8,7 @@ Ninja Board is an Obsidian plugin in this repository. It draws five views over t
 
 Ninja Board keeps no data of its own. Each change is one small edit to one note, written straight back to the vault, so a view cannot drift from the vault. The agent makes the same edits through `brain` commands. Both sides are meant to pass one set of examples. Only Ninja Board's side is tested in this repository so far (see [API.md](API.md#edit-contract-shared-with-the-agent)).
 
-Versions: v0.1.0 was built on 14 October 2026 (round 1), and v0.2.0 on 15 October 2026 (round 2, with busy days added the same day), v1.0.0 on 16 October 2026, v1.0.1 on 17 October 2026 (the Obsidian review fixes), v1.0.2 on 17 October 2026 (the last review warnings), and v1.1.0 on 19 October 2026 (folding stories on every week of the Week view). Obsidian 1.10.2 or newer is required, because that release added the Bases view API ([`manifest.json`](../manifest.json), [`versions.json`](../versions.json)).
+Versions: v0.1.0 was built on 14 October 2026 (round 1), and v0.2.0 on 15 October 2026 (round 2, with busy days added the same day), v1.0.0 on 16 October 2026, v1.0.1 on 17 October 2026 (the Obsidian review fixes), v1.0.2 on 17 October 2026 (the last review warnings), v1.0.3 on 18 October 2026, v1.0.4 on 18 October 2026, v1.1.0 on 19 October 2026 (folding stories on every week of the Week view), and v1.1.1 on 20 October 2026 (board pages). Obsidian 1.10.2 or newer is required, because that release added the Bases view API ([`manifest.json`](../manifest.json), [`versions.json`](../versions.json)).
 
 Specs and design: [plugin design](design/2026-10-13-brain-plugin-design.md), [round 2](design/2026-10-14-brain-plugin-round-2-design.md), and the user's guide in [`README.md`](../README.md).
 
@@ -131,7 +131,7 @@ Plain DOM, built with `h()` ([`dom.ts`](../src/ui/dom.ts)). Renderers take a vie
 
 Everything that touches Obsidian or the Tasks plugin: the Bases view, reading the selected notes, the `Actions` implementation, the writes, and the two modals. The exception is [`edits.ts`](../src/obsidian/edits.ts). It holds the pure edit rules and does not import `obsidian` at all, so Node's tests and the preview can load it.
 
-The entry point [`main.ts`](../src/main.ts) also imports `obsidian`. It registers the five view types (`VIEWS`, line 10), the three commands (Open today, Open guide and Undo the last change), and the undo key on each window's document.
+The entry point [`main.ts`](../src/main.ts) also imports `obsidian`. It registers the five view types (`VIEWS`, line 11), the board-page check (`registerBoardPages`, line 37, from [`boardPages.ts`](../src/obsidian/boardPages.ts)), the three commands (Open today, Open guide and Undo the last change), and the undo key on each window's document.
 
 ### Preview: `preview`
 
@@ -150,7 +150,7 @@ A browser page that runs the same model and UI on `preview/sample.json`, generat
 ### Changing
 
 6. **An interaction calls one `Actions` method.** For example, `plan(target, to)` for a planner pick, or `setState` for a state pick.
-7. **The write is one small edit.** [`obsidianActions`](../src/obsidian/actions.ts) (line 22) calls [`writes.ts`](../src/obsidian/writes.ts).
+7. **The write is one small edit.** [`obsidianActions`](../src/obsidian/actions.ts) (line 24) calls [`writes.ts`](../src/obsidian/writes.ts).
    - Task lines: `vault.process` replaces the line only if it still reads as it did when drawn ([`replaceLineIfUnchanged`](../src/obsidian/edits.ts), line 48). Otherwise the write is refused and a Notice says the task changed. Ticking done goes through Tasks' toggle ([`toggleViaTasks`](../src/obsidian/writes.ts), line 33).
    - Task notes and projects: `fileManager.processFrontMatter`, with the pure rules from [`src/model/plan.ts`](../src/model/plan.ts) and [`edits.ts`](../src/obsidian/edits.ts).
    - Story points: `points` writes only a story. [`isStoryFile`](../src/obsidian/snapshot.ts) decides it from the note and the folders above it, reading frontmatter from the metadata cache. It never lists the vault's files.
@@ -178,6 +178,7 @@ Session state lives in memory and ends when the view closes: the week shown, the
 | `src/model/guide.ts` | The Guide's setup check, from the Tasks settings Ninja Board could read. |
 | `src/model/history.ts`, `undoLabel.ts` | The undo history, with no Obsidian in it: the steps, their groups and the queue, and the names a step is shown by. |
 | `src/model/points.ts` | Story points: the values, the week's target (`targetOf`), a story's points edit (`applyNotePoints`) and a week's points (`pointsOfWeek`). |
+| `src/model/isBoardPage.ts` | `isBoardPage`: whether a note's frontmatter (from `metadataCache`) has `ninja-board` in `cssclasses`, as a list item or as the whole string. That is a board page; a note without the class, one that only embeds a dashboard included, is not one. The key is read as Obsidian reads it (any case, items trimmed, a string is one class, no singular `cssclass`), and the note's text is not read. |
 
 ### UI (`src/ui`)
 
@@ -192,7 +193,7 @@ Session state lives in memory and ends when the view closes: the week shown, the
 | `src/ui/plan.ts` | The To plan and Planned or due lists on an upcoming week, and their drops. Their story cards fold by the Week view's list; opening or closing To plan folds none. |
 | `src/ui/past.ts` | The read-only board of a past week. Its story cards fold by the Week view's list, and the Collapse all button sits at the end of the Record or From your notes line. |
 | `drag.ts` | Press, drag, edge auto-scroll and long-press between columns, days, weeks and To plan. Slots and `DropTarget`. `cancelDrags` ends the drags in progress when a view unloads. |
-| `host.ts` | Marks the notes and embeds a view sits in (`brain-note-host` and `brain-embed-host`), at any depth, so the CSS can hide a dashboard note's Properties and Bases toolbar without `:has`. A view's unload clears a mark once no other live view is in its host. |
+| `host.ts` | Marks the base blocks and embeds a view sits in (`brain-embed-host`), at any depth, so the CSS can hide their Bases toolbar without `:has`. It marks no note: Bases attaches a view to the note after the view loads, so a mark on the note never landed (Obsidian 1.14.4). The Properties and title of a board page are hidden by its `ninja-board` class instead; a note without the class, one that embeds a dashboard included, shows its own. A view's unload clears a mark once no other live view is in its host. |
 | `src/ui/listModal.ts` | The body of the Show all list, shared with the modal. A list with `collapsed` (the Week view's) folds its story cards by that list, and a fold made in the list also folds the page behind it. |
 | `focus.ts`, `header.ts`, `page.ts`, `clock.ts` | Focus across redraws, the view head with its pager, the page and its folding tiles, and the time helpers (`minutes`, `hasEnded`, `nextChange`, `wakeAt`). |
 
@@ -207,6 +208,7 @@ Session state lives in memory and ends when the view closes: the week shown, the
 | `edits.ts` | The pure edit rules (`lineWithState`, `lineWithPlan`, `lineWithDue`, `applyNoteStatus`), the Tasks API check, `arrangementPersists`, and `readTasksSetup`. |
 | `src/obsidian/listModal.ts`, `dayModal.ts` | The Show all list and the day's timeline, as Obsidian `Modal`s. |
 | `src/obsidian/guide.ts` | `openGuide`: opens `01 Dashboard/05 Guide.md`, or says it is missing. |
+| `src/obsidian/boardPages.ts` | Opens a board page (`isBoardPage` on `app.metadataCache.getFileCache(file)?.frontmatter`) in reading view, so the page shows only the board. It runs on `file-open`, once at layout ready, and on the metadata cache's `changed` (for a note whose entry was missing at its last check, which is not recorded as checked), and switches inside the handler, with no read and no wait. A check that throws is logged, so one leaf cannot abort the plugin's load. `leaveReadOnly` tells `openNote` the tab holds one, and the next note then opens for editing, unless it is a board page: `openNote` passes it no mode, so it stays in reading view. A board page that is in reading view without our switch (the tab restored, or Back) is remembered too, unless the user's default view is reading (`defaultViewMode` in the vault config). |
 | `src/obsidian/undo.ts` | `undoLast` and the restore. Each write is checked against the note or view as it is now, and a step that fails a check is skipped with the Notice "Changed since: not undone". |
 
 ### Tests and build
@@ -223,6 +225,7 @@ Session state lives in memory and ends when the view closes: the week shown, the
 | The plugin and the agent make the same edits, with the same result. | "Anything you can do in the plugin, the agent can do with the same result" ([implementation spec, section 1](https://alexsendula.github.io/second-brain/implementation/)). Both sides are pinned by `test/edit-cases.json`. | Not recorded. |
 | Arrangement is saved in the dashboard note's base block, as `arrange:`. Nothing is written to task notes. | Layout only: "a position means just arrangement, not priority" ([round 2, section 1](design/2026-10-14-brain-plugin-round-2-design.md)). | Writing the position into task notes, which round 2 ruled out ([round 2, section 3](design/2026-10-14-brain-plugin-round-2-design.md)). |
 | Folds are saved in the dashboard note's base block, as `collapsed:`, and are not undo steps. | A fold is layout, saved as an arrangement is, and it changes what the board shows, not any note. Folds are not steps of the undo history ([plugin design, section 8](design/2026-10-13-brain-plugin-design.md#8-folding-stories-in-the-week-view-decided-2026-10-18)). | Not recorded. |
+| Board pages are marked by the note's `cssclasses`, and Ninja Board marks no note. | Obsidian puts a frontmatter class on the note as it draws it, so the Properties and title never show. A mark that a view sets when it loads is too late: Bases attaches the view to the note afterwards, so the mark never reached the note in Obsidian 1.14.4 ([plugin design, section 9](design/2026-10-13-brain-plugin-design.md#9-board-pages-are-clean-and-read-only-decided-2026-10-19)). | A mark on the note from `src/ui/host.ts` (removed in 1.1.1), and a display rule on `.metadata-container`, which Obsidian's own rule outranks. |
 | The order of an arrangement has no meaning beyond layout. | Only the board reads it. Today, Projects' Next and the agent do not ([round 2, section 3](design/2026-10-14-brain-plugin-round-2-design.md)). | A priority order, which the author did not ask for. |
 | Today and the time of day are passed in. The model never reads the clock. | Keeps the model and the UI pure and testable. The preview fixes the clock. The code says so at [`clock.ts`](../src/ui/clock.ts) and [`view.ts`](../src/obsidian/view.ts) (line 36). | Not recorded. |
 | Ninja Board does little date math: filtering and words, plus the one next-date step a repeating task note takes when an occurrence is completed. Carry-over and other repeats belong elsewhere. | The [plugin README](../README.md) section "Ninja Board does little date math": its one step is a repeating task note's next due date, when an occurrence is completed. | Ninja Board computing other dates, such as carry-over or task-line repeats, which the README rules out. |

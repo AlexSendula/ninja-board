@@ -1,6 +1,6 @@
 # Developer guide
 
-> Last updated: 19 October 2026 (Ninja Board v1.1.0)
+> Last updated: 20 October 2026 (Ninja Board v1.1.1)
 
 This guide covers working on Ninja Board, the Obsidian plugin in this repository: setup, the commands, where the code lives, the preview and the sandbox, commits, and the spec rules. For how the parts fit together, read [Architecture](./ARCHITECTURE.md). For tests, read [Testing](./TESTING.md). For code style, read [Style guide](./STYLE_GUIDE.md). Users read the [plugin README](../README.md).
 
@@ -38,7 +38,7 @@ Run them from the repository root.
 
 `npm test` runs `sandbox.test.ts` too, and that test runs `npm run build`, so a test run rewrites `main.js`. The build outputs are gitignored: `main.js`, `preview/dist/` and `preview/sample.json` (see [`.gitignore`](../.gitignore)).
 
-The plugin is three files: `main.js`, `manifest.json` and `styles.css`. [`manifest.json`](../manifest.json) gives version 1.1.0, `minAppVersion` 1.10.2 and `isDesktopOnly: false`. [`versions.json`](../versions.json) maps each version to its minimum Obsidian version.
+The plugin is three files: `main.js`, `manifest.json` and `styles.css`. [`manifest.json`](../manifest.json) gives version 1.1.1, `minAppVersion` 1.10.2 and `isDesktopOnly: false`. [`versions.json`](../versions.json) maps each version to its minimum Obsidian version.
 
 ## Where the code lives
 
@@ -58,12 +58,12 @@ flowchart LR
 | [`src/model/`](../src/model/) | Pure code: task lines, dates and ISO weeks, the snapshot, each view's model (the `build*` functions), the planning rules, arrangements and the week record. | Model files only. |
 | [`src/ui/`](../src/ui/) | Plain DOM: the `render*` functions, the cards, drag and focus, and the `Actions` interface in [`src/ui/actions.ts`](../src/ui/actions.ts). | Model and UI files. Nothing from Obsidian. |
 | [`src/obsidian/`](../src/obsidian/) | The Obsidian side: [`view.ts`](../src/obsidian/view.ts) (BrainView, the Bases view), [`src/obsidian/actions.ts`](../src/obsidian/actions.ts) and [`writes.ts`](../src/obsidian/writes.ts) (the real writes), the modals and the Guide's note. [`edits.ts`](../src/obsidian/edits.ts) holds the pure edit rules. | Anything. |
-| [`src/main.ts`](../src/main.ts) | The plugin class. Registers the five view types and the three commands. | |
+| [`src/main.ts`](../src/main.ts) | The plugin class. Registers the five view types, the three commands and the board-page check (`registerBoardPages`). | |
 | [`preview/`](../preview/) | The browser preview. [`preview.ts`](../preview/preview.ts) draws the real views from `sample.json`; [`memoryWrites.ts`](../preview/memoryWrites.ts) makes the writes in memory; `modal.ts` holds the modals; `tokens.ts` supports `checkView()`. | Model and UI files, and `obsidian/edits.ts`: the in-memory writes share the same edit rules as the vault. |
 | [`test/`](../test/) | Shared test helpers ([`sample.ts`](../test/sample.ts), [`ui.ts`](../test/ui.ts)), the edit examples ([`edit-cases.json`](../test/edit-cases.json)), and the tests that cross layers. | |
 | [`scripts/`](../scripts/) | [`sample-json.mjs`](../scripts/sample-json.mjs) writes `preview/sample.json`. [`sandbox.mjs`](../scripts/sandbox.mjs) installs into the sandbox vault. | |
 | [`design/`](../design/) | [`mockup.html`](../design/mockup.html), the visual and DOM contract. | |
-| [`styles.css`](../styles.css) | The plugin's stylesheet: the mockup's `#brain-css` block, scoped under `.brain-view`. | |
+| [`styles.css`](../styles.css) | The plugin's stylesheet: the mockup's `#brain-css` block, scoped under `.brain-view`. Its note-context block also holds the board-page rules (`.ninja-board`), which the mockup does not have. | |
 | [`sample-vault/`](../sample-vault/) | The sample notes. The only sample data, for the tests, the preview and the sandbox. | |
 
 Four rules decide where code goes:
@@ -79,7 +79,7 @@ Four rules decide where code goes:
 - **What a click writes.** Start with the rule in `src/obsidian/edits.ts`, and add its examples to `test/edit-cases.json`. Then make the write in `src/obsidian/writes.ts`, and its in-memory twin in `preview/memoryWrites.ts`. The agent's `brain` command must make the same edit. The `brain` commands are specified in the implementation spec and are not in this repository (see [Architecture](./ARCHITECTURE.md)).
 - **How it looks.** Change the mockup first: `design/mockup.html`, its `#brain-css` block. Then copy the rule into `styles.css` under `.brain-view`. `test/styles.test.ts` fails if the two drift. For the busy-day work, the mockup and `styles.css` changed together, and the code followed.
 - **Styles and the DOM.** Write no element style directly. A fixed value goes to a class in `styles.css`; a value computed at run time goes through `setCssProps` or `setCssStyles`, which Obsidian gives every HTML and SVG element. `styles.css` uses no `:has`, `!important`, `clip-path`, multicolumn (`column-gap` included) or `display: contents`, and no source uses a lookbehind regex (iOS before 16.4 has none). `test/styles.test.ts` checks these, and `npm run lint` checks Obsidian's other rules.
-- **A new view type.** Add its id to `BrainViewType` and to `DRAW` in `src/obsidian/view.ts`, to `VIEWS` in `src/main.ts`, and to the `View` type and `VIEWS` in `preview/preview.ts`. Add a dashboard note for it under `sample-vault/01 Dashboard/`.
+- **A new view type.** Add its id to `BrainViewType` and to `DRAW` in `src/obsidian/view.ts`, to `VIEWS` in `src/main.ts`, and to the `View` type and `VIEWS` in `preview/preview.ts`. Add a dashboard note for it under `sample-vault/01 Dashboard/`, with `cssclasses: ninja-board` in its frontmatter, so that it is a board page.
 
 For a feature that spans these layers, the round-2 work went roughly in this order:
 

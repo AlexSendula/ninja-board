@@ -2,6 +2,21 @@
 
 All notable changes to Ninja Board are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and the project uses Semantic Versioning. Each release is tagged in git with its bare version number, such as `1.0.3`.
 
+## [1.1.1] - 2026-10-20
+
+Ninja Board 1.1.1 makes a dashboard note marked `cssclasses: ninja-board` a board page. A board page shows only its board, and Ninja Board opens it read-only, in reading view. The five dashboard notes carry the class. `manifest.json`, `versions.json` and `package.json` say 1.1.1.
+
+### Added
+- **Board pages.** A dashboard note whose frontmatter `cssclasses` holds `ninja-board` shows only its board: its Properties and title are hidden from the first frame, and Ninja Board opens it in reading view. A tab switch is not an open. A board page switched to editing (Cmd/Ctrl+E) stays so until it is opened again. A plain note opened from a board page opens for editing, and a board page opened from one (the Guide's links to the dashboards) stays in reading view. A user whose default view is reading is left alone.
+
+### Changed
+- **The dashboard notes carry the class.** The five notes in `01 Dashboard/` have `cssclasses: ninja-board` in their frontmatter.
+- **A dashboard without the class shows its Properties.** It is a plain note: it opens as before, with its Properties and title showing.
+- **The note host mark is gone.** The `brain-note-host` class is no longer set on notes. It never reached the note in Obsidian 1.14.4, because Bases attaches a view to the note after the view loads. A base block or embed that holds a view still carries its mark (`brain-embed-host`), so its Bases toolbar stays hidden.
+
+### Upgrade notes
+- **Add the class to your own dashboard notes.** Put `cssclasses: ninja-board` in the frontmatter of each dashboard note you keep. Second Brain Setup 1.0.2's update adds it to a kit vault's dashboards that have no `cssclasses`.
+
 ## [1.1.0] - 2026-10-19
 
 Ninja Board 1.1.0 folds a story's task lines away on every week of the Week view. It also fixes a flicker when a story is folded or opened. Folded stories are still `collapsed:` in the Week view's config. `manifest.json`, `versions.json` and `package.json` say 1.1.0.

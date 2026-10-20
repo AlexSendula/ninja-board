@@ -1,6 +1,6 @@
 # Troubleshooting
 
-> Last updated: 16 October 2026
+> Last updated: 20 October 2026
 
 ## Where to look
 
@@ -12,20 +12,24 @@
 
 | Notice (exact text) | When it shows | What to do |
 |---|---|---|
-| Bases is off. Turn it on, then reload this plugin. | At startup, when Ninja Board can't register its views. The code reads any failed registration as Bases being off ([main.ts](../src/main.ts), line 30) | Settings → Core plugins → turn on Bases, then reload Obsidian |
-| Ninja Board can't find 01 Dashboard/01 Today.md | The **Open today** command, when that note is missing ([main.ts](../src/main.ts), line 40) | Put the note back at that path. The path is fixed in the code |
+| Bases is off. Turn it on, then reload this plugin. | At startup, when Ninja Board can't register its views. The code reads any failed registration as Bases being off ([main.ts](../src/main.ts), line 33) | Settings → Core plugins → turn on Bases, then reload Obsidian |
+| Ninja Board can't find 01 Dashboard/01 Today.md | The **Open today** command, when that note is missing ([main.ts](../src/main.ts), line 66) | Put the note back at that path. The path is fixed in the code |
 | Ninja Board can't find 01 Dashboard/05 Guide.md | The **Open guide** command, when that note is missing ([src/obsidian/guide.ts](../src/obsidian/guide.ts), line 11) | Put the note back at that path |
-| Tasks must be on to tick a task | Ticking a line, or setting a line to done from a card, when Tasks has no toggle API: Tasks is off, missing or too old ([writes.ts](../src/obsidian/writes.ts), line 29) | Turn on Tasks, and update it |
-| Tasks gave an answer Ninja Board can't use | Tasks returned an empty answer, one that isn't a task line, or one that doesn't do what the tick was for: a completing tick with no done line, or a reopening tick that still has one. Nothing is written ([writes.ts](../src/obsidian/writes.ts), line 39) | Try again. Check that Tasks is up to date and its Task Format is Dataview |
-| That task changed — refreshed | The line in the note is no longer the one Ninja Board drew. Nothing is written ([writes.ts](../src/obsidian/writes.ts), line 96) | See [That task changed](#that-task-changed) |
-| Ninja Board couldn't save that change | A state, plan, deadline or status write failed or threw ([src/obsidian/actions.ts](../src/obsidian/actions.ts), line 71) | Nothing changed. Read the error in the console |
-| Ninja Board couldn't open that note | Opening a note threw an error ([src/obsidian/actions.ts](../src/obsidian/actions.ts), line 33) | Read the error in the console. Check the note still exists |
-| Open the dashboard note itself to arrange this board | A board is dragged or rearranged in an embed, a hover preview or a canvas ([view.ts](../src/obsidian/view.ts), line 108) | Open the dashboard note itself. See [Arranging outside the note](#arranging-outside-the-note) |
-| Couldn't save the arrangement | Bases refused to save the layout ([view.ts](../src/obsidian/view.ts), line 115) | Read the console. The board is drawn again from what was saved before |
-| Open the dashboard note itself to keep the Schedule view | The Schedule's view is switched in an embed, a hover preview or a canvas ([view.ts](../src/obsidian/view.ts), line 136) | Open the dashboard note itself. Until then the choice lasts for this session |
-| Couldn't save the Schedule view | Bases refused to save `schedule:` ([view.ts](../src/obsidian/view.ts), line 132) | Read the console. The choice lasts for this session |
-| Can't complete this repeating note: its repeat or its due date isn't one this plugin knows | A tick on a repeating note, or a drop on Done, when its `repeat` is not one of the forms Ninja Board reads, or its `due` is missing or not a date ([writes.ts](../src/obsidian/writes.ts), line 98) | Fix the `repeat` (for example `every 6 months`) or the `due` (`YYYY-MM-DD`) in the note's frontmatter. Nothing was changed |
-| Changed since: not undone | Undo found that the note, or the saved layout, changed since Ninja Board's step. The step is dropped and nothing is written for it ([undo.ts](../src/obsidian/undo.ts), line 31) | Look at the row again: it is drawn from the note as it now is. A tick that Tasks answered with a recurrence can't be undone, and shows this Notice too. Press Undo again for the step before |
+| Tasks must be on to tick a task | Ticking a line, or setting a line to done from a card, when Tasks has no toggle API: Tasks is off, missing or too old ([writes.ts](../src/obsidian/writes.ts), line 36) | Turn on Tasks, and update it |
+| Tasks gave an answer this plugin can't use | Tasks returned an empty answer, one that isn't a task line, or one that doesn't do what the tick was for: a completing tick with no done line, or a reopening tick that still has one. Nothing is written ([writes.ts](../src/obsidian/writes.ts), line 46) | Try again. Check that Tasks is up to date and its Task Format is Dataview |
+| That task changed — refreshed | The line in the note is no longer the one Ninja Board drew. Nothing is written ([writes.ts](../src/obsidian/writes.ts), line 163) | See [That task changed](#that-task-changed) |
+| Couldn't save that change | A state, plan, deadline or status write failed or threw ([src/obsidian/actions.ts](../src/obsidian/actions.ts), line 97) | Nothing changed. Read the error in the console |
+| Ninja Board couldn't open that note | Opening a note threw an error ([src/obsidian/actions.ts](../src/obsidian/actions.ts), line 47) | Read the error in the console. Check the note still exists |
+| Open the dashboard note itself to arrange this board | A board is dragged or rearranged in an embed, a hover preview or a canvas ([view.ts](../src/obsidian/view.ts), line 142) | Open the dashboard note itself. See [Arranging outside the note](#arranging-outside-the-note) |
+| Couldn't save the arrangement | Bases refused to save the layout ([view.ts](../src/obsidian/view.ts), line 149) | Read the console. The board is drawn again from what was saved before |
+| Open the dashboard note itself to keep the schedule view | The Schedule's view is switched in an embed, a hover preview or a canvas ([view.ts](../src/obsidian/view.ts), line 170) | Open the dashboard note itself. Until then the choice lasts for this session |
+| Couldn't save the schedule view | Bases refused to save `schedule:` ([view.ts](../src/obsidian/view.ts), line 166) | Read the console. The choice lasts for this session |
+| Open the dashboard note itself to keep the waiting view | Waiting's view is switched in an embed, a hover preview or a canvas ([view.ts](../src/obsidian/view.ts), line 191) | Open the dashboard note itself. Until then the choice lasts for this session |
+| Couldn't save the waiting view | Bases refused to save `waiting:` ([view.ts](../src/obsidian/view.ts), line 187) | Read the console. The choice lasts for this session |
+| Open the dashboard note itself to keep stories folded | A story is folded or opened in an embed, a hover preview or a canvas ([view.ts](../src/obsidian/view.ts), line 217). Shown once per view | Open the dashboard note itself. Until then the fold lasts for this session |
+| Couldn't save the folded stories | Bases refused to save `collapsed:` ([view.ts](../src/obsidian/view.ts), line 213). Shown once per view | Read the console. The fold lasts for this session |
+| Can't complete this repeating note: its repeat or its due date isn't one this plugin knows | A tick on a repeating note, or a drop on Done, when its `repeat` is not one of the forms Ninja Board reads, or its `due` is missing or not a date ([writes.ts](../src/obsidian/writes.ts), line 102) | Fix the `repeat` (for example `every 6 months`) or the `due` (`YYYY-MM-DD`) in the note's frontmatter. Nothing was changed |
+| Changed since: not undone | Undo found that the note, or the saved layout, changed since Ninja Board's step. The step is dropped and nothing is written for it ([undo.ts](../src/obsidian/undo.ts), line 36) | Look at the row again: it is drawn from the note as it now is. A tick that Tasks answered with a recurrence can't be undone, and shows this Notice too. Press Undo again for the step before |
 
 ## The views
 
@@ -34,6 +38,10 @@
 1. Turn on the **Bases** core plugin, and reload Obsidian. If Ninja Board has no views at all, the notice at startup says so.
 2. Check the dashboard note's `base` block. Its `views` entry needs a `type` that is one of `ninja-board-today`, `ninja-board-week`, `ninja-board-projects`, `ninja-board-backlog` or `ninja-board-guide`. Any other `type` isn't a Ninja Board view. The keys are in [Database](DATABASE.md#dashboard-notes).
 3. Check the `filters`. Bases decides which notes Ninja Board draws. A note under `10 Archive/` never appears, whatever the filter says.
+
+### A dashboard shows its Properties, or opens for editing
+
+Add `cssclasses: ninja-board` to its frontmatter. A dashboard note with the class is a board page: it shows only its board, and Ninja Board opens it in reading view. Without the class, the note is a plain note, so its Properties and title show. The sample notes write the class as a list, after `created` ([Database](DATABASE.md#board-pages)). Then open the note again: Ninja Board switches a board page to reading view only when it is opened.
 
 ### A task or a card is missing
 
@@ -115,7 +123,7 @@ The Setup check is read-only. It changes no setting.
 
 Run the preview from the repository root with `npm run preview`, then open **http://localhost:8766/preview/**. The page lives under `/preview/`, with the trailing slash. The root address returns 404: the server does not list folders.
 
-- **"sample.json: HTTP 404. Start the preview with npm run preview."** The server isn't running, or it was started from another folder. Start it from the repository root. The message is in [preview.ts](../preview/preview.ts), line 58.
+- **The preview build can't resolve `./sample.json`, or the browser console shows "preview/sample.json is not a list of notes: run npm run preview".** The sample notes are bundled when the preview is built, and `preview/sample.json` is missing or is not a list. Run `npm run preview` from the repository root: it writes the file and builds the preview. The message is in [preview.ts](../preview/preview.ts), line 37.
 - **The server doesn't start.** The three steps of `npm run preview` run one after another with `&&`, so an error in the sample step or the build stops before the server starts. When the build works but the server still doesn't start, the usual cause is that port 8766 is taken. The server then stops with "Port 8766 is already in use." Find what holds the port with `lsof -nP -iTCP:8766 -sTCP:LISTEN`, and stop that process.
 - **403 Forbidden.** The server answers only to `localhost:8766` and `127.0.0.1:8766`, so a page opened under another name, such as a LAN address, gets 403. Open one of those two addresses.
 - **Opening a note does nothing but show a line of text.** That is the preview. It shows "Opens …" in place of opening the note in Obsidian.

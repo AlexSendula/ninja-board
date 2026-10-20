@@ -1,6 +1,6 @@
 # Database
 
-> Last updated: 19 October 2026
+> Last updated: 20 October 2026
 
 ## Overview
 
@@ -8,7 +8,7 @@ Ninja Board has no database. The vault's notes are the data. Ninja Board reads e
 
 The only state Ninja Board saves is layout: a board's order, the Schedule's form, Waiting's view and the stories folded in the Week view, on every week. All of them live in the dashboard note's `base` block (see [Dashboard notes](#dashboard-notes)).
 
-The note format is set by the implementation spec. Its [reference format](https://alexsendula.github.io/second-brain/implementation/) (section 2) defines the fields, the value formats and the task-line format. The **Edits** table in the same section defines every change Ninja Board may make. This page says what Ninja Board reads and writes as built in v1.1.0.
+The note format is set by the implementation spec. Its [reference format](https://alexsendula.github.io/second-brain/implementation/) (section 2) defines the fields, the value formats and the task-line format. The **Edits** table in the same section defines every change Ninja Board may make. This page says what Ninja Board reads and writes as built in v1.1.1.
 
 ## Data flow
 
@@ -39,7 +39,7 @@ Ninja Board reads a note's `type` to decide what it is. A missing or unknown `ty
 
 Notes of the types `commitment`, `conversation`, `person` and `people` are recognised, but no view selects them. The agent uses them.
 
-Ninja Board reads no other frontmatter field. The spec's fields that only the agent uses, such as `length`, `with`, `calendar`, `estimate`, `context`, `source` and `birthday`, pass through untouched. `repeat_from` and `if_missed` are read only when a repeating note is completed (see [Repeating task notes](#repeating-task-notes)).
+Ninja Board reads no other frontmatter field, except `cssclasses`, which it reads from the notes open in a Markdown view to find a board page (see [Board pages](#board-pages)). The spec's fields that only the agent uses, such as `length`, `with`, `calendar`, `estimate`, `context`, `source` and `birthday`, pass through untouched. `repeat_from` and `if_missed` are read only when a repeating note is completed (see [Repeating task notes](#repeating-task-notes)).
 
 Details that matter when reading the data:
 
@@ -159,7 +159,7 @@ The record is specified in the [round-2 design, section 5](design/2026-10-14-bra
 
 ## Dashboard notes
 
-`01 Dashboard/` holds one note per view: `01 Today.md`, `02 Week.md`, `03 Projects.md`, `04 Backlog.md` and `05 Guide.md`. Each note holds a single `base` block. Bases selects the dashboard notes like any other note, but their `type: note` reads as `other`, so no view draws them ([sample-vault/01 Dashboard/02 Week.md](../sample-vault/01%20Dashboard/02%20Week.md)). The keys below are read through Bases' view config, and Bases writes them back into the block.
+`01 Dashboard/` holds one note per view: `01 Today.md`, `02 Week.md`, `03 Projects.md`, `04 Backlog.md` and `05 Guide.md`. Each note holds a single `base` block, and its frontmatter holds `cssclasses: ninja-board`, which makes it a board page (see [Board pages](#board-pages)). Bases selects the dashboard notes like any other note, but their `type: note` reads as `other`, so no view draws them ([sample-vault/01 Dashboard/02 Week.md](../sample-vault/01%20Dashboard/02%20Week.md)). The keys below are read through Bases' view config, and Bases writes them back into the block.
 
 | Key | Where | Value | Read by |
 |---|---|---|---|
@@ -187,8 +187,26 @@ views:
 - **Saving.** Bases writes the whole `base` block back each time, so its formatting and comments are normalised. Ninja Board saves only where Bases can write the block: the dashboard note itself, not an embed, a hover or a canvas ([edits.ts](../src/obsidian/edits.ts), `arrangementPersists`). The README covers what happens elsewhere.
 - **Grouping and sorting.** Ninja Board ignores Bases' own grouping and sorting, and keeps its own order.
 
+### Board pages
+
+A dashboard note whose frontmatter `cssclasses` holds `ninja-board` is a board page. The sample notes write it as a list, after `created`:
+
+```yaml
+---
+type: note
+created: 2026-10-01
+cssclasses:
+  - ninja-board
+---
+```
+
+A board page shows only its board: Obsidian puts the class on the note as it draws it, and the stylesheet hides the Properties and the title ([styles.css](../styles.css), the `.ninja-board` rules). Ninja Board switches a board page to reading view when it opens. A dashboard note without the class is a plain note, and shows its Properties and title.
+
+The class is matched as Obsidian reads it: the key in any case, a list or one string, each item trimmed ([isBoardPage.ts](../src/model/isBoardPage.ts), `isBoardPage`). The check reads the frontmatter from the metadata cache, never the note's text.
+
 ## Other data Ninja Board reads
 
+- **Board pages.** The frontmatter `cssclasses` of each note open in a Markdown view, from the metadata cache, to tell a board page ([boardPages.ts](../src/obsidian/boardPages.ts), `check`). No other key is read for it.
 - **Tasks' settings.** The Guide's setup check reads the Tasks plugin's saved settings, through the plugin's `loadData()`. It uses two values: `taskFormat`, which must be `dataview`, and `statusSettings.customStatuses`, which must hold a status with symbol `w` and type `ON_HOLD` ([model/guide.ts](../src/model/guide.ts), `buildGuide`). Ninja Board never writes Tasks' settings.
 - **Tasks' API.** Ticking a line calls Tasks' `apiV1.executeToggleTaskDoneCommand(line, path)`, which returns the new line text ([writes.ts](../src/obsidian/writes.ts), `toggleViaTasks`).
 - **The config note.** `99 System/config.md` holds the vault's contexts and add-ons, and `points_per_week`, the week's points target (8 when absent). Ninja Board reads its frontmatter from the metadata cache, and a change to the note redraws the views.

@@ -16,15 +16,24 @@ function fakePlugin(ok = true, leaves: { view: { containerEl: { ownerDocument: D
   const commands: { id: string; name: string }[] = [];
   const dom: { el: Document; type: string; cb: KeyListener; opts: unknown }[] = [];
   const opened: ((win: unknown, window: { document: Document }) => void)[] = [];
+  const events: string[] = [];
   const plugin = {
     app: {
       vault: { getFileByPath: () => null },
+      metadataCache: {
+        on: (name: string) => {
+          events.push(name);
+          return {};
+        },
+      },
       workspace: {
         on: (name: string, cb: (win: unknown, window: { document: Document }) => void) => {
+          events.push(name);
           if (name === 'window-open') opened.push(cb);
           return {};
         },
         onLayoutReady: (cb: () => void) => cb(),
+        getLeavesOfType: () => [],
         iterateAllLeaves: (cb: (leaf: unknown) => void) => leaves.forEach(cb),
       },
     },
@@ -42,7 +51,7 @@ function fakePlugin(ok = true, leaves: { view: { containerEl: { ownerDocument: D
   };
   return {
     plugin: plugin as unknown as BrainPlugin & Parameters<typeof registerBrainViews>[0],
-    views, commands, dom,
+    views, commands, dom, events,
     windowOpened: (win: { document: Document }) => opened.forEach((cb) => cb({}, win)),
   };
 }
@@ -78,6 +87,13 @@ test('Open Today with no Today note says so under the plugin name', () => {
   const { plugin } = fakePlugin();
   (BrainPlugin.prototype as unknown as { openToday: () => void }).openToday.call(plugin);
   assert.deepEqual(notices, ["Ninja Board can't find 01 Dashboard/01 Today.md"]);
+});
+
+test('onload watches for the notes that open, so a board page can open read-only', () => {
+  const { plugin, events } = fakePlugin();
+  BrainPlugin.prototype.onload.call(plugin);
+  assert.ok(events.includes('file-open'));
+  assert.ok(events.includes('changed'), 'and for the notes the cache indexes after they opened');
 });
 
 test('the manifest names the plugin Ninja Board, and its id is the folder the plugin installs into', () => {

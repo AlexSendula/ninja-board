@@ -1,12 +1,12 @@
 # Testing
 
-> Last updated: 19 October 2026 (Ninja Board v1.1.0)
+> Last updated: 20 October 2026 (Ninja Board v1.1.1)
 
 ## Overview
 
-From the repository root, `npm test` runs 1268 tests from 97 test files. All 1268 pass. That is the count on 19 October 2026, with Node v24.14.0, in a few seconds. The number changes as tests are added, so run `npm test` for the current count. To run one file, pass its path: `node --test src/model/plan.test.ts` (69 tests at the time of writing). A file that imports `obsidian` needs the hook the script loads first: `node --import ./test/obsidian-hook.mjs --test src/obsidian/writes.test.ts`.
+From the repository root, `npm test` runs 1317 tests from 99 test files. All 1317 pass. That is the count on 20 October 2026, with Node v24.14.0, in a few seconds. The number changes as tests are added, so run `npm test` for the current count. To run one file, pass its path: `node --test src/model/plan.test.ts` (69 tests at the time of writing). A file that imports `obsidian` needs the hook the script loads first: `node --import ./test/obsidian-hook.mjs --test src/obsidian/writes.test.ts`.
 
-`npm run typecheck` is separate, and it also covers the tests. It passed on 19 October 2026 too.
+`npm run typecheck` is separate, and it also covers the tests. It passed on 20 October 2026 too.
 
 ## The runner
 
@@ -20,22 +20,25 @@ From the repository root, `npm test` runs 1268 tests from 97 test files. All 126
 | Where | What it tests | How |
 |---|---|---|
 | `src/model/*.test.ts` | Dates and ISO weeks, task lines, the views' models, planning rules, arrangements, the week record. | Plain `assert` on data. Each function takes `today` as an argument, so the tests fix the date. |
+| `src/model/isBoardPage.test.ts` | The board-page match on a note's frontmatter `cssclasses`: a list or one string holding `ninja-board`, the key in any case, items trimmed. A class with a space in it, a class that only starts with `ninja-board`, and the old singular `cssclass` key are no match. | Plain `assert` on data. |
 | `src/ui/*.test.ts` | The renderers, cards, drag, focus, the keyboard and the list modal. | linkedom DOM. See [The UI tests](#the-ui-tests-linkedom). |
 | `src/obsidian/edits.test.ts` and `edit-cases.test.ts` | The edit rules in [`edits.ts`](../src/obsidian/edits.ts), and the shared examples in [`edit-cases.json`](../test/edit-cases.json). | Node only. `edits.ts` imports nothing from `obsidian` at run time. |
 | `src/obsidian/snapshot.test.ts` | The snapshot builder, with a stand-in vault. A note that cannot be read shows no tasks, and the other notes still show theirs. | Node only. `src/obsidian/snapshot.ts` imports types from `obsidian`. |
 | `src/obsidian/writes.test.ts` | The write path: the stale-line refusal, ticking through Tasks (including `[X]`, and an answer that does not match the tick, which writes nothing), recurrence, planning, deadlines and the frontmatter writes. | Node, with [`test/obsidian-stub.ts`](../test/obsidian-stub.ts) standing in for `obsidian`. |
 | `src/obsidian/view.test.ts` | The view's draw, and the redraws for paging, arranging and the Schedule view, which draw at once while vault events stay debounced. | Node and linkedom, with the stub. |
+| `src/obsidian/boardPages.test.ts` | The board-page switch: a board page opened in source mode goes to reading view inside the `file-open` handler, a tab switch is not an open, a plain note opened from a board page opens for editing, a board page opened from one stays in reading view, and a board page already in reading view is left alone when reading is the default. | Node, with [`test/obsidian-stub.ts`](../test/obsidian-stub.ts) standing in for `obsidian`. |
 | [`test/nodes.test.ts`](../test/nodes.test.ts) | The guard against `assert.equal` or `deepEqual` on a DOM node. See [Known pitfall](#known-pitfall-assertequal-on-linkedom-elements). | Reads the test sources. |
 | [`test/preview.test.ts`](../test/preview.test.ts) | The preview's in-memory writes against the sample vault, and the token list that `checkView()` compares. | Node, with [`preview/memoryWrites.ts`](../preview/memoryWrites.ts). |
 | [`test/previewModal.test.ts`](../test/previewModal.test.ts) | The preview's list and day modals: a carry, Escape, focus. | linkedom. |
-| [`test/sample.test.ts`](../test/sample.test.ts) | The sample vault. It has 46 notes, and the JSON the preview loads builds the same snapshot. | Node. |
+| [`test/sample.test.ts`](../test/sample.test.ts) | The sample vault. It has 46 notes, the five dashboard notes are board pages, and the JSON the preview loads builds the same snapshot. | Node. |
 | [`test/styles.test.ts`](../test/styles.test.ts) | `styles.css` against the mockup. See [The stylesheet test](#the-stylesheet-test). | Reads the two files. |
 | [`test/obsidianDom.test.ts`](../test/obsidianDom.test.ts) | The helpers the views call on every element, `setCssProps` and `setCssStyles`, on HTML and SVG elements. | linkedom, with [`preview/obsidian-dom.ts`](../preview/obsidian-dom.ts). |
-| [`src/ui/host.test.ts`](../src/ui/host.test.ts) | The marks on the notes and embeds a view sits in, at any depth, and their removal when the view unloads. | linkedom. |
+| [`src/ui/host.test.ts`](../src/ui/host.test.ts) | The mark on the base blocks and embeds a view sits in, at any depth, no mark on the note around them, and the mark's removal when the view unloads. | linkedom. |
+| [`test/dashboard-chrome.test.ts`](../test/dashboard-chrome.test.ts) | The board-page rules in `styles.css`: the Properties and the title hide only on `.ninja-board`, and no note-level mark is left in the stylesheet or in [`src/ui/host.ts`](../src/ui/host.ts). | Reads `styles.css` and `host.ts`. |
 | [`test/sandbox.test.ts`](../test/sandbox.test.ts) | [`scripts/sandbox.mjs`](../scripts/sandbox.mjs), in temporary folders only. | Runs the script with a temporary HOME and vault. It also runs `npm run build`, which rewrites `main.js`. |
 | [`test/smoke.test.ts`](../test/smoke.test.ts) | That the `.ts` sources load under type stripping. | Node. |
 
-**What is not tested automatically.** The files in `src/obsidian/`, and `src/main.ts`, that import values from `obsidian` load under Node through [`test/obsidian-stub.ts`](../test/obsidian-stub.ts), which [`test/obsidian-hook.mjs`](../test/obsidian-hook.mjs) puts in place of the package. The stub holds only what the tested code uses at run time (`Notice`, `Modal`, `MarkdownView`, `Platform`, `Plugin`, `BasesView`, `debounce`, `normalizePath`, `parseYaml`, `stringifyYaml`, `TAbstractFile`, `TFile`, `TFolder`). `writes.ts` and `view.ts` have tests. `src/obsidian/actions.ts` has tests too. `main.ts` has a test of its registrations, in `src/main.test.ts`. The `ListModal` and `DayModal` classes and `src/obsidian/guide.ts` have none. Their logic runs through the pure parts they call, and through `preview/memoryWrites.ts` in the preview tests. Obsidian's own behaviour (Bases, Tasks' completion, the metadata cache) is checked by hand in the sandbox vault. The commits record this as "author's hand check". The browser preview and `checkView()` are checked by hand too. The agent's `brain` commands are not in this repository (see [Architecture](./ARCHITECTURE.md)).
+**What is not tested automatically.** The files in `src/obsidian/`, and `src/main.ts`, that import values from `obsidian` load under Node through [`test/obsidian-stub.ts`](../test/obsidian-stub.ts), which [`test/obsidian-hook.mjs`](../test/obsidian-hook.mjs) puts in place of the package. The stub holds only what the tested code uses at run time (`Notice`, `Modal`, `MarkdownView`, `Platform`, `Plugin`, `BasesView`, `debounce`, `normalizePath`, `parseYaml`, `stringifyYaml`, `TAbstractFile`, `TFile`, `TFolder`). `writes.ts`, `view.ts` and `boardPages.ts` have tests. `src/obsidian/actions.ts` has tests too. `main.ts` has a test of its registrations and of the events that board pages need, in `src/main.test.ts`. The `ListModal` and `DayModal` classes and `src/obsidian/guide.ts` have none. Their logic runs through the pure parts they call, and through `preview/memoryWrites.ts` in the preview tests. Obsidian's own behaviour (Bases, Tasks' completion, the metadata cache) is checked by hand in the sandbox vault. The commits record this as "author's hand check". The browser preview and `checkView()` are checked by hand too. The agent's `brain` commands are not in this repository (see [Architecture](./ARCHITECTURE.md)).
 
 ## The sample vault is the test data
 
@@ -92,9 +95,9 @@ For a node itself, [`test/ui.ts`](../test/ui.ts) has two helpers. `absent(el)` a
 
 [`test/styles.test.ts`](../test/styles.test.ts) checks these things about [`styles.css`](../styles.css) and about the sources:
 
-1. **It is the mockup's CSS.** `styles.css` equals the `<style id="brain-css">` block of [`design/mockup.html`](../design/mockup.html) once two differences are removed: the scoping, and the note-context reset. The scoping forms are `.brain-view ` (by descent) and `.brain-view.brain-` (the planner card and the list modal's content, which carry `.brain-view` themselves). The mockup's one-line reset is also taken out of the comparison.
+1. **It is the mockup's CSS.** `styles.css` equals the `<style id="brain-css">` block of [`design/mockup.html`](../design/mockup.html) once two differences are removed: the scoping, and the note-context reset. That reset is the block at the top of `styles.css`, and it also holds the board-page rules, so those are not compared. The scoping forms are `.brain-view ` (by descent) and `.brain-view.brain-` (the planner card and the list modal's content, which carry `.brain-view` themselves). The mockup's one-line reset is also taken out of the comparison.
 2. **No colour literals.** The file must not contain `#hex`, `rgb(`, `rgba(`, `hsl(` or `hsla(`.
-3. **Every selector is scoped.** It is under `.brain-view`, or it is a modal frame (`.brain-modal`, `.brain-day-modal`, or the carry's `.brain-carrying`), or it is keyed to a mark that [`src/ui/host.ts`](../src/ui/host.ts) sets on a note or an embed. The test insists on finding more than 100 selectors, so a broken parser cannot pass by finding none.
+3. **Every selector is scoped.** It is under `.brain-view`, or it is a modal frame (`.brain-modal`, `.brain-day-modal`, or the carry's `.brain-carrying`), or it is keyed to the class a board page carries (`.ninja-board`), or to the mark that [`src/ui/host.ts`](../src/ui/host.ts) sets on a base block or embed. The test insists on finding more than 100 selectors, so a broken parser cannot pass by finding none.
 4. **The scope forms.** The descendant forms `.brain-view .brain-popover` and `.brain-view .brain-modal-body` must not appear. The modal frames are their own classes, with no `:has`.
 5. **The modal layout.** The list and day modals lay their content out as a flex column, so the grid scrolls beneath the search field.
 6. **Obsidian's review rules.** `styles.css` has no `:has`, `!important`, `clip-path`, multicolumn (`column-gap` included, even in grid and flex) or `display: contents`. The Undo button is hidden by `visibility`, never by `display`, so the head keeps its height.
@@ -120,7 +123,7 @@ It works like this ([`preview/preview.ts`](../preview/preview.ts), [`preview/tok
 
 ## Counts
 
-- **Tests:** 1268, from 97 files, all passing (19 October 2026).
+- **Tests:** 1317, from 99 files, all passing (20 October 2026).
 - **Typecheck:** passes.
 - **Sample notes:** 46. [`test/sample.test.ts`](../test/sample.test.ts) asserts this number, so adding a note means changing the test too.
 - **Edit cases:** 139 across eight groups. The Tasks line case is read back, not computed.

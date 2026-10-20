@@ -34,9 +34,17 @@
    Every rule here is scoped under .brain-view so it outranks those; this reset doubles the class to outrank
    them too, and comes first, so the component rules below still win over it. */
 .brain-view.brain-view :where(h2, h3, h4, p, ul, ol, li) { margin: 0; padding: 0; font: inherit; color: inherit; letter-spacing: inherit; list-style: none; position: static; }
-/* A dashboard note, one that shows a Ninja Board view, hides its Properties and its base block's Bases toolbar: Ninja Board's views have
-   their own sorting and grouping. Source mode still shows the block's code to edit. (A note embedding a dashboard hides its own too.) */
-:is(.markdown-source-view, .markdown-preview-view).brain-note-host .metadata-container { display: none; }
+/* Three cases, so that a board page is just the board.
+   A board page, a note whose frontmatter has cssclasses: ninja-board, hides its Properties and its title from the first frame: Obsidian
+   sets the class on the note as it draws it, in editing and in reading view. Obsidian's own rules show Properties through two variables,
+   one for editing and one for reading view, and outrank a display rule here, so the class sets the variables. A board page also opens
+   in reading view (src/obsidian/boardPages.ts).
+   A base block or embed that holds a view hides its Bases toolbar, a board page's own block too: Ninja Board's views have their own
+   sorting and grouping. The block carries a mark for it (brain-embed-host, src/ui/host.ts). Source mode still shows the block's code to edit.
+   A note without the class, one that embeds a dashboard included, shows its own Properties and title. A mark on the note cannot do it:
+   Bases attaches a view to the note after the view has loaded, so the walk up from the view never reached it (Obsidian 1.14.4). */
+.ninja-board { --metadata-display-editing: none; --metadata-display-reading: none; }
+.ninja-board .inline-title { display: none; }
 :is(.block-language-base, .bases-embed).brain-embed-host .bases-header { display: none; }
 .brain-view.brain-view li > :is(ul, ol) { position: static; }            /* Obsidian's indentation guide: */
 .brain-view.brain-view li > :is(ul, ol)::before { content: none; }      /* a line beside a list in a list item */

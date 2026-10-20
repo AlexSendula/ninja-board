@@ -1,6 +1,6 @@
 # Project Overview
 
-> Last updated: 19 October 2026
+> Last updated: 20 October 2026
 
 ## What is Ninja Board?
 
@@ -22,7 +22,7 @@ The author, AlexSendula, keeps a personal second brain in an Obsidian vault and 
 | Backlog & Waiting (`ninja-board-backlog`) | `04 Backlog.md` | The inbox with the age of each item, undated tasks, someday projects, and one tile per person you are waiting on. |
 | Guide (`ninja-board-guide`) | `05 Guide.md` | What the marks mean, how to do things by mouse, touch or keyboard, how to plan, the time words, who does what, and a live check of the Tasks setup. |
 
-Each dashboard note holds one `base` block. Bases' toolbar filters the notes, and Ninja Board keeps its own order.
+Each dashboard note holds one `base` block. The block's filters choose the notes, and Ninja Board keeps its own order.
 
 ## Key features
 
@@ -88,10 +88,10 @@ Anything you can do in Ninja Board, the agent can do with the same result. Every
 ## Status
 
 - **Started:** 13 October 2026, when the design was written. The first code was committed on 14 October 2026.
-- **Version:** 1.1.0 in `manifest.json`, `package.json` and `versions.json`. v0.1.0 was built on 14 October 2026, v0.2.0 on 15 October 2026, v1.0.0 on 16 October 2026, v1.0.1 on 17 October 2026, v1.0.2 on 17 October 2026, v1.0.3 on 18 October 2026, v1.0.4 on 18 October 2026, and v1.1.0 on 19 October 2026.
-- **Stage:** Ninja Board 1.1.0 is the current release. Its changes are listed under 1.1.0 in the [changelog](CHANGELOG.md), dated 19 October 2026.
+- **Version:** 1.1.1 in `manifest.json`, `package.json` and `versions.json`. v0.1.0 was built on 14 October 2026, v0.2.0 on 15 October 2026, v1.0.0 on 16 October 2026, v1.0.1 on 17 October 2026, v1.0.2 on 17 October 2026, v1.0.3 on 18 October 2026, v1.0.4 on 18 October 2026, v1.1.0 on 19 October 2026, and v1.1.1 on 20 October 2026.
+- **Stage:** Ninja Board 1.1.1 is the current release. Its changes are listed under 1.1.1 in the [changelog](CHANGELOG.md), dated 20 October 2026.
 - **Not built yet:** the agent's `brain` commands. The implementation spec defines them, and the shared edit examples pin the edits they must make, but this repository holds no `brain` code.
-- **Release:** Ninja Board 1.1.0 is the latest release, tagged `1.1.0`. From 1.0.1 on, the release workflow builds, attests and publishes each release.
+- **Release:** Ninja Board 1.1.1 is the latest release, tagged `1.1.1`. From 1.0.1 on, the release workflow builds, attests and publishes each release.
 
 ## Related documentation
 
